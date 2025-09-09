@@ -22,11 +22,13 @@ import {
 import { Layout } from '@/components/layout/Layout';
 import { paymentPlansService, PaymentPlanType } from '@/lib/api';
 import { EditPaymentPlanModal } from '@/components/forms/EditPaymentPlanModal';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 export default function PaymentPlanDetailPage() {
   const params = useParams();
   const router = useRouter();
   const planId = parseInt(params.id as string);
+  const { t } = useTranslation('paymentPlans');
 
   const [plan, setPlan] = useState<PaymentPlanType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,14 +49,14 @@ export default function PaymentPlanDetailPage() {
       setLoading(true);
       setError('');
       
-      console.log(`🔍 Chargement du plan de paiement ${planId}...`);
+      console.log(`🔍`, t('planDetail.loadingPlan', { planId }));
       const planData = await paymentPlansService.getPaymentPlanById(planId);
       setPlan(planData);
-      console.log('✅ Plan de paiement chargé:', planData);
+      console.log('✅', t('planDetail.planLoaded'), planData);
       
     } catch (err: any) {
       console.error('Erreur détaillée:', err);
-      setError(`Erreur lors du chargement du plan: ${err.message || 'Erreur inconnue'}`);
+      setError(`${t('planDetail.errorLoading')} ${err.message || 'Erreur inconnue'}`);
     } finally {
       setLoading(false);
     }
@@ -65,11 +67,10 @@ export default function PaymentPlanDetailPage() {
 
     // Confirmation avant suppression avec plus de détails
     const confirmed = window.confirm(
-      `⚠️ ATTENTION - Suppression du plan "${plan.name}"\n\n` +
-      `Cette action est IRRÉVERSIBLE et supprimera :\n` +
-      `• Le plan de paiement "${plan.name}" (ID: ${plan.id})\n` +
-      `• Toutes les configurations liées à ce plan\n\n` +
-      `Êtes-vous ABSOLUMENT SÛR de vouloir continuer ?`
+      `${t('planDetail.deleteConfirmation')} "${plan.name}"\n\n` +
+      `${t('planDetail.deleteConfirmationMessage')}\n` +
+      t('planDetail.deleteConfirmationDetails', { planName: plan.name, planId: plan.id }) + `\n\n` +
+      t('planDetail.deleteConfirmationQuestion')
     );
 
     if (!confirmed) {
@@ -80,7 +81,7 @@ export default function PaymentPlanDetailPage() {
       setDeleting(true);
       setError('');
       
-      console.log(`🔍 Suppression du plan ${plan.name} (ID: ${plan.id})...`);
+      console.log(`🔍`, t('planDetail.deletingPlan', { planName: plan.name, planId: plan.id }));
       await paymentPlansService.deletePaymentPlan(plan.id);
       
       // Rediriger vers la liste des plans
@@ -88,7 +89,7 @@ export default function PaymentPlanDetailPage() {
       
     } catch (err: any) {
       console.error('❌ Erreur lors de la suppression du plan:', err);
-      setError(`❌ Erreur lors de la suppression du plan "${plan.name}": ${err.message || 'Erreur inconnue'}`);
+      setError(`❌ ${t('planDetail.errorDeleting', { planName: plan.name })} ${err.message || 'Erreur inconnue'}`);
     } finally {
       setDeleting(false);
     }
@@ -97,7 +98,7 @@ export default function PaymentPlanDetailPage() {
   const handleEditSuccess = async () => {
     // Rafraîchir les données du plan après modification
     await fetchPaymentPlan();
-    setSuccessMessage('✅ Plan de paiement modifié avec succès');
+    setSuccessMessage(`✅ ${t('planDetail.planUpdated')}`);
     setTimeout(() => setSuccessMessage(''), 5000);
   };
 
@@ -111,11 +112,11 @@ export default function PaymentPlanDetailPage() {
       if (plan.isActive) {
         // Désactiver le plan
         await paymentPlansService.deactivatePaymentPlan(plan.id);
-        setSuccessMessage(`✅ Plan "${plan.name}" désactivé avec succès`);
+        setSuccessMessage(`✅ ${t('planDeactivated', { planName: plan.name })}`);
       } else {
         // Activer le plan
         await paymentPlansService.activatePaymentPlan(plan.id);
-        setSuccessMessage(`✅ Plan "${plan.name}" activé avec succès`);
+        setSuccessMessage(`✅ ${t('planActivated', { planName: plan.name })}`);
       }
 
       // Rafraîchir les données du plan
@@ -123,7 +124,7 @@ export default function PaymentPlanDetailPage() {
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
       console.error('Erreur lors du changement de statut:', err);
-      setError(`Erreur lors du changement de statut: ${err.message || 'Erreur inconnue'}`);
+      setError(`${t('errorTogglingStatus')} ${err.message || 'Erreur inconnue'}`);
     } finally {
       setToggling(false);
     }
@@ -131,12 +132,12 @@ export default function PaymentPlanDetailPage() {
 
   const getBillingCycleLabel = (cycle: string) => {
     const cycleLabels: { [key: string]: string } = {
-      MONTHLY: 'Mensuel',
-      YEARLY: 'Annuel',
-      WEEKLY: 'Hebdomadaire',
-      DAILY: 'Quotidien',
-      QUARTERLY: 'Trimestriel',
-      LIFETIME: 'À vie',
+      MONTHLY: t('billingCycleLabels.MONTHLY'),
+      YEARLY: t('billingCycleLabels.YEARLY'),
+      WEEKLY: t('billingCycleLabels.WEEKLY'),
+      DAILY: t('billingCycleLabels.DAILY'),
+      QUARTERLY: t('billingCycleLabels.QUARTERLY'),
+      LIFETIME: t('billingCycleLabels.LIFETIME'),
     };
     return cycleLabels[cycle] || cycle;
   };
@@ -146,32 +147,32 @@ export default function PaymentPlanDetailPage() {
       MONTHLY: { 
         bg: 'bg-blue-600 dark:bg-blue-500', 
         text: 'text-white', 
-        label: 'Mensuel'
+        label: t('billingCycleLabels.MONTHLY')
       },
       YEARLY: { 
         bg: 'bg-emerald-600 dark:bg-emerald-500', 
         text: 'text-white', 
-        label: 'Annuel'
+        label: t('billingCycleLabels.YEARLY')
       },
       WEEKLY: { 
         bg: 'bg-amber-600 dark:bg-amber-500', 
         text: 'text-white', 
-        label: 'Hebdomadaire'
+        label: t('billingCycleLabels.WEEKLY')
       },
       DAILY: { 
         bg: 'bg-slate-600 dark:bg-slate-500', 
         text: 'text-white', 
-        label: 'Quotidien'
+        label: t('billingCycleLabels.DAILY')
       },
       QUARTERLY: { 
         bg: 'bg-purple-600 dark:bg-purple-500', 
         text: 'text-white', 
-        label: 'Trimestriel'
+        label: t('billingCycleLabels.QUARTERLY')
       },
       LIFETIME: { 
         bg: 'bg-indigo-600 dark:bg-indigo-500', 
         text: 'text-white', 
-        label: 'À vie'
+        label: t('billingCycleLabels.LIFETIME')
       },
     };
 
@@ -219,13 +220,13 @@ export default function PaymentPlanDetailPage() {
                 className="flex items-center text-sm theme-text-secondary hover:theme-text-primary theme-transition mr-4"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Retour aux plans
+                {t('planDetail.backToList')}
               </button>
             </div>
             <div className="text-center py-12">
               <CreditCard className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">Plan non trouvé</h3>
-              <p className="theme-text-secondary theme-transition">{error || 'Le plan demandé n\'existe pas.'}</p>
+              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('planDetail.planNotFound')}</h3>
+              <p className="theme-text-secondary theme-transition">{error || t('planDetail.planNotFoundDescription')}</p>
             </div>
           </div>
         </div>
@@ -246,7 +247,7 @@ export default function PaymentPlanDetailPage() {
                   className="flex items-center text-sm theme-text-secondary hover:theme-text-primary theme-transition mr-6"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Retour aux plans
+                  {t('planDetail.backToList')}
                 </button>
                 <div className="flex items-center">
                   <div className="h-12 w-12 theme-bg-tertiary rounded-lg flex items-center justify-center mr-4 theme-transition">
@@ -254,7 +255,7 @@ export default function PaymentPlanDetailPage() {
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold theme-text-primary theme-transition">{plan.name}</h1>
-                    <p className="theme-text-secondary theme-transition">Détails du plan de paiement</p>
+                    <p className="theme-text-secondary theme-transition">{t('planDetail.description')}</p>
                   </div>
                 </div>
               </div>
@@ -265,14 +266,14 @@ export default function PaymentPlanDetailPage() {
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  Actualiser
+                  {t('planDetail.refresh')}
                 </button>
                 <button 
                   onClick={() => setIsEditModalOpen(true)}
                   className="px-4 py-2 rounded-lg flex items-center bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                 >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Modifier
+                  <Edit className='h-4 w-4 mr-2' />
+                  {t('planDetail.edit')}
                 </button>
                 <button 
                   onClick={handleTogglePlanStatus}
@@ -286,17 +287,17 @@ export default function PaymentPlanDetailPage() {
                   {toggling ? (
                     <>
                       <div className={`animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2`}></div>
-                      {plan?.isActive ? 'Désactivation...' : 'Activation...'}
+                      {plan?.isActive ? t('planDetail.deactivating') : t('planDetail.activating')}
                     </>
                   ) : plan?.isActive ? (
                     <>
-                      <PowerOff className="h-4 w-4 mr-2" />
-                      Désactiver
+                      <PowerOff className='h-4 w-4 mr-2' />
+                      {t('planDetail.deactivate')}
                     </>
                   ) : (
                     <>
-                      <Power className="h-4 w-4 mr-2" />
-                      Activer
+                      <Power className='h-4 w-4 mr-2' />
+                      {t('planDetail.activate')}
                     </>
                   )}
                 </button>
@@ -308,12 +309,12 @@ export default function PaymentPlanDetailPage() {
                   {deleting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Suppression...
+                      {t('planDetail.deleting')}
                     </>
                   ) : (
                     <>
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Supprimer
+                      {t('planDetail.delete')}
                     </>
                   )}
                 </button>
@@ -362,7 +363,7 @@ export default function PaymentPlanDetailPage() {
               {/* Informations de base */}
               <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition">
                 <div className="px-6 py-4 border-b theme-border-primary">
-                  <h2 className="text-lg font-semibold theme-text-primary theme-transition">Informations de base</h2>
+                  <h2 className="text-lg font-semibold theme-text-primary theme-transition">{t('planDetail.basicInfo')}</h2>
                 </div>
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -371,7 +372,7 @@ export default function PaymentPlanDetailPage() {
                         <CreditCard className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-sm theme-text-secondary theme-transition">Nom du plan</p>
+                        <p className="text-sm theme-text-secondary theme-transition">{t('planDetail.planName')}</p>
                         <p className="font-medium theme-text-primary theme-transition">{plan.name}</p>
                       </div>
                     </div>
@@ -380,7 +381,7 @@ export default function PaymentPlanDetailPage() {
                         <DollarSign className="h-5 w-5 text-green-600" />
                       </div>
                       <div>
-                        <p className="text-sm theme-text-secondary theme-transition">Prix</p>
+                        <p className="text-sm theme-text-secondary theme-transition">{t('planDetail.planPrice')}</p>
                         <p className="font-medium theme-text-primary theme-transition">{formatPrice(plan.price, plan.currency)}</p>
                       </div>
                     </div>
@@ -389,7 +390,7 @@ export default function PaymentPlanDetailPage() {
                         <Calendar className="h-5 w-5 text-purple-600" />
                       </div>
                       <div>
-                        <p className="text-sm theme-text-secondary theme-transition">Cycle de facturation</p>
+                        <p className="text-sm theme-text-secondary theme-transition">{t('planDetail.planBillingCycle')}</p>
                         <div className="mt-1">{getBillingCycleBadge(plan.billingCycle)}</div>
                       </div>
                     </div>
@@ -398,7 +399,7 @@ export default function PaymentPlanDetailPage() {
                         <Settings className="h-5 w-5 text-orange-600" />
                       </div>
                       <div>
-                        <p className="text-sm theme-text-secondary theme-transition">Limite de requêtes</p>
+                        <p className="text-sm theme-text-secondary theme-transition">{t('planDetail.planRequestLimit')}</p>
                         <p className="font-medium theme-text-primary theme-transition">{plan.requestLimit.toLocaleString()}</p>
                       </div>
                     </div>
@@ -409,7 +410,7 @@ export default function PaymentPlanDetailPage() {
               {/* Fonctionnalités */}
               <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition">
                 <div className="px-6 py-4 border-b theme-border-primary">
-                  <h2 className="text-lg font-semibold theme-text-primary theme-transition">Fonctionnalités</h2>
+                  <h2 className="text-lg font-semibold theme-text-primary theme-transition">{t('planDetail.planFeatures')}</h2>
                 </div>
                 <div className="p-6">
                   {plan.features.length > 0 ? (
@@ -422,7 +423,7 @@ export default function PaymentPlanDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm theme-text-secondary theme-transition">Aucune fonctionnalité définie</p>
+                    <p className="text-sm theme-text-secondary theme-transition">{t('planDetail.noFeatures')}</p>
                   )}
                 </div>
               </div>
@@ -433,41 +434,41 @@ export default function PaymentPlanDetailPage() {
               {/* Statut */}
               <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition">
                 <div className="px-6 py-4 border-b theme-border-primary">
-                  <h2 className="text-lg font-semibold theme-text-primary theme-transition">Statut</h2>
+                  <h2 className="text-lg font-semibold theme-text-primary theme-transition">{t('planDetail.planStatus')}</h2>
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm theme-text-secondary theme-transition">État du plan</span>
+                    <span className="text-sm theme-text-secondary theme-transition">{t('planDetail.planStatus')}</span>
                     {plan.isActive ? (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                         <Check className="h-3 w-3 mr-1" />
-                        Actif
+                        {t('active')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                         <X className="h-3 w-3 mr-1" />
-                        Inactif
+                        {t('inactive')}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm theme-text-secondary theme-transition">Plan par défaut</span>
+                    <span className="text-sm theme-text-secondary theme-transition">{t('planDetail.planType')}</span>
                     {plan.isDefault ? (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                         <Check className="h-3 w-3 mr-1" />
-                        Oui
+                        {t('yes')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
                         <X className="h-3 w-3 mr-1" />
-                        Non
+                        {t('no')}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm theme-text-secondary theme-transition">Période d'essai</span>
+                    <span className="text-sm theme-text-secondary theme-transition">{t('planDetail.planTrialDays')}</span>
                     <span className="text-sm font-medium theme-text-primary theme-transition">
-                      {plan.trialDays} jour{plan.trialDays > 1 ? 's' : ''}
+                      {plan.trialDays} {plan.trialDays > 1 ? t('days') : t('day')}
                     </span>
                   </div>
                 </div>
@@ -476,7 +477,7 @@ export default function PaymentPlanDetailPage() {
               {/* Métadonnées */}
               <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition">
                 <div className="px-6 py-4 border-b theme-border-primary">
-                  <h2 className="text-lg font-semibold theme-text-primary theme-transition">Métadonnées</h2>
+                  <h2 className="text-lg font-semibold theme-text-primary theme-transition">{t('planDetail.metadata')}</h2>
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="flex items-center">
@@ -484,7 +485,7 @@ export default function PaymentPlanDetailPage() {
                       <User className="h-4 w-4 text-gray-600" />
                     </div>
                     <div>
-                      <p className="text-sm theme-text-secondary theme-transition">Créé par</p>
+                      <p className="text-sm theme-text-secondary theme-transition">{t('planDetail.createdBy')}</p>
                       <p className="font-medium theme-text-primary theme-transition">{plan.createdBy}</p>
                     </div>
                   </div>
@@ -493,7 +494,7 @@ export default function PaymentPlanDetailPage() {
                       <Clock className="h-4 w-4 text-gray-600" />
                     </div>
                     <div>
-                      <p className="text-sm theme-text-secondary theme-transition">Créé le</p>
+                      <p className="text-sm theme-text-secondary theme-transition">{t('planDetail.createdAt')}</p>
                       <p className="font-medium theme-text-primary theme-transition">{formatDate(plan.createdAt)}</p>
                     </div>
                   </div>
@@ -503,7 +504,7 @@ export default function PaymentPlanDetailPage() {
                         <User className="h-4 w-4 text-gray-600" />
                       </div>
                       <div>
-                        <p className="text-sm theme-text-secondary theme-transition">Modifié par</p>
+                        <p className="text-sm theme-text-secondary theme-transition">{t('planDetail.updatedBy')}</p>
                         <p className="font-medium theme-text-primary theme-transition">{plan.updatedBy}</p>
                       </div>
                     </div>
@@ -513,7 +514,7 @@ export default function PaymentPlanDetailPage() {
                       <Clock className="h-4 w-4 text-gray-600" />
                     </div>
                     <div>
-                      <p className="text-sm theme-text-secondary theme-transition">Modifié le</p>
+                      <p className="text-sm theme-text-secondary theme-transition">{t('planDetail.updatedAt')}</p>
                       <p className="font-medium theme-text-primary theme-transition">{formatDate(plan.updatedAt)}</p>
                     </div>
                   </div>

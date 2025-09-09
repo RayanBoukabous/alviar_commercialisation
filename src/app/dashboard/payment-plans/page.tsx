@@ -23,10 +23,12 @@ import { Layout } from '@/components/layout/Layout';
 import { paymentPlansService, PaymentPlanType } from '@/lib/api';
 import { CreatePaymentPlanModal } from '@/components/forms/CreatePaymentPlanModal';
 import { EditPaymentPlanModal } from '@/components/forms/EditPaymentPlanModal';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 export default function PaymentPlansPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const router = useRouter();
+  const { t } = useTranslation('paymentPlans');
   const [paymentPlans, setPaymentPlans] = useState<PaymentPlanType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -48,16 +50,16 @@ export default function PaymentPlansPage() {
         setLoading(true);
         setError('');
         
-        console.log('🔍 Chargement des plans de paiement depuis l\'API...');
+        console.log('🔍', t('loadingPlans'));
         const plansData = showActiveOnly 
           ? await paymentPlansService.getActivePaymentPlans()
           : await paymentPlansService.getAllPaymentPlans();
         setPaymentPlans(plansData);
-        console.log('✅ Plans de paiement chargés:', plansData);
+        console.log('✅', t('plansLoaded'), plansData);
         
       } catch (err: any) {
         console.error('Erreur détaillée:', err);
-        setError(`Erreur lors du chargement des plans de paiement: ${err.message || 'Erreur inconnue'}`);
+        setError(`${t('errorLoadingPlans')} ${err.message || 'Erreur inconnue'}`);
         setPaymentPlans([]);
       } finally {
         setLoading(false);
@@ -88,7 +90,7 @@ export default function PaymentPlansPage() {
       setRefreshing(true);
       setError('');
       
-      console.log('🔄 Rafraîchissement des plans de paiement...');
+      console.log('🔄', t('refreshingPlans'));
       const [plansData, allPlans, activePlans] = await Promise.all([
         showActiveOnly 
           ? paymentPlansService.getActivePaymentPlans()
@@ -100,11 +102,11 @@ export default function PaymentPlansPage() {
       setPaymentPlans(plansData);
       setAllPlansCount(allPlans.length);
       setActivePlansCount(activePlans.length);
-      console.log('✅ Plans de paiement rafraîchis:', plansData);
+      console.log('✅', t('plansRefreshed'), plansData);
       
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement:', err);
-      setError(`Erreur lors du rafraîchissement des plans de paiement: ${err.message || 'Erreur inconnue'}`);
+      setError(`${t('errorRefreshingPlans')} ${err.message || 'Erreur inconnue'}`);
       setPaymentPlans([]);
     } finally {
       setRefreshing(false);
@@ -114,11 +116,10 @@ export default function PaymentPlansPage() {
   const handleDeletePlan = async (planId: number, planName: string) => {
     // Confirmation avant suppression avec plus de détails
     const confirmed = window.confirm(
-      `⚠️ ATTENTION - Suppression du plan "${planName}"\n\n` +
-      `Cette action est IRRÉVERSIBLE et supprimera :\n` +
-      `• Le plan de paiement "${planName}" (ID: ${planId})\n` +
-      `• Toutes les configurations liées à ce plan\n\n` +
-      `Êtes-vous ABSOLUMENT SÛR de vouloir continuer ?`
+      `${t('deleteConfirmation')} "${planName}"\n\n` +
+      `${t('deleteConfirmationMessage')}\n` +
+      t('deleteConfirmationDetails', { planName, planId }) + `\n\n` +
+      t('deleteConfirmationQuestion')
     );
 
     if (!confirmed) {
@@ -129,20 +130,20 @@ export default function PaymentPlansPage() {
       setDeletingPlanId(planId);
       setError('');
       
-      console.log(`🔍 Suppression du plan ${planName} (ID: ${planId})...`);
+      console.log(`🔍`, t('deletingPlan', { planName, planId }));
       await paymentPlansService.deletePaymentPlan(planId);
       
       // Supprimer le plan de la liste locale
       setPaymentPlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(`✅ Plan "${planName}" supprimé avec succès`);
+      setSuccessMessage(`✅ ${t('planDeletedSuccess', { planName })}`);
       setTimeout(() => setSuccessMessage(''), 5000);
       
-      console.log(`✅ Plan ${planName} supprimé avec succès`);
+      console.log(`✅`, t('planDeletedSuccess', { planName }));
     } catch (err: any) {
       console.error('❌ Erreur lors de la suppression du plan:', err);
-      setError(`❌ Erreur lors de la suppression du plan "${planName}": ${err.message || 'Erreur inconnue'}`);
+      setError(`❌ ${t('errorDeletingPlan', { planName })} ${err.message || 'Erreur inconnue'}`);
     } finally {
       setDeletingPlanId(null);
     }
@@ -163,7 +164,7 @@ export default function PaymentPlansPage() {
       setPaymentPlans(plansData);
       setAllPlansCount(allPlans.length);
       setActivePlansCount(activePlans.length);
-      setSuccessMessage('✅ Plan de paiement créé avec succès');
+      setSuccessMessage(`✅ ${t('planCreated')}`);
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement après création:', err);
@@ -191,7 +192,7 @@ export default function PaymentPlansPage() {
       setPaymentPlans(plansData);
       setAllPlansCount(allPlans.length);
       setActivePlansCount(activePlans.length);
-      setSuccessMessage('✅ Plan de paiement modifié avec succès');
+      setSuccessMessage(`✅ ${t('planUpdated')}`);
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement après modification:', err);
@@ -211,11 +212,11 @@ export default function PaymentPlansPage() {
       if (plan.isActive) {
         // Désactiver le plan
         await paymentPlansService.deactivatePaymentPlan(plan.id);
-        setSuccessMessage(`✅ Plan "${plan.name}" désactivé avec succès`);
+        setSuccessMessage(`✅ ${t('planDeactivated', { planName: plan.name })}`);
       } else {
         // Activer le plan
         await paymentPlansService.activatePaymentPlan(plan.id);
-        setSuccessMessage(`✅ Plan "${plan.name}" activé avec succès`);
+        setSuccessMessage(`✅ ${t('planActivated', { planName: plan.name })}`);
       }
 
       // Rafraîchir la liste des plans
@@ -234,7 +235,7 @@ export default function PaymentPlansPage() {
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
       console.error('Erreur lors du changement de statut:', err);
-      setError(`Erreur lors du changement de statut: ${err.message || 'Erreur inconnue'}`);
+      setError(`${t('errorTogglingStatus')} ${err.message || 'Erreur inconnue'}`);
     } finally {
       setTogglingPlanId(null);
     }
@@ -253,32 +254,32 @@ export default function PaymentPlansPage() {
       MONTHLY: { 
         bg: 'bg-slate-100 dark:bg-slate-700', 
         text: 'text-slate-800 dark:text-slate-200', 
-        label: 'Mensuel'
+        label: t('billingCycleLabels.MONTHLY')
       },
       QUARTERLY: { 
         bg: 'bg-zinc-100 dark:bg-zinc-700', 
         text: 'text-zinc-800 dark:text-zinc-200', 
-        label: 'Trimestriel'
+        label: t('billingCycleLabels.QUARTERLY')
       },
       YEARLY: { 
         bg: 'bg-stone-100 dark:bg-stone-700', 
         text: 'text-stone-800 dark:text-stone-200', 
-        label: 'Annuel'
+        label: t('billingCycleLabels.YEARLY')
       },
       LIFETIME: { 
         bg: 'bg-neutral-100 dark:bg-neutral-700', 
         text: 'text-neutral-800 dark:text-neutral-200', 
-        label: 'À vie'
+        label: t('billingCycleLabels.LIFETIME')
       },
       WEEKLY: { 
         bg: 'bg-gray-100 dark:bg-gray-700', 
         text: 'text-gray-800 dark:text-gray-200', 
-        label: 'Hebdomadaire'
+        label: t('billingCycleLabels.WEEKLY')
       },
       DAILY: { 
         bg: 'bg-slate-50 dark:bg-slate-800', 
         text: 'text-slate-700 dark:text-slate-300', 
-        label: 'Quotidien'
+        label: t('billingCycleLabels.DAILY')
       },
     };
 
@@ -330,9 +331,9 @@ export default function PaymentPlansPage() {
               <div>
                 <h1 className="text-2xl font-bold flex items-center theme-text-primary theme-transition">
                   <CreditCard className="h-7 w-7 mr-3 text-blue-600" />
-                  Payment Plans
+                  {t('pageTitle')}
                 </h1>
-                <p className="mt-1 theme-text-secondary theme-transition">Gérez les plans de paiement</p>
+                <p className="mt-1 theme-text-secondary theme-transition">{t('pageDescription')}</p>
               </div>
               <div className="flex items-center space-x-3">
                 <button 
@@ -341,14 +342,14 @@ export default function PaymentPlansPage() {
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                  Rafraîchir
+                  {t('refresh')}
                 </button>
                 <button 
                   onClick={() => setIsCreateModalOpen(true)}
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Nouveau Plan
+                  {t('newPlan')}
                 </button>
               </div>
             </div>
@@ -363,7 +364,7 @@ export default function PaymentPlansPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition" />
                 <input
                   type="text"
-                  placeholder="Rechercher un plan..."
+                  placeholder={t('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
@@ -380,7 +381,7 @@ export default function PaymentPlansPage() {
                       : 'theme-text-tertiary hover:theme-text-primary'
                   }`}
                 >
-                  <span>Tous les plans</span>
+                  <span>{t('allPlans')}</span>
                   <span className={`px-2 py-0.5 text-xs rounded-full ${
                     !showActiveOnly
                       ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
@@ -397,7 +398,7 @@ export default function PaymentPlansPage() {
                       : 'theme-text-tertiary hover:theme-text-primary'
                   }`}
                 >
-                  <span>Plans actifs</span>
+                  <span>{t('activePlans')}</span>
                   <span className={`px-2 py-0.5 text-xs rounded-full ${
                     showActiveOnly
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
@@ -460,25 +461,25 @@ export default function PaymentPlansPage() {
                   <thead className="theme-bg-secondary theme-transition">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Plan
+                        {t('plan')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Prix
+                        {t('price')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Cycle
+                        {t('cycle')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Limite
+                        {t('limit')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Statut
+                        {t('status')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        ID
+                        {t('id')}
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Actions
+                        {t('actions')}
                       </th>
                     </tr>
                   </thead>
@@ -493,7 +494,7 @@ export default function PaymentPlansPage() {
                             <div className="ml-4">
                               <div className="text-sm font-medium theme-text-primary theme-transition">{plan.name}</div>
                               <div className="text-sm theme-text-secondary theme-transition">
-                                {plan.isDefault ? 'Plan par défaut' : 'Plan personnalisé'}
+                                {plan.isDefault ? t('defaultPlan') : t('customPlan')}
                               </div>
                             </div>
                           </div>
@@ -503,7 +504,7 @@ export default function PaymentPlansPage() {
                             {formatPrice(plan.price, plan.currency)}
                           </div>
                           <div className="text-sm theme-text-secondary theme-transition">
-                            {plan.trialDays > 0 ? `${plan.trialDays} jours d'essai` : 'Aucun essai'}
+                            {plan.trialDays > 0 ? t('trialDays', { count: plan.trialDays }) : t('noTrial')}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -511,7 +512,7 @@ export default function PaymentPlansPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm theme-text-primary theme-transition">
-                            {plan.requestLimit.toLocaleString()} requêtes
+                            {plan.requestLimit.toLocaleString()} {t('requests')}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -519,12 +520,12 @@ export default function PaymentPlansPage() {
                             {plan.isActive ? (
                               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 theme-transition">
                                 <Check className="h-3 w-3 mr-1.5" />
-                                Actif
+                                {t('active')}
                               </span>
                             ) : (
                               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 theme-transition">
                                 <X className="h-3 w-3 mr-1.5" />
-                                Inactif
+                                {t('inactive')}
                               </span>
                             )}
                           </div>
@@ -539,14 +540,14 @@ export default function PaymentPlansPage() {
                             <button 
                               onClick={() => handleViewPlan(plan)}
                               className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
-                              title={`Voir les détails du plan "${plan.name}"`}
+                              title={`${t('viewPlanDetails')} "${plan.name}"`}
                             >
                               <Eye className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handleEditPlan(plan)}
                               className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
-                              title={`Modifier le plan "${plan.name}"`}
+                              title={`${t('editPlan')} "${plan.name}"`}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
@@ -558,7 +559,7 @@ export default function PaymentPlansPage() {
                                   ? 'theme-text-tertiary hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20' 
                                   : 'theme-text-tertiary hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
                               }`}
-                              title={plan.isActive ? `Désactiver le plan "${plan.name}"` : `Activer le plan "${plan.name}"`}
+                              title={plan.isActive ? `${t('deactivatePlan')} "${plan.name}"` : `${t('activatePlan')} "${plan.name}"`}
                             >
                               {togglingPlanId === plan.id ? (
                                 <div className={`w-4 h-4 border-2 border-t-2 rounded-full animate-spin ${
@@ -574,7 +575,7 @@ export default function PaymentPlansPage() {
                               onClick={() => handleDeletePlan(plan.id, plan.name)}
                               disabled={deletingPlanId === plan.id}
                               className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                              title={`Supprimer le plan "${plan.name}"`}
+                              title={`${t('deletePlan')} "${plan.name}"`}
                             >
                               {deletingPlanId === plan.id ? (
                                 <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -595,12 +596,12 @@ export default function PaymentPlansPage() {
               <div className="text-center py-12">
                 <CreditCard className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
                 <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">
-                  {showActiveOnly ? 'Aucun plan actif trouvé' : 'Aucun plan trouvé'}
+                  {showActiveOnly ? t('noActivePlansFound') : t('noPlansFound')}
                 </h3>
                 <p className="theme-text-secondary theme-transition">
                   {showActiveOnly 
-                    ? 'Aucun plan de paiement actif ne correspond à votre recherche.' 
-                    : 'Commencez par créer votre premier plan de paiement.'
+                    ? t('noActivePlansDescription')
+                    : t('noPlansDescription')
                   }
                 </p>
               </div>

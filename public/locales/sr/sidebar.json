@@ -1,0 +1,14 @@
+{
+    "dashboard": "Kontrolna tabla",
+    "clients": "Klijenti",
+    "configurations": "Konfiguracije",
+    "users": "Korisnici",
+    "admin": "Administrator",
+    "user": "Korisnik",
+    "roles_permissions": "Uloge i dozvole",
+    "roles": "Uloge",
+    "permissions": "Dozvole",
+    "payment_plans": "Planovi plaćanja",
+    "version": "Verzija 1.0.0",
+    "developed_by": "Razvijeno od strane AIUNIVERS"
+}

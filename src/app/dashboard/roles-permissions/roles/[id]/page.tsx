@@ -21,11 +21,13 @@ import { RolesService } from '@/lib/api/rolesService';
 import { Role } from '@/types';
 import { useRequireAuth } from '@/lib/hooks/useAuth';
 import { EditRoleModal } from '@/components/forms/EditRoleModal';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 export default function RoleDetailPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const router = useRouter();
   const params = useParams();
+  const { t } = useTranslation('roles');
   const roleId = parseInt(params.id as string);
 
   const [role, setRole] = useState<Role | null>(null);
@@ -37,7 +39,7 @@ export default function RoleDetailPage() {
   useEffect(() => {
     const fetchRole = async () => {
       if (!roleId || isNaN(roleId)) {
-        setError('ID de rôle invalide');
+        setError(t('roleDetail.invalidRoleId'));
         setLoading(false);
         return;
       }
@@ -46,14 +48,14 @@ export default function RoleDetailPage() {
         setLoading(true);
         setError('');
         
-        console.log(`🔍 Chargement du rôle ${roleId} depuis l'API...`);
+        console.log(`🔍`, t('roleDetail.loadingRole', { roleId }));
         const roleData = await RolesService.getRoleById(roleId);
         setRole(roleData);
-        console.log('✅ Rôle chargé:', roleData);
+        console.log('✅', t('roleDetail.roleLoaded'), roleData);
         
       } catch (err: any) {
         console.error('Erreur détaillée:', err);
-        setError(`Erreur lors du chargement du rôle: ${err.message || 'Erreur inconnue'}`);
+        setError(`${t('roleDetail.errorLoading')} ${err.message || 'Erreur inconnue'}`);
         setRole(null);
       } finally {
         setLoading(false);
@@ -72,14 +74,14 @@ export default function RoleDetailPage() {
       setRefreshing(true);
       setError('');
       
-      console.log(`🔄 Rafraîchissement du rôle ${roleId}...`);
+      console.log(`🔄`, t('roleDetail.refreshingRole', { roleId }));
       const roleData = await RolesService.getRoleById(roleId);
       setRole(roleData);
-      console.log('✅ Rôle rafraîchi:', roleData);
+      console.log('✅', t('roleDetail.roleRefreshed'), roleData);
       
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement:', err);
-      setError(`Erreur lors du rafraîchissement du rôle: ${err.message || 'Erreur inconnue'}`);
+      setError(`${t('roleDetail.errorRefreshing')} ${err.message || 'Erreur inconnue'}`);
     } finally {
       setRefreshing(false);
     }
@@ -98,12 +100,15 @@ export default function RoleDetailPage() {
     if (!role) return;
 
     const confirmed = window.confirm(
-      `⚠️ ATTENTION - Suppression du rôle "${role.name}"\n\n` +
-      `Cette action est IRRÉVERSIBLE et supprimera :\n` +
-      `• Le rôle "${role.name}" (ID: ${role.id})\n` +
-      `• Toutes les permissions associées (${role.permissions?.length || 0} permissions)\n` +
-      `• L'accès de tous les utilisateurs ayant ce rôle (${role.admins?.length || 0} administrateurs)\n\n` +
-      `Êtes-vous ABSOLUMENT SÛR de vouloir continuer ?`
+      `${t('roleDetail.deleteConfirmation')} "${role.name}"\n\n` +
+      `${t('roleDetail.deleteConfirmationMessage')}\n` +
+      t('roleDetail.deleteConfirmationDetails', { 
+        roleName: role.name, 
+        roleId: role.id, 
+        permissionCount: role.permissions?.length || 0,
+        adminCount: role.admins?.length || 0
+      }) + `\n\n` +
+      t('roleDetail.deleteConfirmationQuestion')
     );
 
     if (!confirmed) {
@@ -112,17 +117,17 @@ export default function RoleDetailPage() {
 
     try {
       setError('');
-      console.log(`🔍 Suppression du rôle ${role.name} (ID: ${role.id})...`);
+      console.log(`🔍`, t('roleDetail.deletingRole', { roleName: role.name, roleId: role.id }));
       await RolesService.deleteRole(role.id);
       
-      console.log(`✅ Rôle ${role.name} supprimé avec succès`);
+      console.log(`✅`, t('roleDetail.roleDeleted', { roleName: role.name }));
       
       // Rediriger vers la liste des rôles
       router.push('/dashboard/roles-permissions/roles');
       
     } catch (err: any) {
       console.error('❌ Erreur lors de la suppression du rôle:', err);
-      setError(`❌ Erreur lors de la suppression du rôle "${role.name}": ${err.message || 'Erreur inconnue'}`);
+      setError(`❌ ${t('roleDetail.errorDeleting', { roleName: role.name })} ${err.message || 'Erreur inconnue'}`);
     }
   };
 
@@ -161,27 +166,27 @@ export default function RoleDetailPage() {
       manage: { 
         bg: 'bg-blue-500 dark:bg-blue-600', 
         text: 'text-white', 
-        label: 'Gérer'
+        label: t('roleDetail.manage')
       },
       read: { 
         bg: 'bg-green-500 dark:bg-green-600', 
         text: 'text-white', 
-        label: 'Lire'
+        label: t('roleDetail.read')
       },
       create: { 
         bg: 'bg-purple-500 dark:bg-purple-600', 
         text: 'text-white', 
-        label: 'Créer'
+        label: t('roleDetail.create')
       },
       update: { 
         bg: 'bg-orange-500 dark:bg-orange-600', 
         text: 'text-white', 
-        label: 'Modifier'
+        label: t('roleDetail.update')
       },
       delete: { 
         bg: 'bg-red-500 dark:bg-red-600', 
         text: 'text-white', 
-        label: 'Supprimer'
+        label: t('roleDetail.deleteAction')
       },
     };
 
@@ -214,7 +219,7 @@ export default function RoleDetailPage() {
                 <div className="flex items-center">
                   <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
                   <div>
-                    <h3 className="text-lg font-medium text-red-800">Erreur</h3>
+                    <h3 className="text-lg font-medium text-red-800">{t('roleDetail.error')}</h3>
                     <p className="text-red-700 mt-1">{error}</p>
                   </div>
                 </div>
@@ -223,7 +228,7 @@ export default function RoleDetailPage() {
                     onClick={() => router.push('/dashboard/roles-permissions/roles')}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                   >
-                    Retour à la liste
+                    {t('roleDetail.backToList')}
                   </button>
                 </div>
               </div>
@@ -242,13 +247,13 @@ export default function RoleDetailPage() {
             <div className="max-w-4xl mx-auto">
               <div className="text-center">
                 <Shield className="h-12 w-12 mx-auto mb-4 theme-text-tertiary" />
-                <h3 className="text-lg font-medium mb-2 theme-text-primary">Rôle non trouvé</h3>
-                <p className="theme-text-secondary">Le rôle demandé n'existe pas ou a été supprimé.</p>
+                <h3 className="text-lg font-medium mb-2 theme-text-primary">{t('roleDetail.roleNotFound')}</h3>
+                <p className="theme-text-secondary">{t('roleDetail.roleNotFoundDescription')}</p>
                 <button
                   onClick={() => router.push('/dashboard/roles-permissions/roles')}
                   className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Retour à la liste
+                  {t('roleDetail.backToList')}
                 </button>
               </div>
             </div>
@@ -279,7 +284,7 @@ export default function RoleDetailPage() {
                     <Shield className="h-7 w-7 mr-3 text-blue-600" />
                     {role.name}
                   </h1>
-                  <p className="mt-1 theme-text-secondary theme-transition">Détails du rôle et permissions</p>
+                  <p className="mt-1 theme-text-secondary theme-transition">{t('roleDetail.description')}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
@@ -289,21 +294,21 @@ export default function RoleDetailPage() {
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                  Rafraîchir
+                  {t('roleDetail.refresh')}
                 </button>
                 <button 
                   onClick={handleEditRole}
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <Edit className="h-4 w-4 mr-2" />
-                  Modifier
+                  {t('roleDetail.edit')}
                 </button>
                 <button 
                   onClick={handleDeleteRole}
                   className="px-4 py-2 rounded-lg flex items-center bg-red-600 hover:bg-red-700 text-white theme-transition focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer
+                  {t('roleDetail.delete')}
                 </button>
               </div>
             </div>
@@ -322,7 +327,7 @@ export default function RoleDetailPage() {
                     <Key className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium theme-text-tertiary theme-transition">Permissions</p>
+                    <p className="text-sm font-medium theme-text-tertiary theme-transition">{t('roleDetail.permissions')}</p>
                     <p className="text-2xl font-bold theme-text-primary theme-transition">{role.permissions?.length || 0}</p>
                   </div>
                 </div>
@@ -334,7 +339,7 @@ export default function RoleDetailPage() {
                     <Users className="h-6 w-6 text-green-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium theme-text-tertiary theme-transition">Administrateurs</p>
+                    <p className="text-sm font-medium theme-text-tertiary theme-transition">{t('roleDetail.administrators')}</p>
                     <p className="text-2xl font-bold theme-text-primary theme-transition">{role.admins?.length || 0}</p>
                   </div>
                 </div>
@@ -346,7 +351,7 @@ export default function RoleDetailPage() {
                     <Shield className="h-6 w-6 text-purple-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium theme-text-tertiary theme-transition">ID du rôle</p>
+                    <p className="text-sm font-medium theme-text-tertiary theme-transition">{t('roleDetail.roleId')}</p>
                     <p className="text-2xl font-bold theme-text-primary theme-transition">#{role.id}</p>
                   </div>
                 </div>
@@ -358,7 +363,7 @@ export default function RoleDetailPage() {
               <div className="px-6 py-4 border-b theme-border-primary">
                 <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
                   <Users className="h-5 w-5 mr-2 text-green-600" />
-                  Administrateurs ({role.admins?.length || 0})
+                  {t('roleDetail.administrators')} ({role.admins?.length || 0})
                 </h2>
               </div>
               <div className="p-6">
@@ -384,7 +389,7 @@ export default function RoleDetailPage() {
                 ) : (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-                    <p className="theme-text-secondary theme-transition">Aucun administrateur assigné à ce rôle</p>
+                    <p className="theme-text-secondary theme-transition">{t('roleDetail.noAdminsAssigned')}</p>
                   </div>
                 )}
               </div>
@@ -395,7 +400,7 @@ export default function RoleDetailPage() {
               <div className="px-6 py-4 border-b theme-border-primary">
                 <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
                   <Key className="h-5 w-5 mr-2 text-blue-600" />
-                  Permissions ({role.permissions?.length || 0})
+                  {t('roleDetail.permissions')} ({role.permissions?.length || 0})
                 </h2>
               </div>
               <div className="p-6">

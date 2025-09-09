@@ -3,6 +3,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { NavItem } from '@/types';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { 
   Home, 
   Users, 
@@ -20,40 +22,41 @@ interface SidebarProps {
   className?: string;
 }
 
-const navigationItems: NavItem[] = [
+// Fonction pour créer les éléments de navigation avec traductions
+const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string) => string): NavItem[] => [
   {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: t('sidebar', 'dashboard'),
     href: '/dashboard',
     icon: Home,
   },
   {
     id: 'clients',
-    label: 'Clients',
+    label: t('sidebar', 'clients'),
     href: '/dashboard/clients',
     icon: Building2,
   },
   {
     id: 'configs',
-    label: 'Configurations',
+    label: t('sidebar', 'configurations'),
     href: '/dashboard/configs',
     icon: Cog,
   },
   {
     id: 'users',
-    label: 'Utilisateurs',
+    label: t('sidebar', 'users'),
     href: '#',
     icon: Users,
     children: [
       {
         id: 'admins',
-        label: 'Admin',
+        label: t('sidebar', 'admin'),
         href: '/dashboard/users/admins',
         icon: User,
       },
       {
         id: 'users-list',
-        label: 'Utilisateur',
+        label: t('sidebar', 'user'),
         href: '/dashboard/users/list',
         icon: User,
       },
@@ -61,19 +64,19 @@ const navigationItems: NavItem[] = [
   },
   {
     id: 'roles-permissions',
-    label: 'Rôles & Permissions',
+    label: t('sidebar', 'roles_permissions'),
     href: '#',
     icon: Shield,
     children: [
       {
         id: 'roles',
-        label: 'Rôles',
+        label: t('sidebar', 'roles'),
         href: '/dashboard/roles-permissions/roles',
         icon: Shield,
       },
       {
         id: 'permissions',
-        label: 'Permissions',
+        label: t('sidebar', 'permissions'),
         href: '/dashboard/roles-permissions/permissions',
         icon: Key,
       },
@@ -81,7 +84,7 @@ const navigationItems: NavItem[] = [
   },
   {
     id: 'payment-plans',
-    label: 'Payment Plans',
+    label: t('sidebar', 'payment_plans'),
     href: '/dashboard/payment-plans',
     icon: CreditCard,
   },
@@ -91,6 +94,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
+  const { t, loading } = useLanguage();
 
   // Déterminer l'item actif basé sur l'URL actuelle
   const getActiveItem = () => {
@@ -106,6 +110,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   };
 
   const activeItem = getActiveItem();
+  
+  // Créer les éléments de navigation avec les traductions
+  const navigationItems = createNavigationItems(t);
 
   const handleItemClick = (item: NavItem) => {
     // Gestion des sous-éléments
@@ -190,7 +197,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           </div>
           <div className="ml-3">
             <div className="text-xl font-bold theme-text-primary">
-              Dashboard
+              {loading ? '...' : t('dashboard', 'title')}
             </div>
           </div>
         </div>
@@ -198,15 +205,21 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-        {navigationItems.map(item => renderNavItem(item))}
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+          </div>
+        ) : (
+          navigationItems.map(item => renderNavItem(item))
+        )}
       </nav>
 
       {/* Footer */}
       <div className="p-4 border-t theme-border-primary">
         <div className="text-xs theme-text-tertiary mb-4">
-          Version 1.0.0
+          {t('sidebar', 'version')}
         </div>
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center mb-3">
           <div className="flex items-center space-x-3">
             <div className="h-10 w-10 relative">
               <Image
@@ -217,9 +230,13 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
               />
             </div>
             <span className="text-sm theme-text-tertiary font-medium">
-              Developed by AIUNIVERS
+              {t('sidebar', 'developed_by')}
             </span>
           </div>
+        </div>
+        {/* Sélecteur de langue */}
+        <div className="flex justify-center">
+          <LanguageSelector />
         </div>
       </div>
     </div>

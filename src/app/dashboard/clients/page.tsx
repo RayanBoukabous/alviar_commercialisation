@@ -22,11 +22,13 @@ import { clientsService, Client } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
 import { CreateClientModal } from '@/components/forms/CreateClientModal';
 import { EditClientModal } from '@/components/forms/EditClientModal';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 // Interface Client est maintenant importée depuis @/lib/api
 
 export default function ClientsPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
+  const { t, loading: translationLoading } = useLanguage();
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function ClientsPage() {
         setClients(response.clients || []);
         console.log('Clients récupérés:', response);
       } catch (err) {
-        setError('Erreur lors du chargement des clients');
+        setError(t('clients', 'loading_error'));
         console.error('Erreur:', err);
         // En cas d'erreur, utiliser les données mock pour le développement
         // setClients(mockClients);
@@ -128,7 +130,7 @@ export default function ClientsPage() {
       setClients(response.clients || []);
       console.log('Clients rafraîchis:', response);
     } catch (err) {
-      setError('Erreur lors du rafraîchissement des clients');
+      setError(t('clients', 'refresh_error'));
       console.error('Erreur:', err);
     } finally {
       setRefreshing(false);
@@ -158,7 +160,7 @@ export default function ClientsPage() {
   const handleDeleteClient = async (clientId: number, clientName: string) => {
     // Confirmation avant suppression
     const confirmed = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer le client "${clientName}" ?\n\nCette action est irréversible.`
+      t('clients', 'delete_confirmation').replace('{name}', clientName)
     );
 
     if (!confirmed) {
@@ -173,13 +175,13 @@ export default function ClientsPage() {
       setClients(prevClients => prevClients.filter(client => client.id !== clientId));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(`Client "${clientName}" supprimé avec succès`);
+      setSuccessMessage(t('clients', 'client_deleted').replace('{name}', clientName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Client ${clientName} supprimé avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression du client:', err);
-      setError('Erreur lors de la suppression du client');
+      setError(t('clients', 'delete_error'));
     } finally {
       setDeletingClientId(null);
     }
@@ -193,9 +195,9 @@ export default function ClientsPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: 'Actif' },
-      INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Inactif' },
-      SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: 'Suspendu' }
+      ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: t('clients', 'active') },
+      INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: t('clients', 'inactive') },
+      SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: t('clients', 'suspended') }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.INACTIVE;
@@ -217,7 +219,7 @@ export default function ClientsPage() {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || translationLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -237,9 +239,9 @@ export default function ClientsPage() {
             <div>
               <h1 className="text-2xl font-bold flex items-center theme-text-primary theme-transition">
                 <Building2 className="h-7 w-7 mr-3 text-primary-600" />
-                Gestion des Clients
+                {t('clients', 'title')}
               </h1>
-              <p className="mt-1 theme-text-secondary theme-transition">Gérez vos clients et leurs informations</p>
+              <p className="mt-1 theme-text-secondary theme-transition">{t('clients', 'subtitle')}</p>
             </div>
             <div className="flex items-center space-x-3">
               <button 
@@ -248,14 +250,14 @@ export default function ClientsPage() {
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Rafraîchir
+                {t('clients', 'refresh')}
               </button>
               <button 
                 onClick={() => setIsCreateModalOpen(true)}
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Nouveau Client
+                {t('clients', 'new_client')}
               </button>
             </div>
           </div>
@@ -270,7 +272,7 @@ export default function ClientsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition" />
               <input
                 type="text"
-                placeholder="Rechercher un client..."
+                placeholder={t('clients', 'search_placeholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
@@ -281,14 +283,14 @@ export default function ClientsPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
             >
-              <option value="ALL">Tous les statuts</option>
-              <option value="ACTIVE">Actif</option>
-              <option value="INACTIVE">Inactif</option>
-              <option value="SUSPENDED">Suspendu</option>
+              <option value="ALL">{t('clients', 'all_statuses')}</option>
+              <option value="ACTIVE">{t('clients', 'active')}</option>
+              <option value="INACTIVE">{t('clients', 'inactive')}</option>
+              <option value="SUSPENDED">{t('clients', 'suspended')}</option>
             </select>
             <button className="px-4 py-2 border rounded-lg flex items-center theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary theme-transition">
               <Filter className="h-4 w-4 mr-2" />
-              Filtres
+              {t('clients', 'filters')}
             </button>
           </div>
         </div>
@@ -327,25 +329,25 @@ export default function ClientsPage() {
                 <thead className="theme-bg-secondary theme-transition">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Client
+                      {t('clients', 'client')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Statut
+                      {t('clients', 'status')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Plan de Paiement
+                      {t('clients', 'payment_plan')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Distributeur
+                      {t('clients', 'distributor')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Créé par
+                      {t('clients', 'created_by')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Date de création
+                      {t('clients', 'creation_date')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Actions
+                      {t('clients', 'actions')}
                     </th>
                   </tr>
                 </thead>
@@ -383,14 +385,14 @@ export default function ClientsPage() {
                           <button 
                             onClick={() => handleViewClient(client)}
                             className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
-                            title="Voir les détails du client"
+                            title={t('clients', 'view_details')}
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handleEditClient(client)}
                             className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
-                            title="Modifier le client"
+                            title={t('clients', 'edit_client')}
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -398,7 +400,7 @@ export default function ClientsPage() {
                             onClick={() => handleDeleteClient(client.id, client.name)}
                             disabled={deletingClientId === client.id}
                             className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50"
-                            title="Supprimer le client"
+                            title={t('clients', 'delete_client')}
                           >
                             {deletingClientId === client.id ? (
                               <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -421,8 +423,8 @@ export default function ClientsPage() {
           {filteredClients.length === 0 && !loading && (
             <div className="text-center py-12">
               <Building2 className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">Aucun client trouvé</h3>
-              <p className="theme-text-secondary theme-transition">Commencez par ajouter votre premier client.</p>
+              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('clients', 'no_clients_found')}</h3>
+              <p className="theme-text-secondary theme-transition">{t('clients', 'start_adding')}</p>
             </div>
           )}
         </div>

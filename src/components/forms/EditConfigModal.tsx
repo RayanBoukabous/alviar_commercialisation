@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle, Eye, Smile, RotateCcw, Move } from 'lucide-react';
 import { configsService, UpdateLivenessConfigRequest, UpdateMatchingConfigRequest, UpdateSilentLivenessConfigRequest, Config, ConfigType, LivenessConfig, MatchingConfig, SilentLivenessConfig } from '@/lib/api';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 interface EditConfigModalProps {
   isOpen: boolean;
@@ -52,24 +53,24 @@ interface FormErrors {
 }
 
 const AVAILABLE_MOVEMENTS = [
-  { value: 'blink', label: 'Clignement des yeux', icon: Eye },
-  { value: 'smile', label: 'Sourire', icon: Smile },
-  { value: 'looking_left', label: 'Regarder à gauche', icon: RotateCcw },
-  { value: 'facing_up', label: 'Regarder vers le haut', icon: Move },
-  { value: 'facing_down', label: 'Regarder vers le bas', icon: Move },
+  { value: 'blink', labelKey: 'blink', icon: Eye },
+  { value: 'smile', labelKey: 'smile', icon: Smile },
+  { value: 'looking_left', labelKey: 'looking_left', icon: RotateCcw },
+  { value: 'facing_up', labelKey: 'facing_up', icon: Move },
+  { value: 'facing_down', labelKey: 'facing_down', icon: Move },
 ];
 
 const DISTANCE_METHODS = [
-  { value: 'cosine', label: 'Cosine' },
-  { value: 'euclidean', label: 'Euclidienne' },
-  { value: 'manhattan', label: 'Manhattan' },
-  { value: 'hamming', label: 'Hamming' },
+  { value: 'cosine', labelKey: 'cosine' },
+  { value: 'euclidean', labelKey: 'euclidean' },
+  { value: 'manhattan', labelKey: 'manhattan' },
+  { value: 'hamming', labelKey: 'hamming' },
 ];
 
 const CONFIG_TYPES = [
-  { value: 'liveness', label: 'Liveness', icon: '👁️' },
-  { value: 'matching', label: 'Matching', icon: '🔍' },
-  { value: 'silent-liveness', label: 'Silent Liveness', icon: '👁️' },
+  { value: 'liveness', labelKey: 'liveness', icon: '👁️' },
+  { value: 'matching', labelKey: 'matching', icon: '🔍' },
+  { value: 'silent-liveness', labelKey: 'silent_liveness', icon: '👁️' },
 ];
 
 export const EditConfigModal: React.FC<EditConfigModalProps> = ({
@@ -78,6 +79,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
   onSuccess,
   config,
 }) => {
+  const { t, loading: translationLoading } = useLanguage();
   const [formData, setFormData] = useState<FormData>({
     // Config type
     configType: 'liveness',
@@ -191,59 +193,59 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
     if (formData.configType === 'liveness') {
       // Validation commune pour liveness
       if (!formData.timeoutSec || formData.timeoutSec < 5) {
-        newErrors.timeoutSec = 'Le timeout doit être d\'au moins 5 secondes';
+        newErrors.timeoutSec = t('clients', 'timeout_required');
       }
       if (!formData.requiredMovements || formData.requiredMovements.length === 0) {
-        newErrors.requiredMovements = 'Au moins un mouvement est requis';
+        newErrors.requiredMovements = t('clients', 'movements_required');
       }
 
       if (!formData.movementCount || formData.movementCount < 1) {
-        newErrors.movementCount = 'Le nombre de mouvements doit être au moins 1';
+        newErrors.movementCount = t('clients', 'movement_count_required');
       }
 
       if (!formData.movementDurationSec || formData.movementDurationSec < 1) {
-        newErrors.movementDurationSec = 'La durée doit être d\'au moins 1 seconde';
+        newErrors.movementDurationSec = t('clients', 'movement_duration_required');
       }
 
       if (!formData.fps || formData.fps < 1 || formData.fps > 60) {
-        newErrors.fps = 'Le FPS doit être entre 1 et 60';
+        newErrors.fps = t('clients', 'fps_required');
       }
     } else if (formData.configType === 'matching') {
       if (!formData.distanceMethod) {
-        newErrors.distanceMethod = 'La méthode de distance est requise';
+        newErrors.distanceMethod = t('clients', 'distance_method_required');
       }
 
       if (formData.threshold < 0 || formData.threshold > 1) {
-        newErrors.threshold = 'Le seuil doit être entre 0 et 1';
+        newErrors.threshold = t('clients', 'threshold_required');
       }
 
       if (formData.minimumConfidence < 0 || formData.minimumConfidence > 1) {
-        newErrors.minimumConfidence = 'La confiance minimale doit être entre 0 et 1';
+        newErrors.minimumConfidence = t('clients', 'minimum_confidence_required');
       }
 
       if (formData.maxAngle < 0 || formData.maxAngle > 180) {
-        newErrors.maxAngle = 'L\'angle maximum doit être entre 0 et 180 degrés';
+        newErrors.maxAngle = t('clients', 'max_angle_required');
       }
     } else if (formData.configType === 'silent-liveness') {
       // Validation commune pour silent-liveness
       if (!formData.timeoutSec || formData.timeoutSec < 5) {
-        newErrors.timeoutSec = 'Le timeout doit être d\'au moins 5 secondes';
+        newErrors.timeoutSec = t('clients', 'timeout_required');
       }
       
       if (!formData.fps || formData.fps < 1 || formData.fps > 60) {
-        newErrors.fps = 'Le FPS doit être entre 1 et 60';
+        newErrors.fps = t('clients', 'fps_required');
       }
 
       if (!formData.minFrames || formData.minFrames < 1) {
-        newErrors.minFrames = 'Le nombre minimum de frames doit être au moins 1';
+        newErrors.minFrames = t('clients', 'min_frames_required');
       }
 
       if (!formData.minDurationSec || formData.minDurationSec < 1) {
-        newErrors.minDurationSec = 'La durée minimale doit être d\'au moins 1 seconde';
+        newErrors.minDurationSec = t('clients', 'min_duration_required');
       }
 
       if (formData.decisionThreshold < 0 || formData.decisionThreshold > 1) {
-        newErrors.decisionThreshold = 'Le seuil de décision doit être entre 0 et 1';
+        newErrors.decisionThreshold = t('clients', 'decision_threshold_required');
       }
     }
 
@@ -324,7 +326,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
       onClose();
     } catch (error: any) {
       console.error('Error updating config:', error);
-      setSubmitError(error.message || 'Erreur lors de la mise à jour de la configuration');
+      setSubmitError(error.message || t('clients', 'update_config_error'));
     } finally {
       setLoading(false);
     }
@@ -338,7 +340,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
     }
   };
 
-  if (!isOpen || !config) return null;
+  if (!isOpen || !config || translationLoading) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -358,9 +360,12 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                   </span>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-lg font-semibold text-white">Modifier la Configuration</h3>
+                  <h3 className="text-lg font-semibold text-white">{t('clients', 'edit_config_title')}</h3>
                   <p className="text-primary-100 text-sm">
-                    {CONFIG_TYPES.find(t => t.value === config.type)?.label} - Config #{config.id} - Client #{config.clientId}
+                    {t('clients', 'edit_config_subtitle')
+                      .replace('{type}', CONFIG_TYPES.find(t => t.value === config.type)?.labelKey ? t('clients', CONFIG_TYPES.find(t => t.value === config.type)!.labelKey) : '')
+                      .replace('{id}', config.id.toString())
+                      .replace('{clientId}', config.clientId.toString())}
                   </p>
                 </div>
               </div>
@@ -382,7 +387,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                 <div className="flex items-start">
                   <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <h4 className="text-sm font-medium text-red-800">Erreur</h4>
+                    <h4 className="text-sm font-medium text-red-800">{t('clients', 'error_title')}</h4>
                     <p className="text-sm text-red-700 mt-1">{submitError}</p>
                   </div>
                 </div>
@@ -392,15 +397,15 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
             {/* Config Type Display (Read-only) */}
             <div className="space-y-2">
               <label className="block text-sm font-medium theme-text-primary theme-transition">
-                Type de Configuration
+                {t('clients', 'config_type')}
               </label>
               <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <span className="text-lg">{CONFIG_TYPES.find(t => t.value === formData.configType)?.icon}</span>
                 <span className="text-sm font-medium theme-text-primary theme-transition">
-                  {CONFIG_TYPES.find(t => t.value === formData.configType)?.label}
+                  {CONFIG_TYPES.find(t => t.value === formData.configType)?.labelKey ? t('clients', CONFIG_TYPES.find(t => t.value === formData.configType)!.labelKey) : ''}
                 </span>
                 <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
-                  (Non modifiable)
+                  {t('clients', 'not_modifiable')}
                 </span>
               </div>
             </div>
@@ -412,7 +417,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
             {formData.configType === 'liveness' && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium theme-text-primary theme-transition">
-                  Mouvements Requis *
+                  {t('clients', 'required_movements')} *
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {AVAILABLE_MOVEMENTS.map((movement) => {
@@ -433,7 +438,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                       >
                         <div className="flex items-center space-x-2">
                           <Icon className="h-4 w-4" />
-                          <span className="text-sm font-medium">{movement.label}</span>
+                          <span className="text-sm font-medium">{t('clients', movement.labelKey)}</span>
                         </div>
                       </button>
                     );
@@ -452,7 +457,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
             {formData.configType === 'liveness' && (
               <div className="space-y-2">
                 <label htmlFor="movementCount" className="block text-sm font-medium theme-text-primary theme-transition">
-                  Nombre de Mouvements *
+                  {t('clients', 'movement_count')} *
                 </label>
                 <input
                   type="number"
@@ -482,7 +487,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
             {formData.configType === 'liveness' && (
               <div className="space-y-2">
                 <label htmlFor="movementDurationSec" className="block text-sm font-medium theme-text-primary theme-transition">
-                  Durée des Mouvements (secondes) *
+                  {t('clients', 'movement_duration')} *
                 </label>
                 <input
                   type="number"
@@ -512,7 +517,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
             {(formData.configType === 'liveness' || formData.configType === 'silent-liveness') && (
               <div className="space-y-2">
                 <label htmlFor="fps" className="block text-sm font-medium theme-text-primary theme-transition">
-                  FPS (Images par seconde) *
+                  {t('clients', 'fps_label')} *
                 </label>
                 <input
                   type="number"
@@ -544,7 +549,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                 {/* Distance Method */}
                 <div className="space-y-2">
                   <label htmlFor="distanceMethod" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Méthode de Distance *
+                    {t('clients', 'distance_method')} *
                   </label>
                   <select
                     id="distanceMethod"
@@ -559,7 +564,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                   >
                     {DISTANCE_METHODS.map((method) => (
                       <option key={method.value} value={method.value}>
-                        {method.label}
+                        {t('clients', method.labelKey)}
                       </option>
                     ))}
                   </select>
@@ -574,7 +579,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                 {/* Threshold */}
                 <div className="space-y-2">
                   <label htmlFor="threshold" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Seuil (0-1) *
+                    {t('clients', 'threshold')} *
                   </label>
                   <input
                     type="number"
@@ -603,7 +608,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                 {/* Minimum Confidence */}
                 <div className="space-y-2">
                   <label htmlFor="minimumConfidence" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Confiance Minimale (0-1) *
+                    {t('clients', 'minimum_confidence')} *
                   </label>
                   <input
                     type="number"
@@ -632,7 +637,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                 {/* Max Angle */}
                 <div className="space-y-2">
                   <label htmlFor="maxAngle" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Angle Maximum (degrés) *
+                    {t('clients', 'max_angle')} *
                   </label>
                   <input
                     type="number"
@@ -668,7 +673,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                       disabled={loading}
                     />
                     <span className="text-sm font-medium theme-text-primary theme-transition">
-                      Activer le prétraitement
+                      {t('clients', 'enable_preprocessing')}
                     </span>
                   </label>
                 </div>
@@ -684,7 +689,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                       disabled={loading}
                     />
                     <span className="text-sm font-medium theme-text-primary theme-transition">
-                      Activer la vérification anti-fraude
+                      {t('clients', 'enable_fraud_check')}
                     </span>
                   </label>
                 </div>
@@ -697,7 +702,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                 {/* Min Frames */}
                 <div className="space-y-2">
                   <label htmlFor="minFrames" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Frames Minimum *
+                    {t('clients', 'min_frames')} *
                   </label>
                   <input
                     type="number"
@@ -724,7 +729,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                 {/* Min Duration */}
                 <div className="space-y-2">
                   <label htmlFor="minDurationSec" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Durée Minimale (secondes) *
+                    {t('clients', 'min_duration')} *
                   </label>
                   <input
                     type="number"
@@ -751,7 +756,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                 {/* Decision Threshold */}
                 <div className="space-y-2">
                   <label htmlFor="decisionThreshold" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Seuil de Décision (0-1) *
+                    {t('clients', 'decision_threshold')} *
                   </label>
                   <input
                     type="number"
@@ -783,7 +788,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
             {(formData.configType === 'liveness' || formData.configType === 'silent-liveness') && (
               <div className="space-y-2">
                 <label htmlFor="timeoutSec" className="block text-sm font-medium theme-text-primary theme-transition">
-                  Timeout (secondes) *
+                  {t('clients', 'timeout_seconds')} *
                 </label>
                 <input
                   type="number"
@@ -820,7 +825,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                 disabled={loading}
                 className="px-4 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 theme-transition disabled:opacity-50 theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary"
               >
-                Annuler
+                {t('clients', 'cancel')}
               </button>
               <button
                 type="submit"
@@ -830,12 +835,12 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin mr-2" />
-                    Mise à jour...
+                    {t('clients', 'updating')}
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    Mettre à jour la configuration
+                    {t('clients', 'update_config')}
                   </>
                 )}
               </button>

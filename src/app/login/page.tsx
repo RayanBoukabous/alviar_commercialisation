@@ -151,6 +151,7 @@ function LoginForm() {
                 </div>
             </div>
 
+
             <div className="relative z-10 flex min-h-screen">
                 {/* Left Side - Login Form */}
                 <div className="flex-1 flex flex-col justify-center items-center px-8 py-12">

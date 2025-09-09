@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Shield, Save, AlertCircle } from 'lucide-react';
 import { permissionsService } from '@/lib/api';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 interface CreatePermissionModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const CreatePermissionModal: React.FC<CreatePermissionModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation('permissions');
   const [formData, setFormData] = useState<FormData>({
     name: '',
   });
@@ -36,11 +38,11 @@ export const CreatePermissionModal: React.FC<CreatePermissionModalProps> = ({
 
     // Validation du nom de la permission
     if (!formData.name.trim()) {
-      newErrors.name = 'Le nom de la permission est requis';
+      newErrors.name = t('createPermission.permissionNameRequired');
     } else if (formData.name.trim().length < 3) {
-      newErrors.name = 'Le nom de la permission doit contenir au moins 3 caractères';
+      newErrors.name = t('createPermission.permissionNameMinLength');
     } else if (!/^[a-zA-Z0-9:_-]+$/.test(formData.name.trim())) {
-      newErrors.name = 'Le nom de la permission ne peut contenir que des lettres, chiffres, deux-points, tirets et underscores';
+      newErrors.name = t('createPermission.permissionNameInvalidChars');
     } else {
       // Validation du format spécifique de l'API
       const name = formData.name.trim();
@@ -51,16 +53,16 @@ export const CreatePermissionModal: React.FC<CreatePermissionModalProps> = ({
         // Format: action:module
         const [action, module] = parts;
         if (!action.trim() || !module.trim()) {
-          newErrors.name = 'Format invalide: action:module (ex: read:users)';
+          newErrors.name = t('createPermission.permissionNameInvalidFormat2');
         }
       } else if (parts.length === 3) {
         // Format: module:resource:action
         const [module, resource, action] = parts;
         if (!module.trim() || !resource.trim() || !action.trim()) {
-          newErrors.name = 'Format invalide: module:resource:action (ex: users:profile:update)';
+          newErrors.name = t('createPermission.permissionNameInvalidFormat3');
         }
       } else {
-        newErrors.name = 'Format invalide. Utilisez: action:module ou module:resource:action';
+        newErrors.name = t('createPermission.permissionNameInvalidFormat');
       }
     }
 
@@ -97,7 +99,7 @@ export const CreatePermissionModal: React.FC<CreatePermissionModalProps> = ({
       console.error('Erreur lors de la création de la permission:', error);
       
       // Gérer les erreurs de validation de l'API
-      let errorMessage = 'Erreur lors de la création de la permission';
+      let errorMessage = t('createPermission.errorCreating');
       
       if (error.response?.data?.message) {
         const apiMessage = error.response.data.message;
@@ -137,8 +139,8 @@ export const CreatePermissionModal: React.FC<CreatePermissionModalProps> = ({
               <Shield className="h-5 w-5 text-primary-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold theme-text-primary theme-transition">Nouvelle Permission</h2>
-              <p className="text-sm theme-text-secondary theme-transition">Créer une nouvelle permission</p>
+              <h2 className="text-lg font-semibold theme-text-primary theme-transition">{t('createPermission.title')}</h2>
+              <p className="text-sm theme-text-secondary theme-transition">{t('createPermission.description')}</p>
             </div>
           </div>
           <button
@@ -174,14 +176,14 @@ export const CreatePermissionModal: React.FC<CreatePermissionModalProps> = ({
           {/* Permission Name */}
           <div>
             <label htmlFor="name" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-              Nom de la Permission *
+              {t('createPermission.permissionName')} *
             </label>
             <input
               type="text"
               id="name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="Ex: read:users, users:profile:update, write:configs"
+              placeholder={t('createPermission.permissionNamePlaceholder')}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400 ${
                 errors.name ? 'border-red-500' : ''
               }`}
@@ -189,9 +191,7 @@ export const CreatePermissionModal: React.FC<CreatePermissionModalProps> = ({
             {errors.name && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name}</p>
             )}
-            <p className="mt-1 text-xs theme-text-tertiary">
-              Formats acceptés: <strong>action:module</strong> (ex: read:users) ou <strong>module:resource:action</strong> (ex: users:profile:update)
-            </p>
+            <p className="mt-1 text-xs theme-text-tertiary" dangerouslySetInnerHTML={{ __html: t('createPermission.acceptedFormats') }} />
           </div>
 
           {/* Actions */}
@@ -201,7 +201,7 @@ export const CreatePermissionModal: React.FC<CreatePermissionModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium theme-text-secondary hover:theme-text-primary theme-transition"
             >
-              Annuler
+              {t('createPermission.cancel')}
             </button>
             <button
               type="submit"
@@ -211,12 +211,12 @@ export const CreatePermissionModal: React.FC<CreatePermissionModalProps> = ({
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Création...
+                  {t('createPermission.creating')}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Créer
+                  {t('createPermission.create')}
                 </>
               )}
             </button>

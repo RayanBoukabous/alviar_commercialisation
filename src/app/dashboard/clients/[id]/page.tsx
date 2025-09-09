@@ -27,11 +27,13 @@ import { clientsService, Client, configsService, LivenessConfig } from '@/lib/ap
 import { Layout } from '@/components/layout/Layout';
 import { CreateConfigModal } from '@/components/forms/CreateConfigModal';
 import { EditConfigModal } from '@/components/forms/EditConfigModal';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 export default function ClientViewPage() {
   const params = useParams();
   const router = useRouter();
   const { isAuthenticated, isLoading } = useRequireAuth();
+  const { t, loading: translationLoading } = useLanguage();
   
   const [client, setClient] = useState<Client | null>(null);
   const [configs, setConfigs] = useState<LivenessConfig[]>([]);
@@ -64,7 +66,7 @@ export default function ClientViewPage() {
       const foundClient = clientsResponse.clients?.find(c => c.id === clientId);
       
       if (!foundClient) {
-        setError('Client non trouvé');
+        setError(t('clients', 'client_not_found'));
         return;
       }
       
@@ -86,7 +88,7 @@ export default function ClientViewPage() {
       }
 
     } catch (err) {
-      setError('Erreur lors du chargement des données du client');
+      setError(t('clients', 'loading_error'));
       console.error('Erreur:', err);
     } finally {
       setLoading(false);
@@ -100,7 +102,7 @@ export default function ClientViewPage() {
       setRefreshing(true);
       await fetchClientData();
     } catch (err) {
-      setError('Erreur lors du rafraîchissement');
+      setError(t('clients', 'refresh_error'));
       console.error('Erreur:', err);
     } finally {
       setRefreshing(false);
@@ -125,7 +127,7 @@ export default function ClientViewPage() {
     const configName = `Config #${config.id}`;
     
     const confirmed = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer la configuration "${configName}" ?\n\nCette action est irréversible.`
+      t('clients', 'delete_config_confirmation').replace('{name}', configName)
     );
 
     if (!confirmed) {
@@ -138,13 +140,13 @@ export default function ClientViewPage() {
       
       setConfigs(prevConfigs => prevConfigs.filter(c => c.id !== config.id));
       
-      setSuccessMessage(`Configuration "${configName}" supprimée avec succès`);
+      setSuccessMessage(t('clients', 'config_deleted').replace('{name}', configName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Configuration ${configName} supprimée avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression de la configuration:', err);
-      setError('Erreur lors de la suppression de la configuration');
+      setError(t('clients', 'delete_config_error'));
     } finally {
       setDeletingConfigId(null);
     }
@@ -162,9 +164,9 @@ export default function ClientViewPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: 'Actif' },
-      INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Inactif' },
-      SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: 'Suspendu' }
+      ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: t('clients', 'active') },
+      INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: t('clients', 'inactive') },
+      SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: t('clients', 'suspended') }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.INACTIVE;
@@ -176,7 +178,7 @@ export default function ClientViewPage() {
     );
   };
 
-  if (isLoading) {
+  if (isLoading || translationLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -196,17 +198,17 @@ export default function ClientViewPage() {
               className="flex items-center text-primary-600 hover:text-primary-700 theme-transition mb-4"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour
+              {t('clients', 'back')}
             </button>
           </div>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
-              <p className="text-red-600 mb-4">{error || 'Client non trouvé'}</p>
+              <p className="text-red-600 mb-4">{error || t('clients', 'client_not_found')}</p>
               <button
                 onClick={() => router.push('/dashboard/clients')}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                Retour à la liste des clients
+                {t('clients', 'back_to_clients')}
               </button>
             </div>
           </div>
@@ -246,14 +248,14 @@ export default function ClientViewPage() {
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                  Rafraîchir
+                  {t('clients', 'refresh')}
                 </button>
                 <button 
                   onClick={() => setIsCreateModalOpen(true)}
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Nouvelle Configuration
+                  {t('clients', 'new_configuration')}
                 </button>
               </div>
             </div>
@@ -282,22 +284,22 @@ export default function ClientViewPage() {
             <div className="px-6 py-4 border-b theme-border-primary">
               <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
                 <Building2 className="h-5 w-5 mr-2 text-primary-600" />
-                Informations du Client
+                {t('clients', 'client_information')}
               </h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium theme-text-secondary theme-transition">Nom</label>
+                    <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'name')}</label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">{client.name}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium theme-text-secondary theme-transition">ID</label>
+                    <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'id')}</label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">#{client.id}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium theme-text-secondary theme-transition">Statut</label>
+                    <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'status')}</label>
                     <div className="mt-1">{getStatusBadge(client.status)}</div>
                   </div>
                 </div>
@@ -306,7 +308,7 @@ export default function ClientViewPage() {
                   <div>
                     <label className="text-sm font-medium theme-text-secondary theme-transition flex items-center">
                       <DollarSign className="h-4 w-4 mr-1" />
-                      Plan de Paiement
+                      {t('clients', 'payment_plan')}
                     </label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">
                       {client.paymentPlan?.name || `Plan #${client.paymentPlan?.id}`}
@@ -315,7 +317,7 @@ export default function ClientViewPage() {
                   <div>
                     <label className="text-sm font-medium theme-text-secondary theme-transition flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
-                      Distributeur
+                      {t('clients', 'distributor')}
                     </label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">
                       {client.distributor?.name || `Distributeur #${client.distributor?.id}`}
@@ -327,14 +329,14 @@ export default function ClientViewPage() {
                   <div>
                     <label className="text-sm font-medium theme-text-secondary theme-transition flex items-center">
                       <User className="h-4 w-4 mr-1" />
-                      Créé par
+                      {t('clients', 'created_by')}
                     </label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">{client.createdBy}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium theme-text-secondary theme-transition flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
-                      Date de création
+                      {t('clients', 'creation_date')}
                     </label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">{formatDate(client.createdAt)}</p>
                   </div>
@@ -349,7 +351,7 @@ export default function ClientViewPage() {
               <div className="px-6 py-4 border-b theme-border-primary">
                 <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
                   <Key className="h-5 w-5 mr-2 text-primary-600" />
-                  Clés API ({client.keys.length})
+                  {t('clients', 'api_keys')} ({client.keys.length})
                 </h2>
               </div>
               <div className="p-6">
@@ -365,7 +367,7 @@ export default function ClientViewPage() {
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {key.isActive ? 'Actif' : 'Inactif'}
+                        {key.isActive ? t('clients', 'active') : t('clients', 'inactive')}
                       </span>
                     </div>
                   ))}
@@ -379,22 +381,22 @@ export default function ClientViewPage() {
             <div className="px-6 py-4 border-b theme-border-primary">
               <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
                 <Settings className="h-5 w-5 mr-2 text-primary-600" />
-                Configurations Liveness ({configs.length})
+                {t('clients', 'liveness_configurations')} ({configs.length})
               </h2>
             </div>
             <div className="p-6">
               {configs.length === 0 ? (
                 <div className="text-center py-8">
                   <Settings className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-                  <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">Aucune configuration</h3>
+                  <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('clients', 'no_configuration')}</h3>
                   <p className="theme-text-secondary theme-transition mb-4">
-                    Ce client n'a pas encore de configuration de liveness.
+                    {t('clients', 'no_config_description')}
                   </p>
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
                     className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                   >
-                    Créer la première configuration
+                    {t('clients', 'create_first_config')}
                   </button>
                 </div>
               ) : (
@@ -405,14 +407,14 @@ export default function ClientViewPage() {
                         <div className="flex items-center">
                           <Settings className="h-5 w-5 mr-2 text-primary-600" />
                           <h3 className="text-lg font-semibold theme-text-primary theme-transition">
-                            Configuration #{config.id}
+                            {t('clients', 'configuration')} #{config.id}
                           </h3>
                         </div>
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEditConfig(config)}
                             className="p-2 rounded-lg hover:theme-bg-elevated theme-transition"
-                            title="Modifier la configuration"
+                            title={t('clients', 'edit_config')}
                           >
                             <Edit className="h-4 w-4 theme-text-tertiary hover:text-blue-500" />
                           </button>
@@ -420,7 +422,7 @@ export default function ClientViewPage() {
                             onClick={() => handleDeleteConfig(config)}
                             disabled={deletingConfigId === config.id}
                             className="p-2 rounded-lg hover:theme-bg-elevated theme-transition disabled:opacity-50"
-                            title="Supprimer la configuration"
+                            title={t('clients', 'delete_config')}
                           >
                             {deletingConfigId === config.id ? (
                               <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -433,7 +435,7 @@ export default function ClientViewPage() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                          <label className="text-sm font-medium theme-text-secondary theme-transition">Mouvements</label>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'movements')}</label>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {config.requiredMovements.map((movement) => (
                               <span
@@ -447,25 +449,25 @@ export default function ClientViewPage() {
                         </div>
                         
                         <div>
-                          <label className="text-sm font-medium theme-text-secondary theme-transition">Paramètres</label>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'parameters')}</label>
                           <div className="mt-1 space-y-1">
                             <p className="text-sm theme-text-primary theme-transition">
-                              <strong>FPS:</strong> {config.fps}
+                              <strong>{t('clients', 'fps')}:</strong> {config.fps}
                             </p>
                             <p className="text-sm theme-text-primary theme-transition">
-                              <strong>Durée:</strong> {config.movementDurationSec}s
+                              <strong>{t('clients', 'duration')}:</strong> {config.movementDurationSec}s
                             </p>
                             <p className="text-sm theme-text-primary theme-transition">
-                              <strong>Timeout:</strong> {config.timeoutSec}s
+                              <strong>{t('clients', 'timeout')}:</strong> {config.timeoutSec}s
                             </p>
                           </div>
                         </div>
                         
                         <div>
-                          <label className="text-sm font-medium theme-text-secondary theme-transition">Création</label>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'creation')}</label>
                           <div className="mt-1 space-y-1">
                             <p className="text-sm theme-text-primary theme-transition">
-                              <strong>Par:</strong> {config.createdBy}
+                              <strong>{t('clients', 'by')}:</strong> {config.createdBy}
                             </p>
                             <p className="text-sm theme-text-secondary theme-transition">
                               {formatDate(config.createdAt)}
@@ -474,14 +476,14 @@ export default function ClientViewPage() {
                         </div>
                         
                         <div>
-                          <label className="text-sm font-medium theme-text-secondary theme-transition">Dernière modification</label>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'last_modification')}</label>
                           <div className="mt-1 space-y-1">
                             <p className="text-sm theme-text-primary theme-transition">
                               {formatDate(config.updatedAt)}
                             </p>
                             {config.updatedBy && (
                               <p className="text-sm theme-text-secondary theme-transition">
-                                Par: {config.updatedBy}
+                                {t('clients', 'by')}: {config.updatedBy}
                               </p>
                             )}
                           </div>

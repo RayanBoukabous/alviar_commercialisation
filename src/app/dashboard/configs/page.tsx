@@ -33,9 +33,11 @@ import { Layout } from '@/components/layout/Layout';
 import { CreateConfigModal } from '@/components/forms/CreateConfigModal';
 import { EditConfigModal } from '@/components/forms/EditConfigModal';
 import { ViewConfigModal } from '@/components/forms/ViewConfigModal';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 export default function ConfigsPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
+  const { t, loading: translationLoading } = useLanguage();
   const [configs, setConfigs] = useState<Config[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,7 +144,7 @@ export default function ConfigsPage() {
         console.log('Toutes les configs récupérées:', allConfigs);
         
       } catch (err) {
-        setError('Erreur lors du chargement des configurations');
+        setError(t('configs', 'loading_error'));
         console.error('Erreur:', err);
         // En cas d'erreur, utiliser les données mock
         setConfigs(mockConfigs);
@@ -192,7 +194,7 @@ export default function ConfigsPage() {
       setConfigs(allConfigs);
       console.log('Configs rafraîchies:', allConfigs);
     } catch (err) {
-      setError('Erreur lors du rafraîchissement des configurations');
+      setError(t('configs', 'refresh_error'));
       console.error('Erreur:', err);
     } finally {
       setRefreshing(false);
@@ -200,11 +202,13 @@ export default function ConfigsPage() {
   };
 
   const handleDeleteConfig = async (config: Config) => {
-    const configName = `${config.type.toUpperCase()} Config #${config.id}`;
+    const configName = `${getConfigTypeName(config.type)} ${t('configs', 'config')} #${config.id}`;
     
     // Confirmation avant suppression
     const confirmed = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer la configuration "${configName}" pour le client ${getClientName(config.clientId)} ?\n\nCette action est irréversible.`
+      t('configs', 'delete_config_confirm')
+        .replace('{name}', configName)
+        .replace('{client}', getClientName(config.clientId))
     );
 
     if (!confirmed) {
@@ -221,13 +225,13 @@ export default function ConfigsPage() {
       setConfigs(prevConfigs => prevConfigs.filter(c => c.id !== config.id));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(`Configuration "${configName}" supprimée avec succès`);
+      setSuccessMessage(t('configs', 'config_deleted_success').replace('{name}', configName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Configuration ${configName} supprimée avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression de la configuration:', err);
-      setError('Erreur lors de la suppression de la configuration');
+      setError(t('configs', 'delete_config_error'));
     } finally {
       setDeletingConfigId(null);
     }
@@ -286,7 +290,7 @@ export default function ConfigsPage() {
     }
     // Sinon, chercher dans la liste des clients
     const client = clients.find(c => c.id === clientId);
-    return client ? client.name : `Client #${clientId}`;
+    return client ? client.name : `${t('configs', 'client')} #${clientId}`;
   };
 
   const getClientStatus = (clientId: number, clientData?: any) => {
@@ -302,11 +306,11 @@ export default function ConfigsPage() {
   const getConfigTypeName = (type: ConfigType) => {
     switch (type) {
       case 'liveness':
-        return 'Liveness';
+        return t('clients', 'liveness');
       case 'matching':
-        return 'Matching';
+        return t('clients', 'matching');
       case 'silent-liveness':
-        return 'Silent Liveness';
+        return t('clients', 'silent_liveness');
       default:
         return type;
     }
@@ -336,7 +340,7 @@ export default function ConfigsPage() {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || translationLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -356,9 +360,9 @@ export default function ConfigsPage() {
             <div>
               <h1 className="text-2xl font-bold flex items-center theme-text-primary theme-transition">
                 <Settings className="h-7 w-7 mr-3 text-primary-600" />
-                Gestion des Configurations
+                {t('configs', 'configs_management')}
               </h1>
-              <p className="mt-1 theme-text-secondary theme-transition">Gérez vos configurations de liveness</p>
+              <p className="mt-1 theme-text-secondary theme-transition">{t('configs', 'configs_management_description')}</p>
             </div>
             <div className="flex items-center space-x-3">
               <button 
@@ -367,14 +371,14 @@ export default function ConfigsPage() {
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Rafraîchir
+                {t('configs', 'refresh')}
               </button>
               <button 
                 onClick={() => setIsCreateModalOpen(true)}
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Nouvelle Configuration
+                {t('configs', 'new_configuration')}
               </button>
             </div>
           </div>
@@ -390,7 +394,7 @@ export default function ConfigsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition" />
               <input
                 type="text"
-                placeholder="Rechercher une configuration..."
+                placeholder={t('configs', 'search_config')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
@@ -401,7 +405,7 @@ export default function ConfigsPage() {
               onChange={(e) => setClientFilter(e.target.value)}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
             >
-              <option value="ALL">Tous les clients</option>
+              <option value="ALL">{t('configs', 'all_clients')}</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.id.toString()}>
                   {client.name}
@@ -413,14 +417,14 @@ export default function ConfigsPage() {
               onChange={(e) => setConfigTypeFilter(e.target.value as ConfigType | 'ALL')}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
             >
-              <option value="ALL">Tous les types</option>
-              <option value="liveness">Liveness</option>
-              <option value="matching">Matching</option>
-              <option value="silent-liveness">Silent Liveness</option>
+              <option value="ALL">{t('configs', 'all_types')}</option>
+              <option value="liveness">{t('clients', 'liveness')}</option>
+              <option value="matching">{t('clients', 'matching')}</option>
+              <option value="silent-liveness">{t('clients', 'silent_liveness')}</option>
             </select>
             <button className="px-4 py-2 border rounded-lg flex items-center theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary theme-transition">
               <Filter className="h-4 w-4 mr-2" />
-              Filtres
+              {t('configs', 'filters')}
             </button>
           </div>
         </div>
@@ -459,28 +463,28 @@ export default function ConfigsPage() {
                 <thead className="theme-bg-secondary theme-transition">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Configuration
+                      {t('configs', 'configuration')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Type
+                      {t('configs', 'type')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Client
+                      {t('configs', 'client')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Détails
+                      {t('configs', 'details')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Paramètres
+                      {t('configs', 'parameters')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Créé par
+                      {t('configs', 'created_by')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Date de création
+                      {t('configs', 'creation_date')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Actions
+                      {t('configs', 'actions')}
                     </th>
                   </tr>
                 </thead>
@@ -494,7 +498,7 @@ export default function ConfigsPage() {
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium theme-text-primary theme-transition">
-                              Config #{config.id}
+                              {t('configs', 'config')} #{config.id}
                             </div>
                             <div className="text-xs theme-text-tertiary theme-transition">
                               {getConfigTypeName(config.type)}
@@ -516,7 +520,7 @@ export default function ConfigsPage() {
                           <div>
                             <div className="font-medium">{getClientName(config.clientId, (config as any).client)}</div>
                             <div className="text-xs theme-text-tertiary theme-transition">
-                              ID: {config.clientId}
+                              {t('configs', 'client_id')}: {config.clientId}
                             </div>
                           </div>
                           <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
@@ -542,7 +546,7 @@ export default function ConfigsPage() {
                               ))}
                             </div>
                             <div className="text-xs theme-text-tertiary theme-transition">
-                              {(config as LivenessConfig).movementCount} mouvements • {(config as LivenessConfig).movementDurationSec}s
+                              {(config as LivenessConfig).movementCount} {t('configs', 'movements')} • {(config as LivenessConfig).movementDurationSec}s
                             </div>
                           </div>
                         ) : config.type === 'matching' ? (
@@ -551,7 +555,7 @@ export default function ConfigsPage() {
                               {(config as MatchingConfig).distanceMethod}
                             </div>
                             <div className="text-xs theme-text-tertiary theme-transition">
-                              Seuil: {(config as MatchingConfig).threshold} • Confiance: {(config as MatchingConfig).minimumConfidence}
+                              {t('configs', 'threshold')}: {(config as MatchingConfig).threshold} • {t('configs', 'confidence')}: {(config as MatchingConfig).minimumConfidence}
                             </div>
                           </div>
                         ) : (
@@ -565,45 +569,45 @@ export default function ConfigsPage() {
                           {config.type === 'liveness' ? (
                             <>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">FPS:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('clients', 'fps_label')}:</span>
                                 <span className="theme-text-primary theme-transition">{(config as LivenessConfig).fps}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">Timeout:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('clients', 'timeout_seconds')}:</span>
                                 <span className="theme-text-primary theme-transition">{config.timeoutSec}s</span>
                               </div>
                             </>
                           ) : config.type === 'matching' ? (
                             <>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">Angle max:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'max_angle')}:</span>
                                 <span className="theme-text-primary theme-transition">{(config as MatchingConfig).maxAngle}°</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">Prétraitement:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'preprocessing')}:</span>
                                 <span className={`${(config as MatchingConfig).enablePreprocessing ? 'text-green-600' : 'text-red-600'}`}>
-                                  {(config as MatchingConfig).enablePreprocessing ? 'Oui' : 'Non'}
+                                  {(config as MatchingConfig).enablePreprocessing ? t('configs', 'yes') : t('configs', 'no')}
                                 </span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">Anti-fraude:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'anti_fraud')}:</span>
                                 <span className={`${(config as MatchingConfig).enableFraudCheck ? 'text-green-600' : 'text-red-600'}`}>
-                                  {(config as MatchingConfig).enableFraudCheck ? 'Oui' : 'Non'}
+                                  {(config as MatchingConfig).enableFraudCheck ? t('configs', 'yes') : t('configs', 'no')}
                                 </span>
                               </div>
                             </>
                           ) : (
                             <>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">Frames min:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'min_frames')}:</span>
                                 <span className="theme-text-primary theme-transition">{(config as SilentLivenessConfig).minFrames}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">Durée min:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'min_duration')}:</span>
                                 <span className="theme-text-primary theme-transition">{(config as SilentLivenessConfig).minDurationSec}s</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">Seuil décision:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'decision_threshold')}:</span>
                                 <span className="theme-text-primary theme-transition">{(config as SilentLivenessConfig).decisionThreshold}</span>
                               </div>
                             </>
@@ -621,7 +625,7 @@ export default function ConfigsPage() {
                         </div>
                         {config.updatedBy && config.updatedBy !== config.createdBy && (
                           <div className="text-xs theme-text-tertiary theme-transition mt-1">
-                            Modifié par {config.updatedBy}
+                            {t('configs', 'modified_by')} {config.updatedBy}
                           </div>
                         )}
                       </td>
@@ -631,7 +635,7 @@ export default function ConfigsPage() {
                         </div>
                         {config.updatedAt && config.updatedAt !== config.createdAt && (
                           <div className="text-xs theme-text-tertiary theme-transition">
-                            Modifié: {formatDate(config.updatedAt)}
+                            {t('configs', 'modified')}: {formatDate(config.updatedAt)}
                           </div>
                         )}
                       </td>
@@ -640,14 +644,14 @@ export default function ConfigsPage() {
                           <button 
                             onClick={() => handleViewConfig(config)}
                             className="p-1 theme-text-tertiary hover:text-green-500 theme-transition"
-                            title="Voir les détails de la configuration"
+                            title={t('configs', 'view_config_details')}
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handleEditConfig(config)}
                             className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
-                            title="Modifier la configuration"
+                            title={t('configs', 'edit_config')}
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -655,7 +659,7 @@ export default function ConfigsPage() {
                             onClick={() => handleDeleteConfig(config)}
                             disabled={deletingConfigId === config.id}
                             className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50"
-                            title="Supprimer la configuration"
+                            title={t('configs', 'delete_config')}
                           >
                             {deletingConfigId === config.id ? (
                               <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -678,8 +682,8 @@ export default function ConfigsPage() {
           {filteredConfigs.length === 0 && !loading && (
             <div className="text-center py-12">
               <Settings className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">Aucune configuration trouvée</h3>
-              <p className="theme-text-secondary theme-transition">Commencez par ajouter votre première configuration.</p>
+              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('configs', 'no_config_found')}</h3>
+              <p className="theme-text-secondary theme-transition">{t('configs', 'start_adding_config')}</p>
             </div>
           )}
         </div>
