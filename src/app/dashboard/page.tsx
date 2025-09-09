@@ -5,10 +5,16 @@ import { ThemeProvider } from '@/lib/theme/ThemeProvider';
 import { Layout } from '@/components/layout';
 import { ThemeCard } from '@/lib/theme/ThemeProvider';
 import { useRequireAuth } from '@/lib/hooks/useAuth';
-import { Activity, Users, TrendingUp, DollarSign } from 'lucide-react';
+import { useDashboardData, useLivenessMetrics, useDetailedStats } from '@/lib/hooks/useDashboardData';
+import { DashboardCharts } from '@/components/charts/DashboardCharts';
+import { ConfigsMetrics } from '@/components/charts/ConfigsMetrics';
+import { Users, TrendingUp, ArrowUpRight, ArrowDownRight, RefreshCw, AlertCircle, Shield, Settings } from 'lucide-react';
 
 export default function DashboardPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
+  const { metrics, advancedMetrics, chartData, refreshData } = useDashboardData();
+  const livenessMetrics = useLivenessMetrics();
+  const detailedStats = useDetailedStats();
 
   // Afficher un loader pendant la vérification de l'authentification
   if (isLoading) {
@@ -26,34 +32,55 @@ export default function DashboardPage() {
     return null;
   }
 
-  const stats = [
+  // 4 cartes principales importantes
+  const mainStats = [
     {
-      name: 'Utilisateurs actifs',
-      value: '2,345',
-      change: '+12%',
+      name: 'Utilisateurs',
+      value: metrics.totalUsers.toLocaleString(),
+      change: detailedStats.users.active > 0 ? `+${Math.round((detailedStats.users.active / metrics.totalUsers) * 100)}%` : '0%',
       changeType: 'positive',
       icon: Users,
+      color: 'from-blue-500 to-blue-600',
+      bgColor: 'theme-bg-tertiary',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      isLoading: metrics.isLoading,
+      description: 'Utilisateurs enregistrés',
     },
     {
-      name: 'Sessions liveness',
-      value: '1,234',
-      change: '+8%',
+      name: 'Admins',
+      value: metrics.totalAdmins.toLocaleString(),
+      change: '+2%',
       changeType: 'positive',
-      icon: Activity,
+      icon: Shield,
+      color: 'from-red-500 to-red-600',
+      bgColor: 'theme-bg-tertiary',
+      iconColor: 'text-red-600 dark:text-red-400',
+      isLoading: metrics.isLoading,
+      description: 'Administrateurs système',
     },
     {
-      name: 'Taux de conversion',
-      value: '89.2%',
-      change: '+2.1%',
+      name: 'Clients',
+      value: metrics.totalClients.toLocaleString(),
+      change: detailedStats.clients.active > 0 ? `+${Math.round((detailedStats.clients.active / metrics.totalClients) * 100)}%` : '0%',
       changeType: 'positive',
       icon: TrendingUp,
+      color: 'from-green-500 to-green-600',
+      bgColor: 'theme-bg-tertiary',
+      iconColor: 'text-green-600 dark:text-green-500',
+      isLoading: metrics.isLoading,
+      description: 'Clients actifs',
     },
     {
-      name: 'Revenus',
-      value: '€45,678',
-      change: '+15%',
+      name: 'Config Count',
+      value: metrics.totalConfigs.toLocaleString(),
+      change: '+22%',
       changeType: 'positive',
-      icon: DollarSign,
+      icon: Settings,
+      color: 'from-indigo-500 to-indigo-600',
+      bgColor: 'theme-bg-tertiary',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
+      isLoading: metrics.isLoading,
+      description: 'Configurations totales',
     },
   ];
 
@@ -62,41 +89,79 @@ export default function DashboardPage() {
       <Layout>
         <div className="space-y-6">
           {/* Header */}
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold theme-text-primary">Dashboard</h1>
-            <p className="mt-1 text-sm theme-text-secondary">
+                <h1 className="text-3xl font-bold theme-text-primary bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
+                  Dashboard
+                </h1>
+                <p className="mt-2 text-lg theme-text-secondary">
               Vue d'ensemble de votre activité liveness
             </p>
+              </div>
+              <button
+                onClick={refreshData}
+                disabled={metrics.isLoading}
+                className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-4 h-4 ${metrics.isLoading ? 'animate-spin' : ''}`} />
+                <span>Actualiser</span>
+              </button>
+            </div>
+            
+            {/* Indicateur d'erreur */}
+            {metrics.error && (
+              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center space-x-2">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <span className="text-red-700 dark:text-red-300">{metrics.error}</span>
+              </div>
+            )}
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat) => {
+          {/* 4 Cartes Principales */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {mainStats.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <ThemeCard key={stat.name} className="p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
-                        <Icon className="w-5 h-5 text-primary-600" />
+                <ThemeCard 
+                  key={stat.name} 
+                  className="p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-fade-in"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center shadow-sm`}>
+                        <Icon className={`w-6 h-6 ${stat.iconColor}`} />
                       </div>
-                    </div>
-                    <div className="ml-4 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium theme-text-secondary truncate">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium theme-text-secondary">
                           {stat.name}
-                        </dt>
-                        <dd className="flex items-baseline">
-                          <div className="text-2xl font-semibold theme-text-primary">
-                            {stat.value}
+                        </p>
+                        <p className="text-2xl font-bold theme-text-primary mt-1">
+                          {stat.isLoading ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                              <span>...</span>
+                            </div>
+                          ) : (
+                            stat.value
+                          )}
+                        </p>
+                        <p className="text-xs theme-text-tertiary mt-1">
+                          {stat.description}
+                        </p>
+                      </div>
                           </div>
-                          <div className={`ml-2 flex items-baseline text-sm font-semibold ${
-                            stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {stat.change}
-                          </div>
-                        </dd>
-                      </dl>
+                    <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                      stat.changeType === 'positive' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                    }`}>
+                      {stat.changeType === 'positive' ? (
+                        <ArrowUpRight className="w-3 h-3" />
+                      ) : (
+                        <ArrowDownRight className="w-3 h-3" />
+                      )}
+                      <span>{stat.change}</span>
                     </div>
                   </div>
                 </ThemeCard>
@@ -104,55 +169,30 @@ export default function DashboardPage() {
             })}
           </div>
 
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <ThemeCard className="p-6">
-              <h3 className="text-lg font-medium theme-text-primary mb-4">
-                Activité récente
-              </h3>
-              <div className="h-64 flex items-center justify-center theme-text-secondary">
-                <p>Graphique d'activité à venir...</p>
-              </div>
-            </ThemeCard>
 
-            <ThemeCard className="p-6">
-              <h3 className="text-lg font-medium theme-text-primary mb-4">
-                Sessions par heure
-              </h3>
-              <div className="h-64 flex items-center justify-center theme-text-secondary">
-                <p>Graphique des sessions à venir...</p>
-              </div>
-            </ThemeCard>
-          </div>
 
-          {/* Recent Activity */}
-          <ThemeCard className="p-6">
-            <h3 className="text-lg font-medium theme-text-primary mb-4">
-              Activité récente
-            </h3>
-            <div className="space-y-4">
-              {[
-                { action: 'Nouvelle session liveness', user: 'John Doe', time: '2 min ago' },
-                { action: 'Vérification terminée', user: 'Jane Smith', time: '5 min ago' },
-                { action: 'Session échouée', user: 'Bob Johnson', time: '10 min ago' },
-                { action: 'Nouvelle session liveness', user: 'Alice Brown', time: '15 min ago' },
-              ].map((activity, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm theme-text-primary">
-                      {activity.action} par {activity.user}
-                    </p>
-                    <p className="text-sm theme-text-secondary">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ThemeCard>
+
+          {/* Graphiques Professionnels */}
+          <DashboardCharts
+            usersData={metrics.totalUsers}
+            adminsData={metrics.totalAdmins}
+            clientsData={metrics.totalClients}
+            sessionsData={metrics.activeSessions}
+            rolesData={metrics.totalRoles}
+            permissionsData={metrics.totalPermissions}
+            isLoading={metrics.isLoading}
+          />
+
+          {/* Métriques des Configurations */}
+          <ConfigsMetrics
+            livenessConfigs={metrics.livenessConfigs}
+            matchingConfigs={metrics.matchingConfigs}
+            silentLivenessConfigs={metrics.silentLivenessConfigs}
+            totalConfigs={metrics.totalConfigs}
+            isLoading={metrics.isLoading}
+          />
+
+
         </div>
       </Layout>
     </ThemeProvider>

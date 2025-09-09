@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle, CheckCircle, Shield } from 'lucide-react';
-import { Role } from '@/types';
+import { X, Save, AlertCircle, CheckCircle, Shield, Users, Key } from 'lucide-react';
+import { Role, Permission } from '@/types';
 import { RolesService } from '@/lib/api/rolesService';
+import { PermissionsService } from '@/lib/api/permissionsService';
 
 interface EditRoleModalProps {
   isOpen: boolean;
@@ -14,17 +15,42 @@ interface EditRoleModalProps {
 
 export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModalProps) {
   const [formData, setFormData] = useState({
-    name: ''
+    name: '',
+    permissions: [] as number[]
   });
+  const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingPermissions, setLoadingPermissions] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
+
+  // Charger toutes les permissions disponibles
+  useEffect(() => {
+    const loadPermissions = async () => {
+      if (!isOpen) return;
+      
+      try {
+        setLoadingPermissions(true);
+        const permissions = await PermissionsService.getAllPermissions();
+        setAllPermissions(permissions);
+      } catch (err: any) {
+        console.error('Erreur lors du chargement des permissions:', err);
+        setError(`Erreur lors du chargement des permissions: ${err.message}`);
+      } finally {
+        setLoadingPermissions(false);
+      }
+    };
+
+    loadPermissions();
+  }, [isOpen]);
 
   // Initialiser le formulaire quand le rôle change
   useEffect(() => {
     if (role) {
+      const currentPermissionIds = role.permissions?.map(p => p.permissionId) || [];
       setFormData({
-        name: role.name
+        name: role.name,
+        permissions: currentPermissionIds
       });
     }
   }, [role]);
@@ -33,6 +59,14 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
     e.preventDefault();
     
     if (!role) return;
+    if (!formData.name.trim()) {
+      setError('Le nom du rôle est requis.');
+      return;
+    }
+    if (formData.permissions.length === 0) {
+      setError('Au moins une permission doit être sélectionnée.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -41,13 +75,17 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
 
       console.log('🔍 Mise à jour du rôle...', formData);
       
+      // Mettre à jour le nom du rôle
       const updatedRole = await RolesService.updateRole(role.id, {
         name: formData.name
       });
 
+      // Mettre à jour les permissions séparément
+      await RolesService.updateRolePermissions(role.id, formData.permissions);
+
       console.log('✅ Rôle mis à jour avec succès:', updatedRole);
       
-      setSuccess('Rôle mis à jour avec succès');
+      setSuccess('Rôle et permissions mis à jour avec succès');
       onSuccess(updatedRole);
       
       // Fermer le modal après un délai
@@ -71,6 +109,29 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
       setSuccess('');
       onClose();
     }
+  };
+
+  // Gérer la sélection/désélection des permissions
+  const handlePermissionToggle = (permissionId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: prev.permissions.includes(permissionId)
+        ? prev.permissions.filter(id => id !== permissionId)
+        : [...prev.permissions, permissionId]
+    }));
+  };
+
+  // Grouper les permissions par catégorie
+  const groupPermissionsByCategory = (permissions: Permission[]) => {
+    const grouped: { [key: string]: Permission[] } = {};
+    permissions.forEach(permission => {
+      const category = permission.name.split(':')[1] || 'other';
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(permission);
+    });
+    return grouped;
   };
 
   if (!isOpen || !role) return null;
@@ -151,18 +212,52 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
               />
             </div>
 
-            {/* Note sur les permissions */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start">
-                <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
-                <div>
-                  <h4 className="text-sm font-medium text-blue-800">Information</h4>
-                  <p className="text-sm text-blue-700 mt-1">
-                    Seul le nom du rôle peut être modifié. Les permissions sont gérées séparément par l'administrateur système.
-                  </p>
-                </div>
-              </div>
-            </div>
+                        {/* Gestion des permissions */}
+                        <div className="space-y-4">
+                          <div className="flex items-center">
+                            <Key className="h-5 w-5 text-primary-600 mr-2" />
+                            <h3 className="text-lg font-medium theme-text-primary">Permissions du rôle</h3>
+                          </div>
+                          
+                          {loadingPermissions ? (
+                            <div className="flex items-center justify-center py-8">
+                              <div className="w-6 h-6 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin mr-2" />
+                              <span className="theme-text-secondary">Chargement des permissions...</span>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              {Object.entries(groupPermissionsByCategory(allPermissions)).map(([category, permissions]) => (
+                                <div key={category} className="border rounded-lg p-4 theme-bg-elevated theme-border-primary">
+                                  <h4 className="font-medium theme-text-primary mb-3 capitalize">
+                                    {category.replace('-', ' ')} ({permissions.length})
+                                  </h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {permissions.map(permission => (
+                                      <label
+                                        key={permission.id}
+                                        className="flex items-center space-x-3 p-2 rounded-lg hover:theme-bg-secondary theme-transition cursor-pointer"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={formData.permissions.includes(permission.id)}
+                                          onChange={() => handlePermissionToggle(permission.id)}
+                                          className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
+                                        />
+                                        <span className="text-sm theme-text-primary">
+                                          {permission.name.split(':')[0]}
+                                        </span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                              
+                              <div className="text-sm theme-text-secondary">
+                                <strong>{formData.permissions.length}</strong> permission(s) sélectionnée(s) sur {allPermissions.length} disponibles
+                              </div>
+                            </div>
+                          )}
+                        </div>
 
             {/* Separator */}
             <div className="border-t theme-border-primary theme-transition"></div>

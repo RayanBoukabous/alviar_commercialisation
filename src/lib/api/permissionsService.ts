@@ -22,31 +22,13 @@ export class PermissionsService {
     }
 
     /**
-     * Récupère une permission par son ID
-     */
-    static async getPermissionById(id: number): Promise<Permission> {
-        try {
-            console.log(`🔍 Récupération de la permission ${id} depuis l'API...`);
-
-            const response = await apiClient.get<Permission>(`/permissions/${id}`);
-
-            console.log(`✅ Permission ${id} récupérée avec succès:`, response);
-
-            return response.data || response;
-        } catch (error: any) {
-            console.error(`❌ Erreur lors de la récupération de la permission ${id}:`, error);
-            throw new Error(`Erreur lors de la récupération de la permission: ${error.message || 'Erreur inconnue'}`);
-        }
-    }
-
-    /**
      * Crée une nouvelle permission
      */
     static async createPermission(permissionData: { name: string }): Promise<Permission> {
         try {
             console.log('🔍 Création d\'une nouvelle permission...', permissionData);
 
-            const response = await apiClient.post<Permission>('/permissions', permissionData);
+            const response = await apiClient.post<Permission>('/roles/permissions', permissionData);
 
             console.log('✅ Permission créée avec succès:', response);
 
@@ -58,31 +40,13 @@ export class PermissionsService {
     }
 
     /**
-     * Met à jour une permission
-     */
-    static async updatePermission(id: number, permissionData: { name?: string }): Promise<Permission> {
-        try {
-            console.log(`🔍 Mise à jour de la permission ${id}...`, permissionData);
-
-            const response = await apiClient.put<Permission>(`/permissions/${id}`, permissionData);
-
-            console.log(`✅ Permission ${id} mise à jour avec succès:`, response);
-
-            return response.data || response;
-        } catch (error: any) {
-            console.error(`❌ Erreur lors de la mise à jour de la permission ${id}:`, error);
-            throw new Error(`Erreur lors de la mise à jour de la permission: ${error.message || 'Erreur inconnue'}`);
-        }
-    }
-
-    /**
      * Supprime une permission
      */
     static async deletePermission(id: number): Promise<void> {
         try {
             console.log(`🔍 Suppression de la permission ${id}...`);
 
-            await apiClient.delete(`/permissions/${id}`);
+            await apiClient.delete(`/roles/permissions/${id}`);
 
             console.log(`✅ Permission ${id} supprimée avec succès`);
         } catch (error: any) {

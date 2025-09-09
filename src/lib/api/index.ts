@@ -6,6 +6,8 @@ export { clientsService } from './clientsService';
 export { configsService } from './configsService';
 export { adminsService } from './adminsService';
 export { usersService } from './usersService';
+export { PermissionsService as permissionsService } from './permissionsService';
+export { PaymentPlansService as paymentPlansService } from './paymentPlansService';
 export type { ApiResponse, ApiError } from './client';
 
 // Re-exports des services individuels pour faciliter l'import
@@ -63,3 +65,20 @@ export type {
   CreateUserRequest,
   UpdateUserRequest,
 } from '@/types';
+
+// Re-exports des types de permissions et rôles
+export type {
+  Permission,
+  Role,
+  RolePermission,
+  RolesResponse,
+} from '@/types';
+
+// Re-exports des types de payment plans
+export type {
+  PaymentPlan as PaymentPlanType,
+  BillingCycle,
+  Currency,
+  BillingCyclesAndCurrencies,
+  CreatePaymentPlanRequest,
+} from './paymentPlansService';

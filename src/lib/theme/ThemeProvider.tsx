@@ -156,8 +156,8 @@ export function ThemeCard({ children, className = '', elevated = false }: ThemeC
   
   const baseClasses = 'theme-transition rounded-lg border';
   const themeClasses = theme === 'dark' 
-    ? 'bg-slate-800 border-slate-700' 
-    : 'bg-white border-slate-200';
+    ? 'theme-bg-elevated theme-border-primary' 
+    : 'theme-bg-elevated theme-border-primary';
   const elevationClasses = elevated 
     ? 'shadow-lg' 
     : 'shadow-sm';
