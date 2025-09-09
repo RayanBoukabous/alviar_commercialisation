@@ -13,12 +13,17 @@ import {
   Calendar,
   Mail,
   Shield,
-  RefreshCw
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Pause
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRequireAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { adminsService, Admin } from '@/lib/api';
+import { rolesService } from '@/lib/api';
+import { Role } from '@/types';
 import { Layout } from '@/components/layout/Layout';
 import { CreateAdminModal } from '@/components/forms/CreateAdminModal';
 import { EditAdminModal } from '@/components/forms/EditAdminModal';
@@ -27,6 +32,7 @@ export default function AdminsPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const router = useRouter();
   const [admins, setAdmins] = useState<Admin[]>([]);
+  const [roles, setRoles] = useState<Map<number, Role>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,8 +42,41 @@ export default function AdminsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const [deletingAdminId, setDeletingAdminId] = useState<number | null>(null);
+  const [activatingAdminId, setActivatingAdminId] = useState<number | null>(null);
+  const [suspendingAdminId, setSuspendingAdminId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
 
+
+  // Fonction pour récupérer les rôles uniques des admins
+  const fetchRolesForAdmins = async (admins: Admin[]) => {
+    const uniqueRoleIds = [...new Set(admins.map(admin => admin.roleId))];
+    const rolesMap = new Map<number, Role>();
+    
+    try {
+      // Récupérer tous les rôles en parallèle
+      const rolePromises = uniqueRoleIds.map(roleId => 
+        rolesService.getRoleById(roleId).catch((err: any) => {
+          console.error(`Erreur lors de la récupération du rôle ${roleId}:`, err);
+          return null;
+        })
+      );
+      
+      const roles = await Promise.all(rolePromises);
+      
+      // Construire la map des rôles
+      roles.forEach((role: Role | null) => {
+        if (role) {
+          rolesMap.set(role.id, role);
+        }
+      });
+      
+      console.log('✅ Rôles récupérés:', rolesMap);
+      return rolesMap;
+    } catch (err) {
+      console.error('Erreur lors de la récupération des rôles:', err);
+      return new Map<number, Role>();
+    }
+  };
 
   useEffect(() => {
     const fetchAdmins = async () => {
@@ -55,10 +94,17 @@ export default function AdminsPage() {
         console.log('🔍 Est-ce un tableau?', Array.isArray(response.admins));
         console.log('🔍 Longueur:', response.admins?.length);
         
-        setAdmins(response.admins || []);
-        console.log('✅ Admins récupérés depuis l\'API:', response.admins);
+        const adminsData = response.admins || [];
+        setAdmins(adminsData);
         
-        console.log('✅ Admins récupérés et définis:', response.admins || []);
+        // Récupérer les rôles pour ces admins
+        if (adminsData.length > 0) {
+          const rolesMap = await fetchRolesForAdmins(adminsData);
+          setRoles(rolesMap);
+        }
+        
+        console.log('✅ Admins récupérés depuis l\'API:', adminsData);
+        console.log('✅ Admins récupérés et définis:', adminsData);
       } catch (err: any) {
         console.error('Erreur détaillée:', err);
         console.error('Message d\'erreur:', err.message);
@@ -66,6 +112,7 @@ export default function AdminsPage() {
         setError(`Erreur lors du chargement des administrateurs: ${err.message || 'Erreur inconnue'}`);
         // En cas d'erreur, ne pas utiliser de données mock
         setAdmins([]);
+        setRoles(new Map());
       } finally {
         setLoading(false);
       }
@@ -82,13 +129,23 @@ export default function AdminsPage() {
       setError('');
       const response = await adminsService.getAllAdmins(true);
       console.log('Admins rafraîchis:', response);
-      setAdmins(response.admins || []);
-      console.log('Admins rafraîchis depuis l\'API:', response.admins);
+      
+      const adminsData = response.admins || [];
+      setAdmins(adminsData);
+      
+      // Récupérer les rôles pour ces admins
+      if (adminsData.length > 0) {
+        const rolesMap = await fetchRolesForAdmins(adminsData);
+        setRoles(rolesMap);
+      }
+      
+      console.log('Admins rafraîchis depuis l\'API:', adminsData);
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement:', err);
       setError(`Erreur lors du rafraîchissement des administrateurs: ${err.message || 'Erreur inconnue'}`);
       // En cas d'erreur, ne pas utiliser de données mock
       setAdmins([]);
+      setRoles(new Map());
     } finally {
       setRefreshing(false);
     }
@@ -144,6 +201,70 @@ export default function AdminsPage() {
     }
   };
 
+  const handleActivateAdmin = async (adminId: number, adminName: string) => {
+    const confirmed = window.confirm(
+      `Êtes-vous sûr de vouloir activer l'administrateur "${adminName}" ?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setActivatingAdminId(adminId);
+      await adminsService.activateAdmin(adminId);
+      
+      // Mettre à jour le statut de l'admin dans la liste locale
+      setAdmins(prevAdmins => 
+        prevAdmins.map(admin => 
+          admin.id === adminId ? { ...admin, status: 'active' } : admin
+        )
+      );
+      
+      setSuccessMessage(`Administrateur "${adminName}" activé avec succès`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      console.log(`Administrateur ${adminName} activé avec succès`);
+    } catch (err) {
+      console.error('Erreur lors de l\'activation de l\'administrateur:', err);
+      setError('Erreur lors de l\'activation de l\'administrateur');
+    } finally {
+      setActivatingAdminId(null);
+    }
+  };
+
+  const handleSuspendAdmin = async (adminId: number, adminName: string) => {
+    const confirmed = window.confirm(
+      `Êtes-vous sûr de vouloir suspendre l'administrateur "${adminName}" ?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setSuspendingAdminId(adminId);
+      await adminsService.suspendAdmin(adminId);
+      
+      // Mettre à jour le statut de l'admin dans la liste locale
+      setAdmins(prevAdmins => 
+        prevAdmins.map(admin => 
+          admin.id === adminId ? { ...admin, status: 'suspended' } : admin
+        )
+      );
+      
+      setSuccessMessage(`Administrateur "${adminName}" suspendu avec succès`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      console.log(`Administrateur ${adminName} suspendu avec succès`);
+    } catch (err) {
+      console.error('Erreur lors de la suspension de l\'administrateur:', err);
+      setError('Erreur lors de la suspension de l\'administrateur');
+    } finally {
+      setSuspendingAdminId(null);
+    }
+  };
+
   const filteredAdmins = admins.filter(admin => {
     const matchesSearch = 
       admin.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -174,17 +295,28 @@ export default function AdminsPage() {
   };
 
   const getRoleBadge = (roleId: number) => {
-    const roleConfig = {
-      1: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Super Admin' },
-      2: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Admin' },
-      3: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Moderator' }
+    const role = roles.get(roleId);
+    const roleName = role?.name || 'Rôle inconnu';
+    
+    // Configuration des couleurs basée sur le nom du rôle
+    const getRoleConfig = (name: string) => {
+      const lowerName = name.toLowerCase();
+      if (lowerName.includes('super') || lowerName.includes('admin')) {
+        return { bg: 'bg-purple-100', text: 'text-purple-800' };
+      } else if (lowerName.includes('moderator') || lowerName.includes('moderateur')) {
+        return { bg: 'bg-orange-100', text: 'text-orange-800' };
+      } else if (lowerName.includes('user') || lowerName.includes('utilisateur')) {
+        return { bg: 'bg-blue-100', text: 'text-blue-800' };
+      } else {
+        return { bg: 'bg-gray-100', text: 'text-gray-800' };
+      }
     };
     
-    const config = roleConfig[roleId as keyof typeof roleConfig] || { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Utilisateur' };
+    const config = getRoleConfig(roleName);
     
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-        {config.label}
+        {roleName}
       </span>
     );
   };
@@ -332,7 +464,6 @@ export default function AdminsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y theme-bg-elevated theme-border-secondary theme-transition">
-                  {console.log('🔍 Rendu du tableau - filteredAdmins:', filteredAdmins)}
                   {filteredAdmins.map((admin) => (
                     <tr key={admin.id} className="transition-colors hover:theme-bg-secondary">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -365,7 +496,7 @@ export default function AdminsPage() {
                         {formatDate(admin.createdAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end space-x-2">
+                        <div className="flex items-center justify-end space-x-1">
                           <button 
                             onClick={() => handleViewAdmin(admin)}
                             className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
@@ -380,6 +511,39 @@ export default function AdminsPage() {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
+                          
+                          {/* Bouton Activer - visible seulement si l'admin n'est pas actif */}
+                          {admin.status !== 'active' && (
+                            <button 
+                              onClick={() => handleActivateAdmin(admin.id, admin.fullName)}
+                              disabled={activatingAdminId === admin.id}
+                              className="p-1 theme-text-tertiary hover:text-green-500 theme-transition disabled:opacity-50"
+                              title="Activer l'administrateur"
+                            >
+                              {activatingAdminId === admin.id ? (
+                                <div className="w-4 h-4 border-2 border-green-300 border-t-green-600 rounded-full animate-spin" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
+                          
+                          {/* Bouton Suspendre - visible seulement si l'admin est actif */}
+                          {admin.status === 'active' && (
+                            <button 
+                              onClick={() => handleSuspendAdmin(admin.id, admin.fullName)}
+                              disabled={suspendingAdminId === admin.id}
+                              className="p-1 theme-text-tertiary hover:text-orange-500 theme-transition disabled:opacity-50"
+                              title="Suspendre l'administrateur"
+                            >
+                              {suspendingAdminId === admin.id ? (
+                                <div className="w-4 h-4 border-2 border-orange-300 border-t-orange-600 rounded-full animate-spin" />
+                              ) : (
+                                <Pause className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
+                          
                           <button 
                             onClick={() => handleDeleteAdmin(admin.id, admin.fullName)}
                             disabled={deletingAdminId === admin.id}
@@ -391,9 +555,6 @@ export default function AdminsPage() {
                             ) : (
                               <Trash2 className="h-4 w-4" />
                             )}
-                          </button>
-                          <button className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition">
-                            <MoreVertical className="h-4 w-4" />
                           </button>
                         </div>
                       </td>
@@ -444,6 +605,7 @@ export default function AdminsPage() {
         }}
         onSuccess={handleEditSuccess}
         admin={editingAdmin}
+        roles={roles}
       />
 
     </Layout>

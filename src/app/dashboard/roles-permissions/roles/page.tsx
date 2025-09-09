@@ -22,6 +22,7 @@ import { Layout } from '@/components/layout/Layout';
 import { RolesService } from '@/lib/api/rolesService';
 import { Role } from '@/types';
 import { EditRoleModal } from '@/components/forms/EditRoleModal';
+import { CreateRoleModal } from '@/components/forms/CreateRoleModal';
 
 export default function RolesPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
@@ -34,6 +35,7 @@ export default function RolesPage() {
   const [deletingRoleId, setDeletingRoleId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
 
@@ -91,11 +93,19 @@ export default function RolesPage() {
   };
 
   const handleEditSuccess = (updatedRole: Role) => {
-    setRoles(prevRoles => 
-      prevRoles.map(role => role.id === updatedRole.id ? updatedRole : role)
-    );
+    // Rafraîchir complètement la liste des rôles pour avoir les données les plus récentes
+    handleRefresh();
     setIsEditModalOpen(false);
     setSelectedRole(null);
+    setSuccessMessage('✅ Rôle mis à jour avec succès');
+    setTimeout(() => setSuccessMessage(''), 5000);
+  };
+
+  const handleCreateSuccess = () => {
+    // Rafraîchir la liste des rôles après création
+    handleRefresh();
+    setSuccessMessage('✅ Rôle créé avec succès');
+    setTimeout(() => setSuccessMessage(''), 5000);
   };
 
   const handleDeleteRole = async (roleId: number, roleName: string) => {
@@ -213,7 +223,7 @@ export default function RolesPage() {
                   Rafraîchir
                 </button>
                 <button 
-                  onClick={() => console.log('Créer nouveau rôle')}
+                  onClick={() => setIsCreateModalOpen(true)}
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -399,6 +409,13 @@ export default function RolesPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de création */}
+      <CreateRoleModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={handleCreateSuccess}
+      />
 
       {/* Modal de modification */}
       <EditRoleModal

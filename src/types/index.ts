@@ -284,8 +284,6 @@ export interface UpdateAdminRequest {
   email?: string;
   username?: string;
   fullName?: string;
-  roleId?: number;
-  status?: 'active' | 'inactive' | 'suspended';
 }
 
 // Union type pour toutes les configurations

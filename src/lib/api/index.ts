@@ -6,6 +6,7 @@ export { clientsService } from './clientsService';
 export { configsService } from './configsService';
 export { adminsService } from './adminsService';
 export { usersService } from './usersService';
+export { RolesService as rolesService } from './rolesService';
 export { PermissionsService as permissionsService } from './permissionsService';
 export { PaymentPlansService as paymentPlansService } from './paymentPlansService';
 export type { ApiResponse, ApiError } from './client';
