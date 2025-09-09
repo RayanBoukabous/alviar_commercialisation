@@ -72,7 +72,7 @@ export default function DashboardPage() {
       bgColor: 'theme-bg-tertiary',
       iconColor: 'text-blue-600 dark:text-blue-400',
       isLoading: metrics.isLoading,
-      description: t('dashboard', 'users_description'),
+      description: t('dashboard', 'users_description') as string,
     },
     {
       name: t('dashboard', 'admins'),
@@ -84,7 +84,7 @@ export default function DashboardPage() {
       bgColor: 'theme-bg-tertiary',
       iconColor: 'text-red-600 dark:text-red-400',
       isLoading: metrics.isLoading,
-      description: t('dashboard', 'admins_description'),
+      description: t('dashboard', 'admins_description') as string,
     },
     {
       name: t('dashboard', 'clients'),
@@ -96,7 +96,7 @@ export default function DashboardPage() {
       bgColor: 'theme-bg-tertiary',
       iconColor: 'text-green-600 dark:text-green-500',
       isLoading: metrics.isLoading,
-      description: t('dashboard', 'clients_description'),
+      description: t('dashboard', 'clients_description') as string,
     },
     {
       name: t('dashboard', 'config_count'),
@@ -108,7 +108,7 @@ export default function DashboardPage() {
       bgColor: 'theme-bg-tertiary',
       iconColor: 'text-indigo-600 dark:text-indigo-400',
       isLoading: metrics.isLoading,
-      description: t('dashboard', 'config_count_description'),
+      description: t('dashboard', 'config_count_description') as string,
     },
   ];
 
@@ -121,10 +121,10 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
           <div>
                 <h1 className="text-3xl font-bold theme-text-primary bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
-                  {t('dashboard', 'title')}
+                  {t('dashboard', 'title') as string}
                 </h1>
                 <p className="mt-2 text-lg theme-text-secondary">
-                  {t('dashboard', 'subtitle')}
+                  {t('dashboard', 'subtitle') as string}
                 </p>
               </div>
               <button
@@ -133,7 +133,7 @@ export default function DashboardPage() {
                 className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <RefreshCw className={`w-4 h-4 ${metrics.isLoading ? 'animate-spin' : ''}`} />
-                <span>{t('dashboard', 'refresh')}</span>
+                <span>{t('dashboard', 'refresh') as string}</span>
               </button>
             </div>
             
@@ -142,7 +142,7 @@ export default function DashboardPage() {
               <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center space-x-2">
                 <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
                 <span className="text-red-700 dark:text-red-300">
-                  {t('dashboard', 'error_message')}
+                  {t('dashboard', 'error_message') as string}
                 </span>
               </div>
             )}
@@ -154,7 +154,7 @@ export default function DashboardPage() {
               const Icon = stat.icon;
               return (
                 <ThemeCard 
-                  key={stat.name} 
+                  key={stat.name as string} 
                   className="p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-fade-in"
                 >
                   <div className="flex items-center justify-between">
@@ -164,7 +164,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium theme-text-secondary">
-                          {stat.name}
+                          {stat.name as string}
                         </p>
                         <p className="text-2xl font-bold theme-text-primary mt-1">
                           {stat.isLoading ? (
