@@ -52,7 +52,7 @@ export default function ClientsPage() {
         setClients(response.clients || []);
         console.log('Clients récupérés:', response);
       } catch (err) {
-        setError(t('clients', 'loading_error'));
+        setError(t('clients', 'loading_error') as string);
         console.error('Erreur:', err);
         // En cas d'erreur, utiliser les données mock pour le développement
         // setClients(mockClients);
@@ -73,7 +73,7 @@ export default function ClientsPage() {
       setClients(response.clients || []);
       console.log('Clients rafraîchis:', response);
     } catch (err) {
-      setError(t('clients', 'refresh_error'));
+      setError(t('clients', 'refresh_error') as string);
       console.error('Erreur:', err);
     } finally {
       setRefreshing(false);
@@ -103,7 +103,7 @@ export default function ClientsPage() {
   const handleDeleteClient = async (clientId: number, clientName: string) => {
     // Confirmation avant suppression
     const confirmed = window.confirm(
-      t('clients', 'delete_confirmation').replace('{name}', clientName)
+      (t('clients', 'delete_confirmation') as string).replace('{name}', clientName)
     );
 
     if (!confirmed) {
@@ -118,13 +118,13 @@ export default function ClientsPage() {
       setClients(prevClients => prevClients.filter(client => client.id !== clientId));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(t('clients', 'client_deleted').replace('{name}', clientName));
+      setSuccessMessage((t('clients', 'client_deleted') as string).replace('{name}', clientName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Client ${clientName} supprimé avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression du client:', err);
-      setError(t('clients', 'delete_error'));
+      setError(t('clients', 'delete_error') as string);
     } finally {
       setDeletingClientId(null);
     }
@@ -138,9 +138,9 @@ export default function ClientsPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: t('clients', 'active') },
-      INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: t('clients', 'inactive') },
-      SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: t('clients', 'suspended') }
+      ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: t('clients', 'active') as string },
+      INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: t('clients', 'inactive') as string },
+      SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: t('clients', 'suspended') as string }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.INACTIVE;
