@@ -111,7 +111,7 @@ export default function AdminsPage() {
         console.error('Erreur détaillée:', err);
         console.error('Message d\'erreur:', err.message);
         console.error('Réponse d\'erreur:', err.response);
-        setError(t('admins', 'loading_error'));
+        setError(t('admins', 'loading_error') as string);
         // En cas d'erreur, ne pas utiliser de données mock
         setAdmins([]);
         setRoles(new Map());
@@ -144,7 +144,7 @@ export default function AdminsPage() {
       console.log('Admins rafraîchis depuis l\'API:', adminsData);
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement:', err);
-      setError(t('admins', 'refresh_error'));
+      setError(t('admins', 'refresh_error') as string);
       // En cas d'erreur, ne pas utiliser de données mock
       setAdmins([]);
       setRoles(new Map());
@@ -176,7 +176,7 @@ export default function AdminsPage() {
   const handleDeleteAdmin = async (adminId: number, adminName: string) => {
     // Confirmation avant suppression
     const confirmed = window.confirm(
-      t('admins', 'delete_admin_confirm').replace('{name}', adminName)
+      (t('admins', 'delete_admin_confirm') as string).replace('{name}', adminName)
     );
 
     if (!confirmed) {
@@ -191,13 +191,13 @@ export default function AdminsPage() {
       setAdmins(prevAdmins => prevAdmins.filter(admin => admin.id !== adminId));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(t('admins', 'admin_deleted_success').replace('{name}', adminName));
+      setSuccessMessage((t('admins', 'admin_deleted_success') as string).replace('{name}', adminName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Administrateur ${adminName} supprimé avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression de l\'administrateur:', err);
-      setError(t('admins', 'delete_admin_error'));
+      setError(t('admins', 'delete_admin_error') as string);
     } finally {
       setDeletingAdminId(null);
     }
@@ -205,7 +205,7 @@ export default function AdminsPage() {
 
   const handleActivateAdmin = async (adminId: number, adminName: string) => {
     const confirmed = window.confirm(
-      t('admins', 'activate_admin_confirm').replace('{name}', adminName)
+      (t('admins', 'activate_admin_confirm') as string).replace('{name}', adminName)
     );
 
     if (!confirmed) {
@@ -223,13 +223,13 @@ export default function AdminsPage() {
         )
       );
       
-      setSuccessMessage(t('admins', 'admin_activated_success').replace('{name}', adminName));
+      setSuccessMessage((t('admins', 'admin_activated_success') as string).replace('{name}', adminName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Administrateur ${adminName} activé avec succès`);
     } catch (err) {
       console.error('Erreur lors de l\'activation de l\'administrateur:', err);
-      setError(t('admins', 'activate_admin_error'));
+      setError(t('admins', 'activate_admin_error') as string);
     } finally {
       setActivatingAdminId(null);
     }
@@ -237,7 +237,7 @@ export default function AdminsPage() {
 
   const handleSuspendAdmin = async (adminId: number, adminName: string) => {
     const confirmed = window.confirm(
-      t('admins', 'suspend_admin_confirm').replace('{name}', adminName)
+      (t('admins', 'suspend_admin_confirm') as string).replace('{name}', adminName)
     );
 
     if (!confirmed) {
@@ -255,13 +255,13 @@ export default function AdminsPage() {
         )
       );
       
-      setSuccessMessage(t('admins', 'admin_suspended_success').replace('{name}', adminName));
+      setSuccessMessage((t('admins', 'admin_suspended_success') as string).replace('{name}', adminName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Administrateur ${adminName} suspendu avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suspension de l\'administrateur:', err);
-      setError(t('admins', 'suspend_admin_error'));
+      setError(t('admins', 'suspend_admin_error') as string);
     } finally {
       setSuspendingAdminId(null);
     }
@@ -282,9 +282,9 @@ export default function AdminsPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { bg: 'bg-green-100', text: 'text-green-800', label: t('admins', 'active') },
-      inactive: { bg: 'bg-gray-100', text: 'text-gray-800', label: t('admins', 'inactive') },
-      suspended: { bg: 'bg-red-100', text: 'text-red-800', label: t('admins', 'suspended') }
+      active: { bg: 'bg-green-100', text: 'text-green-800', label: t('admins', 'active') as string },
+      inactive: { bg: 'bg-gray-100', text: 'text-gray-800', label: t('admins', 'inactive') as string },
+      suspended: { bg: 'bg-red-100', text: 'text-red-800', label: t('admins', 'suspended') as string }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.inactive;
@@ -298,7 +298,7 @@ export default function AdminsPage() {
 
   const getRoleBadge = (roleId: number) => {
     const role = roles.get(roleId);
-    const roleName = role?.name || t('admins', 'unknown_role');
+    const roleName = role?.name || t('admins', 'unknown_role') as string;
     
     // Configuration des couleurs basée sur le nom du rôle
     const getRoleConfig = (name: string) => {
@@ -353,9 +353,9 @@ export default function AdminsPage() {
             <div>
               <h1 className="text-2xl font-bold flex items-center theme-text-primary theme-transition">
                 <Shield className="h-7 w-7 mr-3 text-primary-600" />
-                {t('admins', 'admins_management')}
+                {t('admins', 'admins_management') as string}
               </h1>
-              <p className="mt-1 theme-text-secondary theme-transition">{t('admins', 'admins_management_description')}</p>
+              <p className="mt-1 theme-text-secondary theme-transition">{t('admins', 'admins_management_description') as string}</p>
             </div>
             <div className="flex items-center space-x-3">
               <button 
@@ -364,14 +364,14 @@ export default function AdminsPage() {
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                {t('admins', 'refresh')}
+                {t('admins', 'refresh') as string}
               </button>
               <button 
                 onClick={() => setIsCreateModalOpen(true)}
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                {t('admins', 'new_admin')}
+                {t('admins', 'new_admin') as string}
               </button>
             </div>
           </div>
@@ -386,7 +386,7 @@ export default function AdminsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition" />
               <input
                 type="text"
-                placeholder={t('admins', 'search_admin')}
+                placeholder={t('admins', 'search_admin') as string}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
@@ -397,14 +397,14 @@ export default function AdminsPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
             >
-              <option value="ALL">{t('admins', 'all_statuses')}</option>
-              <option value="active">{t('admins', 'active')}</option>
-              <option value="inactive">{t('admins', 'inactive')}</option>
-              <option value="suspended">{t('admins', 'suspended')}</option>
+              <option value="ALL">{t('admins', 'all_statuses') as string}</option>
+              <option value="active">{t('admins', 'active') as string}</option>
+              <option value="inactive">{t('admins', 'inactive') as string}</option>
+              <option value="suspended">{t('admins', 'suspended') as string}</option>
             </select>
             <button className="px-4 py-2 border rounded-lg flex items-center theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary theme-transition">
               <Filter className="h-4 w-4 mr-2" />
-              {t('admins', 'filters')}
+              {t('admins', 'filters') as string}
             </button>
           </div>
         </div>
@@ -443,25 +443,25 @@ export default function AdminsPage() {
                 <thead className="theme-bg-secondary theme-transition">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('admins', 'administrator')}
+                      {t('admins', 'administrator') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('admins', 'email')}
+                      {t('admins', 'email') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('admins', 'role')}
+                      {t('admins', 'role') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('admins', 'status')}
+                      {t('admins', 'status') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('admins', 'last_login')}
+                      {t('admins', 'last_login') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('admins', 'creation_date')}
+                      {t('admins', 'creation_date') as string}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('admins', 'actions')}
+                      {t('admins', 'actions') as string}
                     </th>
                   </tr>
                 </thead>
@@ -492,7 +492,7 @@ export default function AdminsPage() {
                         {getStatusBadge(admin.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm theme-text-secondary theme-transition">
-                        {admin.lastLogin ? formatDate(admin.lastLogin) : t('admins', 'never_connected')}
+                        {admin.lastLogin ? formatDate(admin.lastLogin) : t('admins', 'never_connected') as string}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm theme-text-secondary theme-transition">
                         {formatDate(admin.createdAt)}
@@ -502,14 +502,14 @@ export default function AdminsPage() {
                           <button 
                             onClick={() => handleViewAdmin(admin)}
                             className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
-                            title={t('admins', 'view_admin_details')}
+                            title={t('admins', 'view_admin_details') as string}
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handleEditAdmin(admin)}
                             className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
-                            title={t('admins', 'edit_admin')}
+                            title={t('admins', 'edit_admin') as string}
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -520,7 +520,7 @@ export default function AdminsPage() {
                               onClick={() => handleActivateAdmin(admin.id, admin.fullName)}
                               disabled={activatingAdminId === admin.id}
                               className="p-1 theme-text-tertiary hover:text-green-500 theme-transition disabled:opacity-50"
-                              title={t('admins', 'activate_admin')}
+                              title={t('admins', 'activate_admin') as string}
                             >
                               {activatingAdminId === admin.id ? (
                                 <div className="w-4 h-4 border-2 border-green-300 border-t-green-600 rounded-full animate-spin" />
@@ -536,7 +536,7 @@ export default function AdminsPage() {
                               onClick={() => handleSuspendAdmin(admin.id, admin.fullName)}
                               disabled={suspendingAdminId === admin.id}
                               className="p-1 theme-text-tertiary hover:text-orange-500 theme-transition disabled:opacity-50"
-                              title={t('admins', 'suspend_admin')}
+                              title={t('admins', 'suspend_admin') as string}
                             >
                               {suspendingAdminId === admin.id ? (
                                 <div className="w-4 h-4 border-2 border-orange-300 border-t-orange-600 rounded-full animate-spin" />
@@ -550,7 +550,7 @@ export default function AdminsPage() {
                             onClick={() => handleDeleteAdmin(admin.id, admin.fullName)}
                             disabled={deletingAdminId === admin.id}
                             className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50"
-                            title={t('admins', 'delete_admin')}
+                            title={t('admins', 'delete_admin') as string}
                           >
                             {deletingAdminId === admin.id ? (
                               <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -570,20 +570,20 @@ export default function AdminsPage() {
           {filteredAdmins.length === 0 && !loading && (
             <div className="text-center py-12">
               <Shield className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('admins', 'no_admin_found')}</h3>
-              <p className="theme-text-secondary theme-transition">{t('admins', 'start_adding_admin')}</p>
+              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('admins', 'no_admin_found') as string}</h3>
+              <p className="theme-text-secondary theme-transition">{t('admins', 'start_adding_admin') as string}</p>
               <div className="mt-4 text-sm theme-text-tertiary bg-gray-100 dark:bg-gray-800 p-4 rounded">
-                <p><strong>{t('admins', 'debug_info')}:</strong></p>
-                <p>{t('admins', 'total_admins')}: {admins.length}</p>
-                <p>{t('admins', 'filtered_admins')}: {filteredAdmins.length}</p>
-                <p>{t('admins', 'search_term')}: "{searchTerm}"</p>
-                <p>{t('admins', 'status_filter')}: "{statusFilter}"</p>
-                <p>{t('admins', 'loading')}: {loading.toString()}</p>
-                <p>{t('admins', 'error')}: {error}</p>
-                <p>{t('admins', 'admins_data')}: {JSON.stringify(admins, null, 2)}</p>
-                <p>{t('admins', 'admins_type')}: {typeof admins}</p>
-                <p>{t('admins', 'is_array')}: {Array.isArray(admins).toString()}</p>
-                <p>{t('admins', 'first_admin')}: {admins[0] ? JSON.stringify(admins[0]) : t('admins', 'none')}</p>
+                <p><strong>{t('admins', 'debug_info') as string}:</strong></p>
+                <p>{t('admins', 'total_admins') as string}: {admins.length}</p>
+                <p>{t('admins', 'filtered_admins') as string}: {filteredAdmins.length}</p>
+                <p>{t('admins', 'search_term') as string}: "{searchTerm}"</p>
+                <p>{t('admins', 'status_filter') as string}: "{statusFilter}"</p>
+                <p>{t('admins', 'loading') as string}: {loading.toString()}</p>
+                <p>{t('admins', 'error') as string}: {error}</p>
+                <p>{t('admins', 'admins_data') as string}: {JSON.stringify(admins, null, 2)}</p>
+                <p>{t('admins', 'admins_type') as string}: {typeof admins}</p>
+                <p>{t('admins', 'is_array') as string}: {Array.isArray(admins).toString()}</p>
+                <p>{t('admins', 'first_admin') as string}: {admins[0] ? JSON.stringify(admins[0]) : t('admins', 'none') as string}</p>
               </div>
             </div>
           )}

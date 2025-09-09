@@ -144,7 +144,7 @@ export default function ConfigsPage() {
         console.log('Toutes les configs récupérées:', allConfigs);
         
       } catch (err) {
-        setError(t('configs', 'loading_error'));
+        setError(t('configs', 'loading_error') as string);
         console.error('Erreur:', err);
         // En cas d'erreur, utiliser les données mock
         setConfigs(mockConfigs);
@@ -194,7 +194,7 @@ export default function ConfigsPage() {
       setConfigs(allConfigs);
       console.log('Configs rafraîchies:', allConfigs);
     } catch (err) {
-      setError(t('configs', 'refresh_error'));
+      setError(t('configs', 'refresh_error') as string);
       console.error('Erreur:', err);
     } finally {
       setRefreshing(false);
@@ -202,11 +202,11 @@ export default function ConfigsPage() {
   };
 
   const handleDeleteConfig = async (config: Config) => {
-    const configName = `${getConfigTypeName(config.type)} ${t('configs', 'config')} #${config.id}`;
+    const configName = `${getConfigTypeName(config.type)} ${t('configs', 'config') as string} #${config.id}`;
     
     // Confirmation avant suppression
     const confirmed = window.confirm(
-      t('configs', 'delete_config_confirm')
+      (t('configs', 'delete_config_confirm') as string)
         .replace('{name}', configName)
         .replace('{client}', getClientName(config.clientId))
     );
@@ -225,13 +225,13 @@ export default function ConfigsPage() {
       setConfigs(prevConfigs => prevConfigs.filter(c => c.id !== config.id));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(t('configs', 'config_deleted_success').replace('{name}', configName));
+      setSuccessMessage((t('configs', 'config_deleted_success') as string).replace('{name}', configName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Configuration ${configName} supprimée avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression de la configuration:', err);
-      setError(t('configs', 'delete_config_error'));
+      setError(t('configs', 'delete_config_error') as string);
     } finally {
       setDeletingConfigId(null);
     }
@@ -290,7 +290,7 @@ export default function ConfigsPage() {
     }
     // Sinon, chercher dans la liste des clients
     const client = clients.find(c => c.id === clientId);
-    return client ? client.name : `${t('configs', 'client')} #${clientId}`;
+    return client ? client.name : `${t('configs', 'client') as string} #${clientId}`;
   };
 
   const getClientStatus = (clientId: number, clientData?: any) => {
@@ -306,11 +306,11 @@ export default function ConfigsPage() {
   const getConfigTypeName = (type: ConfigType) => {
     switch (type) {
       case 'liveness':
-        return t('clients', 'liveness');
+        return t('clients', 'liveness') as string;
       case 'matching':
-        return t('clients', 'matching');
+        return t('clients', 'matching') as string;
       case 'silent-liveness':
-        return t('clients', 'silent_liveness');
+        return t('clients', 'silent_liveness') as string;
       default:
         return type;
     }
@@ -360,9 +360,9 @@ export default function ConfigsPage() {
             <div>
               <h1 className="text-2xl font-bold flex items-center theme-text-primary theme-transition">
                 <Settings className="h-7 w-7 mr-3 text-primary-600" />
-                {t('configs', 'configs_management')}
+                {t('configs', 'configs_management') as string}
               </h1>
-              <p className="mt-1 theme-text-secondary theme-transition">{t('configs', 'configs_management_description')}</p>
+              <p className="mt-1 theme-text-secondary theme-transition">{t('configs', 'configs_management_description') as string}</p>
             </div>
             <div className="flex items-center space-x-3">
               <button 
@@ -371,14 +371,14 @@ export default function ConfigsPage() {
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                {t('configs', 'refresh')}
+                {t('configs', 'refresh') as string}
               </button>
               <button 
                 onClick={() => setIsCreateModalOpen(true)}
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                {t('configs', 'new_configuration')}
+                {t('configs', 'new_configuration') as string}
               </button>
             </div>
           </div>
@@ -394,7 +394,7 @@ export default function ConfigsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition" />
               <input
                 type="text"
-                placeholder={t('configs', 'search_config')}
+                placeholder={t('configs', 'search_config') as string}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
@@ -405,7 +405,7 @@ export default function ConfigsPage() {
               onChange={(e) => setClientFilter(e.target.value)}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
             >
-              <option value="ALL">{t('configs', 'all_clients')}</option>
+              <option value="ALL">{t('configs', 'all_clients') as string}</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.id.toString()}>
                   {client.name}
@@ -417,14 +417,14 @@ export default function ConfigsPage() {
               onChange={(e) => setConfigTypeFilter(e.target.value as ConfigType | 'ALL')}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
             >
-              <option value="ALL">{t('configs', 'all_types')}</option>
-              <option value="liveness">{t('clients', 'liveness')}</option>
-              <option value="matching">{t('clients', 'matching')}</option>
-              <option value="silent-liveness">{t('clients', 'silent_liveness')}</option>
+              <option value="ALL">{t('configs', 'all_types') as string}</option>
+              <option value="liveness">{t('clients', 'liveness') as string}</option>
+              <option value="matching">{t('clients', 'matching') as string}</option>
+              <option value="silent-liveness">{t('clients', 'silent_liveness') as string}</option>
             </select>
             <button className="px-4 py-2 border rounded-lg flex items-center theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary theme-transition">
               <Filter className="h-4 w-4 mr-2" />
-              {t('configs', 'filters')}
+              {t('configs', 'filters') as string}
             </button>
           </div>
         </div>
@@ -463,28 +463,28 @@ export default function ConfigsPage() {
                 <thead className="theme-bg-secondary theme-transition">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('configs', 'configuration')}
+                      {t('configs', 'configuration') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('configs', 'type')}
+                      {t('configs', 'type') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('configs', 'client')}
+                      {t('configs', 'client') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('configs', 'details')}
+                      {t('configs', 'details') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('configs', 'parameters')}
+                      {t('configs', 'parameters') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('configs', 'created_by')}
+                      {t('configs', 'created_by') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('configs', 'creation_date')}
+                      {t('configs', 'creation_date') as string}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('configs', 'actions')}
+                      {t('configs', 'actions') as string}
                     </th>
                   </tr>
                 </thead>
@@ -498,7 +498,7 @@ export default function ConfigsPage() {
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium theme-text-primary theme-transition">
-                              {t('configs', 'config')} #{config.id}
+                              {t('configs', 'config') as string} #{config.id}
                             </div>
                             <div className="text-xs theme-text-tertiary theme-transition">
                               {getConfigTypeName(config.type)}
@@ -520,7 +520,7 @@ export default function ConfigsPage() {
                           <div>
                             <div className="font-medium">{getClientName(config.clientId, (config as any).client)}</div>
                             <div className="text-xs theme-text-tertiary theme-transition">
-                              {t('configs', 'client_id')}: {config.clientId}
+                              {t('configs', 'client_id') as string}: {config.clientId}
                             </div>
                           </div>
                           <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
@@ -546,7 +546,7 @@ export default function ConfigsPage() {
                               ))}
                             </div>
                             <div className="text-xs theme-text-tertiary theme-transition">
-                              {(config as LivenessConfig).movementCount} {t('configs', 'movements')} • {(config as LivenessConfig).movementDurationSec}s
+                              {(config as LivenessConfig).movementCount} {t('configs', 'movements') as string} • {(config as LivenessConfig).movementDurationSec}s
                             </div>
                           </div>
                         ) : config.type === 'matching' ? (
@@ -555,7 +555,7 @@ export default function ConfigsPage() {
                               {(config as MatchingConfig).distanceMethod}
                             </div>
                             <div className="text-xs theme-text-tertiary theme-transition">
-                              {t('configs', 'threshold')}: {(config as MatchingConfig).threshold} • {t('configs', 'confidence')}: {(config as MatchingConfig).minimumConfidence}
+                              {t('configs', 'threshold') as string}: {(config as MatchingConfig).threshold} • {t('configs', 'confidence') as string}: {(config as MatchingConfig).minimumConfidence}
                             </div>
                           </div>
                         ) : (
@@ -569,45 +569,45 @@ export default function ConfigsPage() {
                           {config.type === 'liveness' ? (
                             <>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">{t('clients', 'fps_label')}:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('clients', 'fps_label') as string}:</span>
                                 <span className="theme-text-primary theme-transition">{(config as LivenessConfig).fps}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">{t('clients', 'timeout_seconds')}:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('clients', 'timeout_seconds') as string}:</span>
                                 <span className="theme-text-primary theme-transition">{config.timeoutSec}s</span>
                               </div>
                             </>
                           ) : config.type === 'matching' ? (
                             <>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">{t('configs', 'max_angle')}:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'max_angle') as string}:</span>
                                 <span className="theme-text-primary theme-transition">{(config as MatchingConfig).maxAngle}°</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">{t('configs', 'preprocessing')}:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'preprocessing') as string}:</span>
                                 <span className={`${(config as MatchingConfig).enablePreprocessing ? 'text-green-600' : 'text-red-600'}`}>
-                                  {(config as MatchingConfig).enablePreprocessing ? t('configs', 'yes') : t('configs', 'no')}
+                                  {(config as MatchingConfig).enablePreprocessing ? t('configs', 'yes') as string : t('configs', 'no') as string}
                                 </span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">{t('configs', 'anti_fraud')}:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'anti_fraud') as string}:</span>
                                 <span className={`${(config as MatchingConfig).enableFraudCheck ? 'text-green-600' : 'text-red-600'}`}>
-                                  {(config as MatchingConfig).enableFraudCheck ? t('configs', 'yes') : t('configs', 'no')}
+                                  {(config as MatchingConfig).enableFraudCheck ? t('configs', 'yes') as string : t('configs', 'no') as string}
                                 </span>
                               </div>
                             </>
                           ) : (
                             <>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">{t('configs', 'min_frames')}:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'min_frames') as string}:</span>
                                 <span className="theme-text-primary theme-transition">{(config as SilentLivenessConfig).minFrames}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">{t('configs', 'min_duration')}:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'min_duration') as string}:</span>
                                 <span className="theme-text-primary theme-transition">{(config as SilentLivenessConfig).minDurationSec}s</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="theme-text-tertiary theme-transition">{t('configs', 'decision_threshold')}:</span>
+                                <span className="theme-text-tertiary theme-transition">{t('configs', 'decision_threshold') as string}:</span>
                                 <span className="theme-text-primary theme-transition">{(config as SilentLivenessConfig).decisionThreshold}</span>
                               </div>
                             </>
@@ -625,7 +625,7 @@ export default function ConfigsPage() {
                         </div>
                         {config.updatedBy && config.updatedBy !== config.createdBy && (
                           <div className="text-xs theme-text-tertiary theme-transition mt-1">
-                            {t('configs', 'modified_by')} {config.updatedBy}
+                            {t('configs', 'modified_by') as string} {config.updatedBy}
                           </div>
                         )}
                       </td>
@@ -635,7 +635,7 @@ export default function ConfigsPage() {
                         </div>
                         {config.updatedAt && config.updatedAt !== config.createdAt && (
                           <div className="text-xs theme-text-tertiary theme-transition">
-                            {t('configs', 'modified')}: {formatDate(config.updatedAt)}
+                            {t('configs', 'modified') as string}: {formatDate(config.updatedAt)}
                           </div>
                         )}
                       </td>
@@ -644,14 +644,14 @@ export default function ConfigsPage() {
                           <button 
                             onClick={() => handleViewConfig(config)}
                             className="p-1 theme-text-tertiary hover:text-green-500 theme-transition"
-                            title={t('configs', 'view_config_details')}
+                            title={t('configs', 'view_config_details') as string}
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handleEditConfig(config)}
                             className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
-                            title={t('configs', 'edit_config')}
+                            title={t('configs', 'edit_config') as string}
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -659,7 +659,7 @@ export default function ConfigsPage() {
                             onClick={() => handleDeleteConfig(config)}
                             disabled={deletingConfigId === config.id}
                             className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50"
-                            title={t('configs', 'delete_config')}
+                            title={t('configs', 'delete_config') as string}
                           >
                             {deletingConfigId === config.id ? (
                               <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -682,8 +682,8 @@ export default function ConfigsPage() {
           {filteredConfigs.length === 0 && !loading && (
             <div className="text-center py-12">
               <Settings className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('configs', 'no_config_found')}</h3>
-              <p className="theme-text-secondary theme-transition">{t('configs', 'start_adding_config')}</p>
+              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('configs', 'no_config_found') as string}</h3>
+              <p className="theme-text-secondary theme-transition">{t('configs', 'start_adding_config') as string}</p>
             </div>
           )}
         </div>

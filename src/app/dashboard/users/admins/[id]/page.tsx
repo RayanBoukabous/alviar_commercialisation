@@ -55,7 +55,7 @@ export default function AdminDetailsPage() {
   useEffect(() => {
     const fetchAdminDetails = async () => {
       if (!adminId) {
-        setError(t('admins', 'invalid_admin_id'));
+        setError(t('admins', 'invalid_admin_id') as string);
         setLoading(false);
         return;
       }
@@ -78,7 +78,7 @@ export default function AdminDetailsPage() {
         }
       } catch (err: any) {
         console.error('❌ Erreur lors de la récupération des détails:', err);
-        setError(t('admins', 'loading_details_error').replace('{error}', err.message || 'Erreur inconnue'));
+        setError((t('admins', 'loading_details_error') as string).replace('{error}', err.message || 'Erreur inconnue'));
       } finally {
         setLoading(false);
       }
@@ -105,19 +105,19 @@ export default function AdminDetailsPage() {
         bg: 'bg-green-100 dark:bg-green-900/20', 
         text: 'text-green-800 dark:text-green-200', 
         icon: CheckCircle,
-        label: t('admins', 'active') 
+        label: t('admins', 'active') as string 
       },
       inactive: { 
         bg: 'bg-gray-100 dark:bg-gray-800', 
         text: 'text-gray-800 dark:text-gray-200', 
         icon: XCircle,
-        label: t('admins', 'inactive') 
+        label: t('admins', 'inactive') as string 
       },
       suspended: { 
         bg: 'bg-red-100 dark:bg-red-900/20', 
         text: 'text-red-800 dark:text-red-200', 
         icon: AlertCircle,
-        label: t('admins', 'suspended') 
+        label: t('admins', 'suspended') as string 
       },
     };
 
@@ -163,7 +163,7 @@ export default function AdminDetailsPage() {
     if (!admin) return;
 
     const confirmed = window.confirm(
-      t('admins', 'delete_admin_confirm').replace('{name}', admin.fullName)
+      (t('admins', 'delete_admin_confirm') as string).replace('{name}', admin.fullName)
     );
 
     if (!confirmed) return;
@@ -173,7 +173,7 @@ export default function AdminDetailsPage() {
       router.push('/dashboard/users/admins');
     } catch (err) {
       console.error('Erreur lors de la suppression:', err);
-      setError(t('admins', 'delete_details_error'));
+      setError(t('admins', 'delete_details_error') as string);
     }
   };
 
@@ -194,13 +194,13 @@ export default function AdminDetailsPage() {
           <div className="px-6 py-6">
             <div className="text-center py-12">
               <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('admins', 'error')}</h3>
+              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('admins', 'error') as string}</h3>
               <p className="theme-text-secondary theme-transition">{error}</p>
               <button
                 onClick={() => router.push('/dashboard/users/admins')}
                 className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                {t('admins', 'back_to_list')}
+                {t('admins', 'back_to_list') as string}
               </button>
             </div>
           </div>
@@ -216,8 +216,8 @@ export default function AdminDetailsPage() {
           <div className="px-6 py-6">
             <div className="text-center py-12">
               <User className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('admins', 'admin_not_found')}</h3>
-              <p className="theme-text-secondary theme-transition">{t('admins', 'admin_not_found_desc')}</p>
+              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('admins', 'admin_not_found') as string}</h3>
+              <p className="theme-text-secondary theme-transition">{t('admins', 'admin_not_found_desc') as string}</p>
             </div>
           </div>
         </div>
@@ -244,7 +244,7 @@ export default function AdminDetailsPage() {
                     <User className="h-7 w-7 mr-3 text-blue-600" />
                     {admin.fullName}
                   </h1>
-                  <p className="mt-1 theme-text-secondary theme-transition">{t('admins', 'admin_details_title')}</p>
+                  <p className="mt-1 theme-text-secondary theme-transition">{t('admins', 'admin_details_title') as string}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
@@ -253,14 +253,14 @@ export default function AdminDetailsPage() {
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <Edit className="h-4 w-4 mr-2" />
-                  {t('admins', 'edit_admin')}
+                  {t('admins', 'edit_admin') as string}
                 </button>
                 <button
                   onClick={handleDelete}
                   className="px-4 py-2 rounded-lg flex items-center bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  {t('admins', 'delete_admin')}
+                  {t('admins', 'delete_admin') as string}
                 </button>
               </div>
             </div>
@@ -274,35 +274,35 @@ export default function AdminDetailsPage() {
             <div className="lg:col-span-2">
               <div className="shadow-sm rounded-lg overflow-hidden theme-bg-elevated theme-transition">
                 <div className="px-6 py-4 border-b theme-border-primary">
-                  <h2 className="text-lg font-medium theme-text-primary theme-transition">{t('admins', 'general_information')}</h2>
+                  <h2 className="text-lg font-medium theme-text-primary theme-transition">{t('admins', 'general_information') as string}</h2>
                 </div>
                 <div className="p-6">
                   <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
                       <dt className="text-sm font-medium theme-text-tertiary theme-transition flex items-center">
                         <Mail className="h-4 w-4 mr-2" />
-                        {t('admins', 'email_label')}
+                        {t('admins', 'email_label') as string}
                       </dt>
                       <dd className="mt-1 text-sm theme-text-primary theme-transition">{admin.email}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium theme-text-tertiary theme-transition flex items-center">
                         <User className="h-4 w-4 mr-2" />
-                        {t('admins', 'username_label')}
+                        {t('admins', 'username_label') as string}
                       </dt>
                       <dd className="mt-1 text-sm theme-text-primary theme-transition">@{admin.username}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium theme-text-tertiary theme-transition flex items-center">
                         <Shield className="h-4 w-4 mr-2" />
-                        {t('admins', 'role_label')}
+                        {t('admins', 'role_label') as string}
                       </dt>
                       <dd className="mt-1 text-sm theme-text-primary theme-transition capitalize">{admin.role.name}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium theme-text-tertiary theme-transition flex items-center">
                         <Activity className="h-4 w-4 mr-2" />
-                        {t('admins', 'status')}
+                        {t('admins', 'status') as string}
                       </dt>
                       <dd className="mt-1">{getStatusBadge(admin.status)}</dd>
                     </div>
@@ -313,26 +313,26 @@ export default function AdminDetailsPage() {
               {/* Activité récente */}
               <div className="mt-6 shadow-sm rounded-lg overflow-hidden theme-bg-elevated theme-transition">
                 <div className="px-6 py-4 border-b theme-border-primary">
-                  <h2 className="text-lg font-medium theme-text-primary theme-transition">{t('admins', 'recent_activity')}</h2>
+                  <h2 className="text-lg font-medium theme-text-primary theme-transition">{t('admins', 'recent_activity') as string}</h2>
                 </div>
                 <div className="p-6">
                   <dl className="grid grid-cols-1 gap-6">
                     <div>
                       <dt className="text-sm font-medium theme-text-tertiary theme-transition flex items-center">
                         <Clock className="h-4 w-4 mr-2" />
-                        {t('admins', 'last_login')}
+                        {t('admins', 'last_login') as string}
                       </dt>
                       <dd className="mt-1 text-sm theme-text-primary theme-transition">
-                        {admin.lastLogin ? formatDate(admin.lastLogin) : t('admins', 'never_connected')}
+                        {admin.lastLogin ? formatDate(admin.lastLogin) : t('admins', 'never_connected') as string}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium theme-text-tertiary theme-transition flex items-center">
                         <Clock className="h-4 w-4 mr-2" />
-                        {t('admins', 'last_logout')}
+                        {t('admins', 'last_logout') as string}
                       </dt>
                       <dd className="mt-1 text-sm theme-text-primary theme-transition">
-                        {admin.lastLogout ? formatDate(admin.lastLogout) : t('admins', 'never_logged_out')}
+                        {admin.lastLogout ? formatDate(admin.lastLogout) : t('admins', 'never_logged_out') as string}
                       </dd>
                     </div>
                   </dl>
@@ -344,14 +344,14 @@ export default function AdminDetailsPage() {
             <div>
               <div className="shadow-sm rounded-lg overflow-hidden theme-bg-elevated theme-transition">
                 <div className="px-6 py-4 border-b theme-border-primary">
-                  <h2 className="text-lg font-medium theme-text-primary theme-transition">{t('admins', 'system_information')}</h2>
+                  <h2 className="text-lg font-medium theme-text-primary theme-transition">{t('admins', 'system_information') as string}</h2>
                 </div>
                 <div className="p-6">
                   <dl className="space-y-6">
                     <div>
                       <dt className="text-sm font-medium theme-text-tertiary theme-transition flex items-center">
                         <Calendar className="h-4 w-4 mr-2" />
-                        {t('admins', 'creation_date')}
+                        {t('admins', 'creation_date') as string}
                       </dt>
                       <dd className="mt-1 text-sm theme-text-primary theme-transition">
                         {formatDate(admin.createdAt)}
@@ -360,7 +360,7 @@ export default function AdminDetailsPage() {
                     <div>
                       <dt className="text-sm font-medium theme-text-tertiary theme-transition flex items-center">
                         <Calendar className="h-4 w-4 mr-2" />
-                        {t('admins', 'last_modification')}
+                        {t('admins', 'last_modification') as string}
                       </dt>
                       <dd className="mt-1 text-sm theme-text-primary theme-transition">
                         {formatDate(admin.updatedAt)}
@@ -369,7 +369,7 @@ export default function AdminDetailsPage() {
                     <div>
                       <dt className="text-sm font-medium theme-text-tertiary theme-transition flex items-center">
                         <Shield className="h-4 w-4 mr-2" />
-                        {t('admins', 'role_id')}
+                        {t('admins', 'role_id') as string}
                       </dt>
                       <dd className="mt-1 text-sm theme-text-primary theme-transition">
                         #{admin.roleId}
@@ -378,7 +378,7 @@ export default function AdminDetailsPage() {
                     <div>
                       <dt className="text-sm font-medium theme-text-tertiary theme-transition flex items-center">
                         <User className="h-4 w-4 mr-2" />
-                        {t('admins', 'user_id')}
+                        {t('admins', 'user_id') as string}
                       </dt>
                       <dd className="mt-1 text-sm theme-text-primary theme-transition">
                         #{admin.id}

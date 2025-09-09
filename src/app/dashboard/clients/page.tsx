@@ -42,63 +42,6 @@ export default function ClientsPage() {
   const [deletingClientId, setDeletingClientId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
 
-  // Simuler des données de clients pour le moment
-  const mockClients: Client[] = [
-    {
-      id: 1,
-      name: 'SGA',
-      status: 'ACTIVE',
-      createdBy: 'admin',
-      createdAt: '2024-01-15T10:30:00Z',
-      updatedAt: '2024-01-15T10:30:00Z',
-      updatedBy: null,
-      paymentPlan: {
-        id: 1,
-        name: 'Premium Plan'
-      },
-      distributor: {
-        id: 1,
-        name: 'SGA Distribution'
-      },
-      keys: []
-    },
-    {
-      id: 2,
-      name: 'TechCorp',
-      status: 'ACTIVE',
-      createdBy: 'admin',
-      createdAt: '2024-01-20T14:15:00Z',
-      updatedAt: '2024-01-20T14:15:00Z',
-      updatedBy: null,
-      paymentPlan: {
-        id: 2,
-        name: 'Basic Plan'
-      },
-      distributor: {
-        id: 1,
-        name: 'SGA Distribution'
-      },
-      keys: []
-    },
-    {
-      id: 3,
-      name: 'Global Solutions',
-      status: 'INACTIVE',
-      createdBy: 'admin',
-      createdAt: '2024-01-25T09:45:00Z',
-      updatedAt: '2024-01-25T09:45:00Z',
-      updatedBy: null,
-      paymentPlan: {
-        id: 1,
-        name: 'Premium Plan'
-      },
-      distributor: {
-        id: 2,
-        name: 'AIunivers'
-      },
-      keys: []
-    }
-  ];
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -109,7 +52,7 @@ export default function ClientsPage() {
         setClients(response.clients || []);
         console.log('Clients récupérés:', response);
       } catch (err) {
-        setError(t('clients', 'loading_error'));
+        setError(t('clients', 'loading_error') as string);
         console.error('Erreur:', err);
         // En cas d'erreur, utiliser les données mock pour le développement
         // setClients(mockClients);
@@ -130,7 +73,7 @@ export default function ClientsPage() {
       setClients(response.clients || []);
       console.log('Clients rafraîchis:', response);
     } catch (err) {
-      setError(t('clients', 'refresh_error'));
+      setError(t('clients', 'refresh_error') as string);
       console.error('Erreur:', err);
     } finally {
       setRefreshing(false);
@@ -160,7 +103,7 @@ export default function ClientsPage() {
   const handleDeleteClient = async (clientId: number, clientName: string) => {
     // Confirmation avant suppression
     const confirmed = window.confirm(
-      t('clients', 'delete_confirmation').replace('{name}', clientName)
+      (t('clients', 'delete_confirmation') as string).replace('{name}', clientName)
     );
 
     if (!confirmed) {
@@ -175,13 +118,13 @@ export default function ClientsPage() {
       setClients(prevClients => prevClients.filter(client => client.id !== clientId));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(t('clients', 'client_deleted').replace('{name}', clientName));
+      setSuccessMessage((t('clients', 'client_deleted') as string).replace('{name}', clientName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Client ${clientName} supprimé avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression du client:', err);
-      setError(t('clients', 'delete_error'));
+      setError(t('clients', 'delete_error') as string);
     } finally {
       setDeletingClientId(null);
     }
@@ -195,9 +138,9 @@ export default function ClientsPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: t('clients', 'active') },
-      INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: t('clients', 'inactive') },
-      SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: t('clients', 'suspended') }
+      ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: t('clients', 'active') as string },
+      INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: t('clients', 'inactive') as string },
+      SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: t('clients', 'suspended') as string }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.INACTIVE;
@@ -239,9 +182,9 @@ export default function ClientsPage() {
             <div>
               <h1 className="text-2xl font-bold flex items-center theme-text-primary theme-transition">
                 <Building2 className="h-7 w-7 mr-3 text-primary-600" />
-                {t('clients', 'title')}
+                {t('clients', 'title') as string}
               </h1>
-              <p className="mt-1 theme-text-secondary theme-transition">{t('clients', 'subtitle')}</p>
+              <p className="mt-1 theme-text-secondary theme-transition">{t('clients', 'subtitle') as string}</p>
             </div>
             <div className="flex items-center space-x-3">
               <button 
@@ -250,14 +193,14 @@ export default function ClientsPage() {
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                {t('clients', 'refresh')}
+                {t('clients', 'refresh') as string}
               </button>
               <button 
                 onClick={() => setIsCreateModalOpen(true)}
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                {t('clients', 'new_client')}
+                {t('clients', 'new_client') as string}
               </button>
             </div>
           </div>
@@ -272,7 +215,7 @@ export default function ClientsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition" />
               <input
                 type="text"
-                placeholder={t('clients', 'search_placeholder')}
+                placeholder={t('clients', 'search_placeholder') as string}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
@@ -283,14 +226,14 @@ export default function ClientsPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
             >
-              <option value="ALL">{t('clients', 'all_statuses')}</option>
-              <option value="ACTIVE">{t('clients', 'active')}</option>
-              <option value="INACTIVE">{t('clients', 'inactive')}</option>
-              <option value="SUSPENDED">{t('clients', 'suspended')}</option>
+              <option value="ALL">{t('clients', 'all_statuses') as string}</option>
+              <option value="ACTIVE">{t('clients', 'active') as string}</option>
+              <option value="INACTIVE">{t('clients', 'inactive') as string}</option>
+              <option value="SUSPENDED">{t('clients', 'suspended') as string}</option>
             </select>
             <button className="px-4 py-2 border rounded-lg flex items-center theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary theme-transition">
               <Filter className="h-4 w-4 mr-2" />
-              {t('clients', 'filters')}
+              {t('clients', 'filters') as string}
             </button>
           </div>
         </div>
@@ -329,25 +272,25 @@ export default function ClientsPage() {
                 <thead className="theme-bg-secondary theme-transition">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('clients', 'client')}
+                      {t('clients', 'client') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('clients', 'status')}
+                      {t('clients', 'status') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('clients', 'payment_plan')}
+                      {t('clients', 'payment_plan') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('clients', 'distributor')}
+                      {t('clients', 'distributor') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('clients', 'created_by')}
+                      {t('clients', 'created_by') as string}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('clients', 'creation_date')}
+                      {t('clients', 'creation_date') as string}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      {t('clients', 'actions')}
+                      {t('clients', 'actions') as string}
                     </th>
                   </tr>
                 </thead>
@@ -385,14 +328,14 @@ export default function ClientsPage() {
                           <button 
                             onClick={() => handleViewClient(client)}
                             className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
-                            title={t('clients', 'view_details')}
+                            title={t('clients', 'view_details') as string}
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handleEditClient(client)}
                             className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
-                            title={t('clients', 'edit_client')}
+                            title={t('clients', 'edit_client') as string}
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -400,7 +343,7 @@ export default function ClientsPage() {
                             onClick={() => handleDeleteClient(client.id, client.name)}
                             disabled={deletingClientId === client.id}
                             className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50"
-                            title={t('clients', 'delete_client')}
+                            title={t('clients', 'delete_client') as string}
                           >
                             {deletingClientId === client.id ? (
                               <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -423,8 +366,8 @@ export default function ClientsPage() {
           {filteredClients.length === 0 && !loading && (
             <div className="text-center py-12">
               <Building2 className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('clients', 'no_clients_found')}</h3>
-              <p className="theme-text-secondary theme-transition">{t('clients', 'start_adding')}</p>
+              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('clients', 'no_clients_found') as string}</h3>
+              <p className="theme-text-secondary theme-transition">{t('clients', 'start_adding') as string}</p>
             </div>
           )}
         </div>

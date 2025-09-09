@@ -73,7 +73,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           }
         } catch (err: any) {
           console.error('❌ Erreur lors de la récupération des rôles:', err);
-          setRolesError(t('admins', 'roles_error').replace('{error}', err.message || 'Erreur inconnue'));
+          setRolesError((t('admins', 'roles_error') as string).replace('{error}', err.message || 'Erreur inconnue'));
         } finally {
           setRolesLoading(false);
         }
@@ -88,42 +88,42 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 
     // Validation email
     if (!formData.email.trim()) {
-      newErrors.email = t('admins', 'email_required');
+      newErrors.email = t('admins', 'email_required') as string;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = t('admins', 'email_invalid');
+      newErrors.email = t('admins', 'email_invalid') as string;
     }
 
     // Validation username
     if (!formData.username.trim()) {
-      newErrors.username = t('admins', 'username_required');
+      newErrors.username = t('admins', 'username_required') as string;
     } else if (formData.username.length < 3) {
-      newErrors.username = t('admins', 'username_min_length');
+      newErrors.username = t('admins', 'username_min_length') as string;
     }
 
     // Validation fullName
     if (!formData.fullName.trim()) {
-      newErrors.fullName = t('admins', 'full_name_required');
+      newErrors.fullName = t('admins', 'full_name_required') as string;
     } else if (formData.fullName.trim().length < 3) {
-      newErrors.fullName = t('admins', 'full_name_min_length');
+      newErrors.fullName = t('admins', 'full_name_min_length') as string;
     }
 
     // Validation password
     if (!formData.password) {
-      newErrors.password = t('admins', 'password_required');
+      newErrors.password = t('admins', 'password_required') as string;
     } else if (formData.password.length < 8) {
-      newErrors.password = t('admins', 'password_min_length');
+      newErrors.password = t('admins', 'password_min_length') as string;
     }
 
     // Validation confirmPassword
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = t('admins', 'confirm_password_required');
+      newErrors.confirmPassword = t('admins', 'confirm_password_required') as string;
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = t('admins', 'passwords_not_match');
+      newErrors.confirmPassword = t('admins', 'passwords_not_match') as string;
     }
 
     // Validation roleId
     if (!formData.roleId) {
-      newErrors.roleId = t('admins', 'role_required');
+      newErrors.roleId = t('admins', 'role_required') as string;
     }
 
     setErrors(newErrors);
@@ -168,7 +168,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
       console.error('Erreur lors de la création de l\'administrateur:', error);
       
       // Gérer les erreurs de validation de l'API
-      let errorMessage = t('admins', 'create_error');
+      let errorMessage = t('admins', 'create_error') as string;
       
       if (error.response?.data?.message) {
         const apiMessage = error.response.data.message;
@@ -208,8 +208,8 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
               <User className="h-5 w-5 text-primary-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold theme-text-primary">{t('admins', 'create_admin_title')}</h2>
-              <p className="text-sm theme-text-secondary">{t('admins', 'create_admin_subtitle')}</p>
+              <h2 className="text-lg font-semibold theme-text-primary">{t('admins', 'create_admin_title') as string}</h2>
+              <p className="text-sm theme-text-secondary">{t('admins', 'create_admin_subtitle') as string}</p>
             </div>
           </div>
           <button
@@ -246,7 +246,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <Mail className="h-4 w-4 inline mr-2" />
-              {t('admins', 'email_label')} *
+              {t('admins', 'email_label') as string} *
             </label>
             <input
               type="email"
@@ -266,7 +266,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <User className="h-4 w-4 inline mr-2" />
-              {t('admins', 'username_label')} *
+              {t('admins', 'username_label') as string} *
             </label>
             <input
               type="text"
@@ -286,7 +286,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <User className="h-4 w-4 inline mr-2" />
-              {t('admins', 'full_name_label')} *
+              {t('admins', 'full_name_label') as string} *
             </label>
             <input
               type="text"
@@ -306,12 +306,12 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <Shield className="h-4 w-4 inline mr-2" />
-              {t('admins', 'role_label')} *
+              {t('admins', 'role_label') as string} *
             </label>
             {rolesLoading ? (
               <div className="w-full px-3 py-2 border rounded-lg theme-bg-elevated theme-border-primary flex items-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-                <span className="text-sm theme-text-secondary">{t('admins', 'loading_roles')}</span>
+                <span className="text-sm theme-text-secondary">{t('admins', 'loading_roles') as string}</span>
               </div>
             ) : rolesError ? (
               <div className="w-full px-3 py-2 border border-red-500 rounded-lg theme-bg-elevated">
@@ -327,7 +327,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
                 disabled={roles.length === 0}
               >
                 {roles.length === 0 ? (
-                  <option value="">{t('admins', 'no_roles_available')}</option>
+                  <option value="">{t('admins', 'no_roles_available') as string}</option>
                 ) : (
                   roles.map((role) => (
                     <option key={role.id} value={role.id}>
@@ -346,7 +346,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <Shield className="h-4 w-4 inline mr-2" />
-              {t('admins', 'password_label')} *
+              {t('admins', 'password_label') as string} *
             </label>
             <div className="relative">
               <input
@@ -375,7 +375,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <Shield className="h-4 w-4 inline mr-2" />
-              {t('admins', 'confirm_password_label')} *
+              {t('admins', 'confirm_password_label') as string} *
             </label>
             <div className="relative">
               <input
@@ -407,7 +407,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium theme-text-secondary hover:theme-text-primary theme-transition"
             >
-              {t('admins', 'cancel')}
+              {t('admins', 'cancel') as string}
             </button>
             <button
               type="submit"
@@ -417,12 +417,12 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {t('admins', 'creating')}
+                  {t('admins', 'creating') as string}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  {t('admins', 'create')}
+                  {t('admins', 'create') as string}
                 </>
               )}
             </button>

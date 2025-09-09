@@ -64,10 +64,10 @@ export function DashboardCharts({
   const { t, loading: translationLoading } = useLanguage();
   // Données pour le graphique en barres
   const barChartData = {
-    labels: [t('dashboard', 'users'), t('dashboard', 'admins'), t('dashboard', 'clients'), 'Sessions', 'Rôles', 'Permissions'],
+    labels: [t('dashboard', 'users') as string, t('dashboard', 'admins') as string, t('dashboard', 'clients') as string, 'Sessions', 'Rôles', 'Permissions'],
     datasets: [
       {
-        label: t('dashboard', 'total_number'),
+        label: t('dashboard', 'total_number') as string,
         data: [usersData, adminsData, clientsData, sessionsData, rolesData, permissionsData],
         backgroundColor: [
           'rgba(59, 130, 246, 0.8)',
@@ -92,7 +92,7 @@ export function DashboardCharts({
 
   // Données pour le graphique en donut (Users vs Admins)
   const donutChartData = {
-    labels: [t('dashboard', 'users'), t('dashboard', 'admins')],
+    labels: [t('dashboard', 'users') as string, t('dashboard', 'admins') as string],
     datasets: [
       {
         data: [usersData, adminsData],
@@ -192,10 +192,10 @@ export function DashboardCharts({
     return (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="h-64 theme-bg-tertiary rounded-lg animate-pulse flex items-center justify-center">
-          <div className="theme-text-tertiary">{t('dashboard', 'loading_charts')}</div>
+          <div className="theme-text-tertiary">{t('dashboard', 'loading_charts') as string}</div>
         </div>
         <div className="h-64 theme-bg-tertiary rounded-lg animate-pulse flex items-center justify-center">
-          <div className="theme-text-tertiary">{t('dashboard', 'loading_charts')}</div>
+          <div className="theme-text-tertiary">{t('dashboard', 'loading_charts') as string}</div>
         </div>
       </div>
     );
@@ -205,7 +205,7 @@ export function DashboardCharts({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Graphique en barres */}
       <div className="theme-bg-elevated rounded-lg p-6 shadow-sm theme-border-primary border">
-        <h3 className="text-lg font-semibold theme-text-primary mb-4">{t('dashboard', 'data_distribution')}</h3>
+        <h3 className="text-lg font-semibold theme-text-primary mb-4">{t('dashboard', 'data_distribution') as string}</h3>
         <div className="h-64">
           <Bar data={barChartData} options={chartOptions} />
         </div>
@@ -213,7 +213,7 @@ export function DashboardCharts({
 
       {/* Graphique en donut */}
       <div className="theme-bg-elevated rounded-lg p-6 shadow-sm theme-border-primary border">
-        <h3 className="text-lg font-semibold theme-text-primary mb-4">{t('dashboard', 'users_admins')}</h3>
+        <h3 className="text-lg font-semibold theme-text-primary mb-4">{t('dashboard', 'users_admins') as string}</h3>
         <div className="h-64">
           <Doughnut data={donutChartData} options={donutOptions} />
         </div>

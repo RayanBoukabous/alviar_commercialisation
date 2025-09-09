@@ -40,7 +40,7 @@ export default function PermissionDetailPage() {
         setError('');
         
         console.log(`🔍 Chargement de la permission ${permissionId} depuis l'API...`);
-        const permissionData = await PermissionsService.getPermissionById(permissionId);
+        const permissionData = await PermissionsService.getPermissionById(permissionId.toString());
         setPermission(permissionData);
         console.log('✅ Permission chargée:', permissionData);
         
@@ -66,7 +66,7 @@ export default function PermissionDetailPage() {
       setError('');
       
       console.log(`🔄 Rafraîchissement de la permission ${permissionId}...`);
-      const permissionData = await PermissionsService.getPermissionById(permissionId);
+      const permissionData = await PermissionsService.getPermissionById(permissionId.toString());
       setPermission(permissionData);
       console.log('✅ Permission rafraîchie:', permissionData);
       
