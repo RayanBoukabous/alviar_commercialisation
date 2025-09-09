@@ -27,11 +27,11 @@ export function ConfigsMetrics({
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold theme-text-primary flex items-center space-x-2">
             <Settings className="w-6 h-6 text-blue-500" />
-            <span>{t('dashboard', 'configurations')}</span>
+            <span>{t('dashboard', 'configurations') as string}</span>
           </h3>
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
-            <span className="text-sm theme-text-secondary">{t('dashboard', 'loading_charts')}</span>
+            <span className="text-sm theme-text-secondary">{t('dashboard', 'loading_charts') as string}</span>
           </div>
         </div>
         <div className="h-64 flex items-center justify-center">
@@ -43,31 +43,31 @@ export function ConfigsMetrics({
 
   const configTypes = [
     {
-      name: t('dashboard', 'liveness'),
+      name: t('dashboard', 'liveness') as string,
       count: livenessConfigs,
       icon: Eye,
       color: 'from-green-500 to-green-600',
       bgColor: 'bg-green-50 dark:bg-green-900/20',
       iconColor: 'text-green-600 dark:text-green-400',
-      description: t('dashboard', 'presence_verification'),
+      description: t('dashboard', 'presence_verification') as string,
     },
     {
-      name: t('dashboard', 'matching'),
+      name: t('dashboard', 'matching') as string,
       count: matchingConfigs,
       icon: Users,
       color: 'from-blue-500 to-blue-600',
       bgColor: 'bg-blue-50 dark:bg-blue-900/20',
       iconColor: 'text-blue-600 dark:text-blue-400',
-      description: t('dashboard', 'facial_matching'),
+      description: t('dashboard', 'facial_matching') as string,
     },
     {
-      name: t('dashboard', 'silent_liveness'),
+      name: t('dashboard', 'silent_liveness') as string,
       count: silentLivenessConfigs,
       icon: Volume2,
       color: 'from-purple-500 to-purple-600',
       bgColor: 'bg-purple-50 dark:bg-purple-900/20',
       iconColor: 'text-purple-600 dark:text-purple-400',
-      description: t('dashboard', 'silent_detection'),
+      description: t('dashboard', 'silent_detection') as string,
     },
   ];
 
@@ -76,11 +76,11 @@ export function ConfigsMetrics({
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-semibold theme-text-primary flex items-center space-x-2">
           <Settings className="w-6 h-6 text-blue-500" />
-          <span>{t('dashboard', 'configurations')}</span>
+          <span>{t('dashboard', 'configurations') as string}</span>
         </h3>
         <div className="flex items-center space-x-2">
           <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-sm theme-text-secondary">{t('dashboard', 'real_time')}</span>
+          <span className="text-sm theme-text-secondary">{t('dashboard', 'real_time') as string}</span>
         </div>
       </div>
       
@@ -88,7 +88,7 @@ export function ConfigsMetrics({
       <div className="mb-6 p-4 theme-bg-tertiary rounded-lg">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium theme-text-secondary">{t('dashboard', 'total_configurations')}</p>
+            <p className="text-sm font-medium theme-text-secondary">{t('dashboard', 'total_configurations') as string}</p>
             <p className="text-2xl font-bold theme-text-primary">{totalConfigs}</p>
           </div>
           <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
@@ -138,15 +138,15 @@ export function ConfigsMetrics({
       <div className="mt-6 grid grid-cols-3 gap-4">
         <div className="text-center p-3 theme-bg-tertiary rounded-lg">
           <p className="text-lg font-bold text-green-600 dark:text-green-400">{livenessConfigs}</p>
-          <p className="text-xs theme-text-secondary">{t('dashboard', 'liveness')}</p>
+          <p className="text-xs theme-text-secondary">{t('dashboard', 'liveness') as string}</p>
         </div>
         <div className="text-center p-3 theme-bg-tertiary rounded-lg">
           <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{matchingConfigs}</p>
-          <p className="text-xs theme-text-secondary">{t('dashboard', 'matching')}</p>
+          <p className="text-xs theme-text-secondary">{t('dashboard', 'matching') as string}</p>
         </div>
         <div className="text-center p-3 theme-bg-tertiary rounded-lg">
           <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{silentLivenessConfigs}</p>
-          <p className="text-xs theme-text-secondary">{t('dashboard', 'silent')}</p>
+          <p className="text-xs theme-text-secondary">{t('dashboard', 'silent') as string}</p>
         </div>
       </div>
     </ThemeCard>
