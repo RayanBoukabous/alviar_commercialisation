@@ -24,10 +24,17 @@ export {
 
 // Re-exports des types de liveness
 export type {
-  LivenessSession,
+  LegacyLivenessSession,
   LivenessMetrics,
   LivenessFilters,
 } from './livenessService';
+
+// Re-exports des nouveaux types de liveness
+export type {
+  LivenessSession,
+  LivenessResult,
+  LivenessFrame,
+} from '@/types';
 
 // Re-exports des types de clients
 export type {

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, User, Save, AlertCircle } from 'lucide-react';
 import { usersService, CreateUserRequest } from '@/lib/api';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -29,6 +30,15 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t, loading: translationLoading, currentLocale } = useLanguage();
+  
+  // Helper function to ensure translations are strings
+  const translate = (namespace: 'users', key: string): string => {
+    return t(namespace, key) as string;
+  };
+  
+  // Force re-render when language changes
+  const [languageKey, setLanguageKey] = useState(0);
   const [formData, setFormData] = useState<FormData>({
     clientId: '',
     externalUserId: '',
@@ -40,35 +50,40 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
 
+  // Force re-render when language changes
+  React.useEffect(() => {
+    setLanguageKey(prev => prev + 1);
+  }, [currentLocale]);
+
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
     // Validation du Client ID
     if (!formData.clientId.trim()) {
-      newErrors.clientId = 'L\'ID du client est requis';
+      newErrors.clientId = translate('users', 'client_id_required');
     } else if (!/^\d+$/.test(formData.clientId.trim())) {
-      newErrors.clientId = 'L\'ID du client doit être un nombre';
+      newErrors.clientId = translate('users', 'client_id_must_be_number');
     }
 
     // Validation de l'ID externe
     if (!formData.externalUserId.trim()) {
-      newErrors.externalUserId = 'L\'ID externe est requis';
+      newErrors.externalUserId = translate('users', 'external_id_required');
     } else if (formData.externalUserId.trim().length < 3) {
-      newErrors.externalUserId = 'L\'ID externe doit contenir au moins 3 caractères';
+      newErrors.externalUserId = translate('users', 'external_id_min_length');
     }
 
     // Validation du nom d'utilisateur
     if (!formData.username.trim()) {
-      newErrors.username = 'Le nom d\'utilisateur est requis';
+      newErrors.username = translate('users', 'username_required');
     } else if (formData.username.trim().length < 3) {
-      newErrors.username = 'Le nom d\'utilisateur doit contenir au moins 3 caractères';
+      newErrors.username = translate('users', 'username_min_length');
     }
 
     // Validation du nom complet
     if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Le nom complet est requis';
+      newErrors.fullName = translate('users', 'full_name_required');
     } else if (formData.fullName.trim().length < 3) {
-      newErrors.fullName = 'Le nom complet doit contenir au moins 3 caractères';
+      newErrors.fullName = translate('users', 'full_name_min_length');
     }
 
     setErrors(newErrors);
@@ -141,7 +156,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div key={languageKey} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="theme-bg-elevated rounded-lg shadow-xl w-full max-w-md mx-4 theme-transition border theme-border-primary">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b theme-border-primary">
@@ -150,8 +165,8 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
               <User className="h-5 w-5 text-primary-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold theme-text-primary theme-transition">Nouvel Utilisateur</h2>
-              <p className="text-sm theme-text-secondary theme-transition">Créer un nouvel utilisateur</p>
+              <h2 className="text-lg font-semibold theme-text-primary theme-transition">{translate('users', 'new_user')}</h2>
+              <p className="text-sm theme-text-secondary theme-transition">{translate('users', 'create_new_user')}</p>
             </div>
           </div>
           <button
@@ -187,14 +202,14 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           {/* Client ID */}
           <div>
             <label htmlFor="clientId" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-              ID du Client *
+              {translate('users', 'client_id')} *
             </label>
             <input
               type="text"
               id="clientId"
               value={formData.clientId}
               onChange={(e) => handleInputChange('clientId', e.target.value)}
-              placeholder="Ex: 1, 2, 3..."
+              placeholder={translate('users', 'client_id_placeholder')}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400 ${
                 errors.clientId ? 'border-red-500' : ''
               }`}
@@ -207,14 +222,14 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           {/* External User ID */}
           <div>
             <label htmlFor="externalUserId" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-              ID Externe *
+              {translate('users', 'external_id')} *
             </label>
             <input
               type="text"
               id="externalUserId"
               value={formData.externalUserId}
               onChange={(e) => handleInputChange('externalUserId', e.target.value)}
-              placeholder="Ex: ext_user_001"
+              placeholder={translate('users', 'external_id_placeholder')}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400 ${
                 errors.externalUserId ? 'border-red-500' : ''
               }`}
@@ -227,14 +242,14 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           {/* Username */}
           <div>
             <label htmlFor="username" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-              Nom d'utilisateur *
+              {translate('users', 'username')} *
             </label>
             <input
               type="text"
               id="username"
               value={formData.username}
               onChange={(e) => handleInputChange('username', e.target.value)}
-              placeholder="Ex: john_doe (min 3 caractères)"
+              placeholder={translate('users', 'username_placeholder')}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400 ${
                 errors.username ? 'border-red-500' : ''
               }`}
@@ -247,14 +262,14 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           {/* Full Name */}
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-              Nom Complet *
+              {translate('users', 'full_name')} *
             </label>
             <input
               type="text"
               id="fullName"
               value={formData.fullName}
               onChange={(e) => handleInputChange('fullName', e.target.value)}
-              placeholder="Ex: John Doe (min 3 caractères)"
+              placeholder={translate('users', 'full_name_placeholder')}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400 ${
                 errors.fullName ? 'border-red-500' : ''
               }`}
@@ -271,7 +286,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium theme-text-secondary hover:theme-text-primary theme-transition"
             >
-              Annuler
+              {translate('users', 'cancel')}
             </button>
             <button
               type="submit"
@@ -281,12 +296,12 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Création...
+                  {translate('users', 'creating')}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Créer
+                  {translate('users', 'create')}
                 </>
               )}
             </button>

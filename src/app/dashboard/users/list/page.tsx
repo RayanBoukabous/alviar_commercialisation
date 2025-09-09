@@ -20,6 +20,7 @@ import { useRequireAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { usersService } from '@/lib/api';
 import { CreateUserModal } from '@/components/forms/CreateUserModal';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 // Type pour les utilisateurs
 interface User {
@@ -38,6 +39,15 @@ import { Layout } from '@/components/layout/Layout';
 export default function UsersListPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const router = useRouter();
+  const { t, loading: translationLoading, currentLocale } = useLanguage();
+  
+  // Helper function to ensure translations are strings
+  const translate = (namespace: 'users', key: string): string => {
+    return t(namespace, key) as string;
+  };
+  
+  // Force re-render when language changes
+  const [languageKey, setLanguageKey] = useState(0);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -72,7 +82,7 @@ export default function UsersListPage() {
         console.error('Erreur détaillée:', err);
         console.error('Message d\'erreur:', err.message);
         console.error('Réponse d\'erreur:', err.response);
-        setError(`Erreur lors du chargement des utilisateurs: ${err.message || 'Erreur inconnue'}`);
+        setError(translate('users', 'loading_error'));
         // En cas d'erreur, ne pas utiliser de données mock
         setUsers([]);
       } finally {
@@ -85,6 +95,11 @@ export default function UsersListPage() {
     }
   }, [isAuthenticated]);
 
+  // Force re-render when language changes
+  useEffect(() => {
+    setLanguageKey(prev => prev + 1);
+  }, [currentLocale]);
+
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
@@ -95,7 +110,7 @@ export default function UsersListPage() {
       console.log('Users rafraîchis depuis l\'API:', response.users);
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement:', err);
-      setError(`Erreur lors du rafraîchissement des utilisateurs: ${err.message || 'Erreur inconnue'}`);
+      setError(translate('users', 'refresh_error'));
       // En cas d'erreur, ne pas utiliser de données mock
       setUsers([]);
     } finally {
@@ -120,7 +135,7 @@ export default function UsersListPage() {
   const handleDeleteUser = async (userId: number, userName: string) => {
     // Confirmation avant suppression
     const confirmed = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer l'utilisateur "${userName}" ?\n\nCette action est irréversible.`
+      translate('users', 'delete_user_confirmation').replace('{name}', userName)
     );
 
     if (!confirmed) {
@@ -135,13 +150,13 @@ export default function UsersListPage() {
       setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(`Utilisateur "${userName}" supprimé avec succès`);
+      setSuccessMessage(translate('users', 'user_deleted').replace('{name}', userName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Utilisateur ${userName} supprimé avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression de l\'utilisateur:', err);
-      setError('Erreur lors de la suppression de l\'utilisateur');
+      setError(translate('users', 'delete_user_error'));
     } finally {
       setDeletingUserId(null);
     }
@@ -165,7 +180,7 @@ export default function UsersListPage() {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || translationLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -176,7 +191,7 @@ export default function UsersListPage() {
   }
 
   return (
-    <Layout>
+    <Layout key={languageKey}>
       <div className="min-h-screen theme-bg-secondary theme-transition">
       {/* Header */}
       <div className="shadow-sm border-b theme-bg-elevated theme-border-primary theme-transition">
@@ -185,9 +200,9 @@ export default function UsersListPage() {
         <div>
               <h1 className="text-2xl font-bold flex items-center theme-text-primary theme-transition">
                 <User className="h-7 w-7 mr-3 text-primary-600" />
-                Gestion des Utilisateurs
+                {translate('users', 'title')}
               </h1>
-              <p className="mt-1 theme-text-secondary theme-transition">Gérez les utilisateurs du système</p>
+              <p className="mt-1 theme-text-secondary theme-transition">{translate('users', 'subtitle')}</p>
             </div>
             <div className="flex items-center space-x-3">
               <button 
@@ -196,14 +211,14 @@ export default function UsersListPage() {
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Rafraîchir
+                {translate('users', 'refresh')}
               </button>
               <button 
                 onClick={() => setIsCreateModalOpen(true)}
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Nouvel Utilisateur
+                {translate('users', 'new_user')}
               </button>
             </div>
           </div>
@@ -218,7 +233,7 @@ export default function UsersListPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition" />
               <input
                 type="text"
-                placeholder="Rechercher un utilisateur..."
+                placeholder={translate('users', 'search_placeholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
@@ -226,7 +241,7 @@ export default function UsersListPage() {
             </div>
             <button className="px-4 py-2 border rounded-lg flex items-center theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary theme-transition">
               <Filter className="h-4 w-4 mr-2" />
-              Filtres
+              {translate('users', 'filters')}
             </button>
           </div>
         </div>
@@ -265,25 +280,25 @@ export default function UsersListPage() {
                 <thead className="theme-bg-secondary theme-transition">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Utilisateur
+                      {translate('users', 'user')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      ID Externe
+                      {translate('users', 'external_id')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Client ID
+                      {translate('users', 'client_id')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Requêtes
+                      {translate('users', 'requests')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Dernière activité
+                      {translate('users', 'last_activity')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Date de création
+                      {translate('users', 'created_at')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Actions
+                      {translate('users', 'actions')}
                     </th>
                   </tr>
                 </thead>
@@ -317,7 +332,7 @@ export default function UsersListPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm theme-text-secondary theme-transition">
-                        {user.lastRequestAt ? formatDate(user.lastRequestAt) : 'Jamais actif'}
+                        {user.lastRequestAt ? formatDate(user.lastRequestAt) : translate('users', 'never_active')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm theme-text-secondary theme-transition">
                         {formatDate(user.createdAt)}
@@ -327,14 +342,14 @@ export default function UsersListPage() {
                           <button 
                             onClick={() => handleViewUser(user)}
                             className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
-                            title="Voir les détails de l'utilisateur"
+                            title={translate('users', 'view_user')}
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handleEditUser(user)}
                             className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
-                            title="Modifier l'utilisateur"
+                            title={translate('users', 'edit_user')}
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -342,7 +357,7 @@ export default function UsersListPage() {
                             onClick={() => handleDeleteUser(user.id, user.fullName)}
                             disabled={deletingUserId === user.id}
                             className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50"
-                            title="Supprimer l'utilisateur"
+                            title={translate('users', 'delete_user')}
                           >
                             {deletingUserId === user.id ? (
                               <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -365,8 +380,8 @@ export default function UsersListPage() {
           {filteredUsers.length === 0 && !loading && (
             <div className="text-center py-12">
               <User className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">Aucun utilisateur trouvé</h3>
-              <p className="theme-text-secondary theme-transition">Commencez par ajouter votre premier utilisateur.</p>
+              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{translate('users', 'no_users_found')}</h3>
+              <p className="theme-text-secondary theme-transition">{translate('users', 'start_adding_users')}</p>
             </div>
           )}
         </div>

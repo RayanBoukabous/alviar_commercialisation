@@ -14,6 +14,7 @@ interface TranslationData {
   header: Translations;
   dashboard: Translations;
   clients: Translations;
+  users: Translations;
   configs: Translations;
   admins: Translations;
   roles: Translations;
@@ -25,7 +26,7 @@ interface TranslationData {
 interface LanguageContextType {
   currentLocale: Locale;
   changeLanguage: (locale: Locale) => void;
-  t: (namespace: 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login', key: string) => string | object;
+  t: (namespace: 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'users' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login', key: string) => string | object;
   loading: boolean;
 }
 
@@ -43,6 +44,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     header: {},
     dashboard: {},
     clients: {},
+    users: {},
     configs: {},
     admins: {},
     roles: {},
@@ -58,12 +60,13 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       setLoading(true);
       console.log(`🌍 Chargement des traductions pour: ${locale}`);
       
-      const [sidebarRes, commonRes, headerRes, dashboardRes, clientsRes, configsRes, adminsRes, rolesRes, permissionsRes, paymentPlansRes, loginRes] = await Promise.all([
+      const [sidebarRes, commonRes, headerRes, dashboardRes, clientsRes, usersRes, configsRes, adminsRes, rolesRes, permissionsRes, paymentPlansRes, loginRes] = await Promise.all([
         fetch(`/locales/${locale}/sidebar.json`),
         fetch(`/locales/${locale}/common.json`),
         fetch(`/locales/${locale}/header.json`),
         fetch(`/locales/${locale}/dashboard.json`),
         fetch(`/locales/${locale}/clients.json`),
+        fetch(`/locales/${locale}/users.json`),
         fetch(`/locales/${locale}/configs.json`),
         fetch(`/locales/${locale}/admins.json`),
         fetch(`/locales/${locale}/roles.json`),
@@ -72,16 +75,17 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
         fetch(`/locales/${locale}/login.json`)
       ]);
 
-      if (!sidebarRes.ok || !commonRes.ok || !headerRes.ok || !dashboardRes.ok || !clientsRes.ok || !configsRes.ok || !adminsRes.ok || !rolesRes.ok || !permissionsRes.ok || !paymentPlansRes.ok || !loginRes.ok) {
+      if (!sidebarRes.ok || !commonRes.ok || !headerRes.ok || !dashboardRes.ok || !clientsRes.ok || !usersRes.ok || !configsRes.ok || !adminsRes.ok || !rolesRes.ok || !permissionsRes.ok || !paymentPlansRes.ok || !loginRes.ok) {
         throw new Error(`Failed to load translations for ${locale}`);
       }
 
-      const [sidebar, common, header, dashboard, clients, configs, admins, roles, permissions, paymentPlans, login] = await Promise.all([
+      const [sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login] = await Promise.all([
         sidebarRes.json(),
         commonRes.json(),
         headerRes.json(),
         dashboardRes.json(),
         clientsRes.json(),
+        usersRes.json(),
         configsRes.json(),
         adminsRes.json(),
         rolesRes.json(),
@@ -90,8 +94,8 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
         loginRes.json()
       ]);
 
-      console.log(`✅ Traductions chargées pour ${locale}:`, { sidebar, common, header, dashboard, clients, configs, admins, roles, permissions, paymentPlans, login });
-      setTranslations({ sidebar, common, header, dashboard, clients, configs, admins, roles, permissions, paymentPlans, login });
+      console.log(`✅ Traductions chargées pour ${locale}:`, { sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login });
+      setTranslations({ sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login });
     } catch (error) {
       console.error(`❌ Erreur lors du chargement des traductions pour ${locale}:`, error);
       
@@ -99,12 +103,13 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       if (locale !== 'fr') {
         console.log('🔄 Fallback vers le français...');
         try {
-          const [sidebarRes, commonRes, headerRes, dashboardRes, clientsRes, configsRes, adminsRes, rolesRes, permissionsRes, paymentPlansRes, loginRes] = await Promise.all([
+          const [sidebarRes, commonRes, headerRes, dashboardRes, clientsRes, usersRes, configsRes, adminsRes, rolesRes, permissionsRes, paymentPlansRes, loginRes] = await Promise.all([
             fetch('/locales/fr/sidebar.json'),
             fetch('/locales/fr/common.json'),
             fetch('/locales/fr/header.json'),
             fetch('/locales/fr/dashboard.json'),
             fetch('/locales/fr/clients.json'),
+            fetch('/locales/fr/users.json'),
             fetch('/locales/fr/configs.json'),
             fetch('/locales/fr/admins.json'),
             fetch('/locales/fr/roles.json'),
@@ -112,12 +117,13 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
             fetch('/locales/fr/paymentPlans.json'),
             fetch('/locales/fr/login.json')
           ]);
-          const [sidebar, common, header, dashboard, clients, configs, admins, roles, permissions, paymentPlans, login] = await Promise.all([
+          const [sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login] = await Promise.all([
             sidebarRes.json(),
             commonRes.json(),
             headerRes.json(),
             dashboardRes.json(),
             clientsRes.json(),
+            usersRes.json(),
             configsRes.json(),
             adminsRes.json(),
             rolesRes.json(),
@@ -125,7 +131,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
             paymentPlansRes.json(),
             loginRes.json()
           ]);
-          setTranslations({ sidebar, common, header, dashboard, clients, configs, admins, roles, permissions, paymentPlans, login });
+          setTranslations({ sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login });
         } catch (fallbackError) {
           console.error('❌ Erreur lors du fallback:', fallbackError);
         }
@@ -156,7 +162,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     localStorage.setItem('preferred-language', locale);
   };
 
-  const t = (namespace: 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login', key: string): string | object => {
+  const t = (namespace: 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'users' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login', key: string): string | object => {
     const translation = translations[namespace]?.[key];
     if (!translation) {
       console.warn(`⚠️ Traduction manquante: ${namespace}.${key} pour la langue ${currentLocale}`);

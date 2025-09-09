@@ -23,8 +23,8 @@ import {
   XCircle
 } from 'lucide-react';
 import { useRequireAuth } from '@/lib/hooks/useAuth';
-import { clientsService, Client, LivenessConfig } from '@/lib/api';
-import { MatchingConfig, SilentLivenessConfig } from '@/types';
+import { clientsService, Client, LivenessConfig, livenessService } from '@/lib/api';
+import { MatchingConfig, SilentLivenessConfig, LivenessSession } from '@/types';
 import { Layout } from '@/components/layout/Layout';
 import { CreateConfigModal } from '@/components/forms/CreateConfigModal';
 import { EditConfigModal } from '@/components/forms/EditConfigModal';
@@ -34,7 +34,7 @@ export default function ClientViewPage() {
   const params = useParams();
   const router = useRouter();
   const { isAuthenticated, isLoading } = useRequireAuth();
-  const { t, loading: translationLoading } = useLanguage();
+  const { t, loading: translationLoading, currentLocale } = useLanguage();
   
   // Helper function to ensure translations are strings
   const translate = (namespace: 'clients', key: string): string => {
@@ -54,14 +54,28 @@ export default function ClientViewPage() {
   const [editingLivenessConfig, setEditingLivenessConfig] = useState<any | null>(null);
   const [editingMatchingConfig, setEditingMatchingConfig] = useState<MatchingConfig | null>(null);
   const [editingSilentLivenessConfig, setEditingSilentLivenessConfig] = useState<SilentLivenessConfig | null>(null);
+  
+  // États pour les sessions de liveness
+  const [livenessSessions, setLivenessSessions] = useState<LivenessSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState<string>('');
+  
+  // Force re-render when language changes
+  const [languageKey, setLanguageKey] = useState(0);
 
   const clientId = params?.id ? parseInt(params.id as string) : null;
 
   useEffect(() => {
     if (clientId && isAuthenticated) {
       fetchClientData();
+      fetchLivenessSessions();
     }
   }, [clientId, isAuthenticated]);
+
+  // Force re-render when language changes
+  useEffect(() => {
+    setLanguageKey(prev => prev + 1);
+  }, [currentLocale]);
 
   const fetchClientData = async () => {
     if (!clientId) return;
@@ -91,12 +105,37 @@ export default function ClientViewPage() {
     }
   };
 
+  const fetchLivenessSessions = async () => {
+    if (!clientId) return;
+
+    try {
+      setSessionsLoading(true);
+      setSessionsError('');
+
+      console.log(`🔍 Fetching liveness sessions for client ID: ${clientId}`);
+      
+      const sessionsResponse = await livenessService.getSessionsByClientId(clientId);
+      console.log(`✅ Liveness sessions récupérées:`, sessionsResponse);
+      
+      setLivenessSessions(sessionsResponse);
+
+    } catch (err) {
+      console.error('❌ Erreur lors de la récupération des sessions de liveness:', err);
+      setSessionsError(translate('clients', 'sessions_loading_error'));
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
   const handleRefresh = async () => {
     if (!clientId) return;
 
     try {
       setRefreshing(true);
-      await fetchClientData();
+      await Promise.all([
+        fetchClientData(),
+        fetchLivenessSessions()
+      ]);
     } catch (err) {
       setError(translate('clients', 'refresh_error'));
       console.error('Erreur:', err);
@@ -202,6 +241,24 @@ export default function ClientViewPage() {
     );
   };
 
+  const getSessionStatusBadge = (status: string) => {
+    const statusConfig = {
+      pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: translate('clients', 'pending') },
+      in_progress: { bg: 'bg-blue-100', text: 'text-blue-800', label: translate('clients', 'in_progress') },
+      completed: { bg: 'bg-green-100', text: 'text-green-800', label: translate('clients', 'completed') },
+      failed: { bg: 'bg-red-100', text: 'text-red-800', label: translate('clients', 'failed') },
+      expired: { bg: 'bg-gray-100', text: 'text-gray-800', label: translate('clients', 'expired') }
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+        {config.label}
+      </span>
+    );
+  };
+
   if (isLoading || translationLoading) {
     return (
       <Layout>
@@ -242,7 +299,7 @@ export default function ClientViewPage() {
   }
 
   return (
-    <Layout>
+    <Layout key={languageKey}>
       <div className="min-h-screen theme-bg-secondary theme-transition">
         {/* Header */}
         <div className="shadow-sm border-b theme-bg-elevated theme-border-primary theme-transition">
@@ -862,6 +919,143 @@ export default function ClientViewPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Liveness Sessions Section */}
+        <div className="rounded-lg shadow-sm border theme-bg-elevated theme-border-primary theme-transition">
+          <div className="px-6 py-4 border-b theme-border-primary">
+            <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2 text-primary-600" />
+              {translate('clients', 'liveness_sessions')} ({livenessSessions.length})
+            </h2>
+          </div>
+          <div className="p-6">
+            {sessionsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                <span className="ml-3 theme-text-secondary theme-transition">{translate('clients', 'loading_sessions')}</span>
+              </div>
+            ) : sessionsError ? (
+              <div className="text-center py-8">
+                <XCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+                <p className="text-red-600 mb-4">{sessionsError}</p>
+                <button
+                  onClick={fetchLivenessSessions}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  {translate('clients', 'retry')}
+                </button>
+              </div>
+            ) : livenessSessions.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
+                <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{translate('clients', 'no_sessions')}</h3>
+                <p className="theme-text-secondary theme-transition">
+                  {translate('clients', 'no_sessions_description')}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {livenessSessions.map((session) => (
+                  <div key={session.id} className="border theme-border-primary rounded-lg p-4 theme-bg-elevated hover:theme-bg-secondary theme-transition">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-5 w-5 mr-2 text-primary-600" />
+                        <div>
+                          <h3 className="text-lg font-semibold theme-text-primary theme-transition">
+                            {translate('clients', 'session')} #{session.id}
+                          </h3>
+                          <p className="text-sm theme-text-secondary theme-transition">
+                            {translate('clients', 'session_id')}: {session.sessionId}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {getSessionStatusBadge(session.status)}
+                        <span className="text-sm theme-text-secondary theme-transition">
+                          {session._count.livenessResults} {translate('clients', 'results')}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'movements_requested')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{session.movementsRequested}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'movements_completed')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{session.movementsCompleted}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'current_movement')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{session.currentMovement || translate('clients', 'none')}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'frames_count')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{session._count.frames}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'created_at')}</label>
+                        <p className="text-sm theme-text-secondary theme-transition">{formatDate(session.createdAt)}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'updated_at')}</label>
+                        <p className="text-sm theme-text-secondary theme-transition">{formatDate(session.updatedAt)}</p>
+                      </div>
+                      
+                      {session.completedAt && (
+                        <div>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'completed_at')}</label>
+                          <p className="text-sm theme-text-secondary theme-transition">{formatDate(session.completedAt)}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Liveness Results */}
+                    {session.livenessResults && session.livenessResults.length > 0 && (
+                      <div className="mt-4 pt-4 border-t theme-border-primary">
+                        <h4 className="text-md font-semibold theme-text-primary theme-transition mb-3 flex items-center">
+                          <CheckCircle className="h-4 w-4 mr-2 text-primary-600" />
+                          {translate('clients', 'liveness_results')} ({session.livenessResults.length})
+                        </h4>
+                        <div className="space-y-3">
+                          {session.livenessResults.map((result) => (
+                            <div key={result.id} className="p-3 theme-bg-secondary rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center">
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                    result.result 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {result.result ? translate('clients', 'success') : translate('clients', 'failed')}
+                                  </span>
+                                </div>
+                                <span className="text-xs theme-text-secondary theme-transition">
+                                  {formatDate(result.createdAt)}
+                                </span>
+                              </div>
+                              {result.details && (
+                                <p className="text-sm theme-text-primary theme-transition">
+                                  <strong>{translate('clients', 'details')}:</strong> {result.details}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

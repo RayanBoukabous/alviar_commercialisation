@@ -1,9 +1,9 @@
 import { apiClient } from './client';
 import { API_ENDPOINTS } from '@/lib/config/api';
-import { PaginatedResponse, PaginationParams } from '@/types';
+import { PaginatedResponse, PaginationParams, LivenessSession } from '@/types';
 
-// Types spécifiques pour les données de liveness
-export interface LivenessSession {
+// Types spécifiques pour les données de liveness (ancien format)
+export interface LegacyLivenessSession {
   id: string;
   userId: string;
   status: 'pending' | 'verified' | 'failed' | 'expired';
@@ -42,17 +42,17 @@ export interface LivenessFilters {
 export const livenessService = {
   // Récupérer toutes les sessions de liveness
   getSessions: async (params?: PaginationParams & LivenessFilters) => {
-    return apiClient.get<PaginatedResponse<LivenessSession>>(API_ENDPOINTS.LIVENESS.SESSIONS, { params });
+    return apiClient.get<PaginatedResponse<LegacyLivenessSession>>(API_ENDPOINTS.LIVENESS.SESSIONS, { params });
   },
 
   // Récupérer une session par ID
   getSession: async (id: string) => {
-    return apiClient.get<LivenessSession>(API_ENDPOINTS.LIVENESS.BY_ID(id));
+    return apiClient.get<LegacyLivenessSession>(API_ENDPOINTS.LIVENESS.BY_ID(id));
   },
 
   // Créer une nouvelle session de liveness
   createSession: async (userId: string, metadata?: any) => {
-    return apiClient.post<LivenessSession>(API_ENDPOINTS.LIVENESS.BASE, {
+    return apiClient.post<LegacyLivenessSession>(API_ENDPOINTS.LIVENESS.BASE, {
       userId,
       metadata,
     });
@@ -71,7 +71,7 @@ export const livenessService = {
 
   // Récupérer l'historique des sessions
   getHistory: async (params?: PaginationParams & LivenessFilters) => {
-    return apiClient.get<PaginatedResponse<LivenessSession>>(API_ENDPOINTS.LIVENESS.HISTORY, { params });
+    return apiClient.get<PaginatedResponse<LegacyLivenessSession>>(API_ENDPOINTS.LIVENESS.HISTORY, { params });
   },
 
   // Récupérer les métriques de liveness
@@ -110,6 +110,13 @@ export const livenessService = {
       failedToday: number;
       averageResponseTime: number;
     }>('/liveness/stats/realtime');
+  },
+
+  // Récupérer les sessions de liveness par client ID
+  getSessionsByClientId: async (clientId: number): Promise<LivenessSession[]> => {
+    const response = await apiClient.get<LivenessSession[]>(`/liveness-sessions/client/${clientId}`);
+    // L'API retourne directement un tableau, pas un objet ApiResponse
+    return Array.isArray(response) ? response : response.data || [];
   },
 };
 

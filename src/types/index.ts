@@ -470,3 +470,40 @@ export interface RolesResponse {
   page: number;
   limit: number;
 }
+
+// Types pour les sessions de liveness
+export interface LivenessResult {
+  id: number;
+  sessionId: string;
+  clientId: number;
+  result: boolean;
+  details: string;
+  createdAt: string;
+}
+
+export interface LivenessFrame {
+  id: number;
+  sessionId: string;
+  frameData: string;
+  timestamp: number;
+  createdAt: string;
+}
+
+export interface LivenessSession {
+  id: number;
+  sessionId: string;
+  clientId: number;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'expired';
+  movementsRequested: string;
+  movementsCompleted: string;
+  currentMovement: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  _count: {
+    frames: number;
+    livenessResults: number;
+  };
+  livenessResults: LivenessResult[];
+  frames: LivenessFrame[];
+}
