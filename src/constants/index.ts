@@ -7,12 +7,34 @@ export const APP_CONFIG = {
 } as const;
 
 // Configuration API
+// Configuration API - HTTPS partout
+const getApiBaseUrl = () => {
+  // Si variable d'environnement définie, l'utiliser
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // Sinon, utiliser HTTPS partout (local et production)
+  return 'https://aiuniversfs.ddns.net:7000/api/v1';
+};
+
 export const API_CONFIG = {
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://aiuniversfs.ddns.net:7000/api/v1',
+  baseURL: getApiBaseUrl(),
   timeout: 10000,
   retryAttempts: 3,
   retryDelay: 1000,
 } as const;
+
+// Debug: Log API configuration
+if (typeof window !== 'undefined') {
+  console.log('🔧 API Configuration:', {
+    baseURL: API_CONFIG.baseURL,
+    envVar: process.env.NEXT_PUBLIC_API_URL,
+    nodeEnv: process.env.NODE_ENV,
+    isProduction: process.env.NODE_ENV === 'production',
+    isVercel: process.env.VERCEL === '1'
+  });
+}
 
 // Routes de l'application
 export const ROUTES = {

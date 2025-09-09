@@ -12,7 +12,7 @@ export const adminsService = {
 
       // Solution de contournement : utiliser fetch directement
       console.log('🔄 Utilisation de fetch directement...');
-      const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://aiuniversfs.ddns.net:7000/api/v1';
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://aiuniversfs.ddns.net:7000/api/v1';
       const url = `${baseURL}/admins${forceRefresh ? `?_t=${Date.now()}` : ''}`;
 
       const token = getToken();
@@ -127,7 +127,7 @@ export const adminsService = {
       console.log('🔍 Récupération de l\'admin ID:', id);
 
       // Utiliser fetch directement comme pour getAllAdmins
-      const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://aiuniversfs.ddns.net:7000/api/v1';
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://aiuniversfs.ddns.net:7000/api/v1';
       const url = `${baseURL}/admins/${id}`;
 
       const token = getToken();
