@@ -17,10 +17,12 @@ import { Layout } from '@/components/layout/Layout';
 import { PermissionsService } from '@/lib/api/permissionsService';
 import { Permission } from '@/types';
 import { CreatePermissionModal } from '@/components/forms/CreatePermissionModal';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 export default function PermissionsPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const router = useRouter();
+  const { t } = useTranslation('permissions');
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -36,14 +38,14 @@ export default function PermissionsPage() {
         setLoading(true);
         setError('');
         
-        console.log('🔍 Chargement des permissions depuis l\'API...');
+        console.log('🔍', t('loadingPermissions'));
         const permissionsData = await PermissionsService.getAllPermissions();
         setPermissions(permissionsData);
-        console.log('✅ Permissions chargées:', permissionsData);
+        console.log('✅', t('permissionsLoaded'), permissionsData);
         
       } catch (err: any) {
         console.error('Erreur détaillée:', err);
-        setError(`Erreur lors du chargement des permissions: ${err.message || 'Erreur inconnue'}`);
+        setError(`${t('errorLoadingPermissions')} ${err.message || 'Erreur inconnue'}`);
         setPermissions([]);
       } finally {
         setLoading(false);
@@ -60,14 +62,14 @@ export default function PermissionsPage() {
       setRefreshing(true);
       setError('');
       
-      console.log('🔄 Rafraîchissement des permissions...');
+      console.log('🔄', t('refreshingPermissions'));
       const permissionsData = await PermissionsService.getAllPermissions();
       setPermissions(permissionsData);
-      console.log('✅ Permissions rafraîchies:', permissionsData);
+      console.log('✅', t('permissionsRefreshed'), permissionsData);
       
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement:', err);
-      setError(`Erreur lors du rafraîchissement des permissions: ${err.message || 'Erreur inconnue'}`);
+      setError(`${t('errorRefreshingPermissions')} ${err.message || 'Erreur inconnue'}`);
       setPermissions([]);
     } finally {
       setRefreshing(false);
@@ -78,11 +80,10 @@ export default function PermissionsPage() {
   const handleDeletePermission = async (permissionId: number, permissionName: string) => {
     // Confirmation avant suppression avec plus de détails
     const confirmed = window.confirm(
-      `⚠️ ATTENTION - Suppression de la permission "${permissionName}"\n\n` +
-      `Cette action est IRRÉVERSIBLE et supprimera :\n` +
-      `• La permission "${permissionName}" (ID: ${permissionId})\n` +
-      `• Cette permission de tous les rôles qui l'utilisent\n\n` +
-      `Êtes-vous ABSOLUMENT SÛR de vouloir continuer ?`
+      `${t('deleteConfirmation')} "${permissionName}"\n\n` +
+      `${t('deleteConfirmationMessage')}\n` +
+      t('deleteConfirmationDetails', { permissionName, permissionId }) + `\n\n` +
+      t('deleteConfirmationQuestion')
     );
 
     if (!confirmed) {
@@ -93,20 +94,20 @@ export default function PermissionsPage() {
       setDeletingPermissionId(permissionId);
       setError('');
       
-      console.log(`🔍 Suppression de la permission ${permissionName} (ID: ${permissionId})...`);
+      console.log(`🔍`, t('deletingPermission', { permissionName, permissionId }));
       await PermissionsService.deletePermission(permissionId);
       
       // Supprimer la permission de la liste locale
       setPermissions(prevPermissions => prevPermissions.filter(permission => permission.id !== permissionId));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(`✅ Permission "${permissionName}" supprimée avec succès`);
+      setSuccessMessage(`✅ ${t('permissionDeletedSuccess', { permissionName })}`);
       setTimeout(() => setSuccessMessage(''), 5000);
       
-      console.log(`✅ Permission ${permissionName} supprimée avec succès`);
+      console.log(`✅`, t('permissionDeletedSuccess', { permissionName }));
     } catch (err: any) {
       console.error('❌ Erreur lors de la suppression de la permission:', err);
-      setError(`❌ Erreur lors de la suppression de la permission "${permissionName}": ${err.message || 'Erreur inconnue'}`);
+      setError(`❌ ${t('errorDeletingPermission', { permissionName })} ${err.message || 'Erreur inconnue'}`);
     } finally {
       setDeletingPermissionId(null);
     }
@@ -118,7 +119,7 @@ export default function PermissionsPage() {
       setError('');
       const permissionsData = await PermissionsService.getAllPermissions();
       setPermissions(permissionsData);
-      setSuccessMessage('✅ Permission créée avec succès');
+      setSuccessMessage(`✅ ${t('permissionCreated')}`);
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement après création:', err);
@@ -145,27 +146,27 @@ export default function PermissionsPage() {
       manage: { 
         bg: 'bg-slate-600 dark:bg-slate-500', 
         text: 'text-white', 
-        label: 'Gérer'
+        label: t('actionLabels.manage')
       },
       read: { 
         bg: 'bg-emerald-600 dark:bg-emerald-500', 
         text: 'text-white', 
-        label: 'Lire'
+        label: t('actionLabels.read')
       },
       create: { 
         bg: 'bg-blue-600 dark:bg-blue-500', 
         text: 'text-white', 
-        label: 'Créer'
+        label: t('actionLabels.create')
       },
       update: { 
         bg: 'bg-amber-600 dark:bg-amber-500', 
         text: 'text-white', 
-        label: 'Modifier'
+        label: t('actionLabels.update')
       },
       delete: { 
         bg: 'bg-red-600 dark:bg-red-500', 
         text: 'text-white', 
-        label: 'Supprimer'
+        label: t('actionLabels.delete')
       },
     };
 
@@ -198,9 +199,9 @@ export default function PermissionsPage() {
               <div>
                 <h1 className="text-2xl font-bold flex items-center theme-text-primary theme-transition">
                   <Key className="h-7 w-7 mr-3 text-blue-600" />
-                  Gestion des Permissions
+                  {t('pageTitle')}
                 </h1>
-                <p className="mt-1 theme-text-secondary theme-transition">Gérez les permissions du système</p>
+                <p className="mt-1 theme-text-secondary theme-transition">{t('pageDescription')}</p>
               </div>
               <div className="flex items-center space-x-3">
                 <button 
@@ -209,14 +210,14 @@ export default function PermissionsPage() {
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                  Rafraîchir
+                  {t('refresh')}
                 </button>
                 <button 
                   onClick={() => setIsCreateModalOpen(true)}
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Nouvelle Permission
+                  {t('newPermission')}
                 </button>
               </div>
             </div>
@@ -231,7 +232,7 @@ export default function PermissionsPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition" />
                 <input
                   type="text"
-                  placeholder="Rechercher une permission..."
+                  placeholder={t('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
@@ -239,7 +240,7 @@ export default function PermissionsPage() {
               </div>
               <button className="px-4 py-2 border rounded-lg flex items-center theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary theme-transition">
                 <Filter className="h-4 w-4 mr-2" />
-                Filtres
+                {t('filters')}
               </button>
             </div>
           </div>
@@ -294,19 +295,19 @@ export default function PermissionsPage() {
                   <thead className="theme-bg-secondary theme-transition">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Permission
+                        {t('permission')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Action
+                        {t('action')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Catégorie
+                        {t('category')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        ID
+                        {t('id')}
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Actions
+                        {t('actions')}
                       </th>
                     </tr>
                   </thead>
@@ -324,7 +325,7 @@ export default function PermissionsPage() {
                               </div>
                               <div className="ml-4">
                                 <div className="text-sm font-medium theme-text-primary theme-transition">{permission.name}</div>
-                                <div className="text-sm theme-text-secondary theme-transition">Permission système</div>
+                                <div className="text-sm theme-text-secondary theme-transition">{t('systemPermission')}</div>
                               </div>
                             </div>
                           </td>
@@ -347,7 +348,7 @@ export default function PermissionsPage() {
                                 onClick={() => handleDeletePermission(permission.id, permission.name)}
                                 disabled={deletingPermissionId === permission.id}
                                 className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                                title={`Supprimer la permission "${permission.name}"`}
+                                title={`${t('deletePermission')} "${permission.name}"`}
                               >
                                 {deletingPermissionId === permission.id ? (
                                   <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -371,8 +372,8 @@ export default function PermissionsPage() {
             {filteredPermissions.length === 0 && !loading && (
               <div className="text-center py-12">
                 <Key className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-                <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">Aucune permission trouvée</h3>
-                <p className="theme-text-secondary theme-transition">Commencez par créer votre première permission.</p>
+                <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('noPermissionsFound')}</h3>
+                <p className="theme-text-secondary theme-transition">{t('noPermissionsDescription')}</p>
               </div>
             )}
           </div>

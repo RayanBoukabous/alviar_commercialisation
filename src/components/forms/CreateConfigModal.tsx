@@ -10,6 +10,7 @@ import {
   Client,
   ConfigType 
 } from '@/lib/api';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 interface CreateConfigModalProps {
   isOpen: boolean;
@@ -58,23 +59,23 @@ interface FormErrors {
 }
 
 const AVAILABLE_MOVEMENTS = [
-  { value: 'blink', label: 'Clignement des yeux', icon: Eye },
-  { value: 'smile', label: 'Sourire', icon: Smile },
-  { value: 'looking_left', label: 'Regarder à gauche', icon: RotateCcw },
-  { value: 'facing_up', label: 'Regarder vers le haut', icon: Move },
-  { value: 'facing_down', label: 'Regarder vers le bas', icon: Move },
+  { value: 'blink', labelKey: 'blink', icon: Eye },
+  { value: 'smile', labelKey: 'smile', icon: Smile },
+  { value: 'looking_left', labelKey: 'looking_left', icon: RotateCcw },
+  { value: 'facing_up', labelKey: 'facing_up', icon: Move },
+  { value: 'facing_down', labelKey: 'facing_down', icon: Move },
 ];
 
 const DISTANCE_METHODS = [
-  { value: 'cosine', label: 'Cosine' },
-  { value: 'euclidean', label: 'Euclidean' },
-  { value: 'manhattan', label: 'Manhattan' },
+  { value: 'cosine', labelKey: 'cosine' },
+  { value: 'euclidean', labelKey: 'euclidean' },
+  { value: 'manhattan', labelKey: 'manhattan' },
 ];
 
 const CONFIG_TYPES = [
-  { value: 'liveness', label: 'Liveness', icon: Eye, description: 'Détection de mouvements faciaux' },
-  { value: 'matching', label: 'Matching', icon: Search, description: 'Comparaison de visages' },
-  { value: 'silent-liveness', label: 'Silent Liveness', icon: Zap, description: 'Détection passive de vivacité' },
+  { value: 'liveness', labelKey: 'liveness', icon: Eye, descriptionKey: 'liveness_description' },
+  { value: 'matching', labelKey: 'matching', icon: Search, descriptionKey: 'matching_description' },
+  { value: 'silent-liveness', labelKey: 'silent_liveness', icon: Zap, descriptionKey: 'silent_liveness_description' },
 ];
 
 export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
@@ -83,6 +84,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
   onSuccess,
   clients,
 }) => {
+  const { t, loading: translationLoading } = useLanguage();
   const [formData, setFormData] = useState<FormData>({
     configType: 'liveness',
     clientId: 0,
@@ -120,58 +122,58 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
     const newErrors: FormErrors = {};
 
     if (!formData.configType) {
-      newErrors.configType = 'Veuillez sélectionner un type de configuration';
+      newErrors.configType = t('clients', 'config_type_required');
     }
 
     if (!formData.clientId || formData.clientId < 1) {
-      newErrors.clientId = 'Veuillez sélectionner un client';
+      newErrors.clientId = t('clients', 'client_required');
     }
 
     // Validation spécifique selon le type
     if (formData.configType === 'liveness') {
       if (!formData.requiredMovements || formData.requiredMovements.length === 0) {
-        newErrors.requiredMovements = 'Au moins un mouvement est requis';
+        newErrors.requiredMovements = t('clients', 'movements_required');
       }
       if (!formData.movementCount || formData.movementCount < 1) {
-        newErrors.movementCount = 'Le nombre de mouvements doit être au moins 1';
+        newErrors.movementCount = t('clients', 'movement_count_required');
       }
       if (!formData.movementDurationSec || formData.movementDurationSec < 1) {
-        newErrors.movementDurationSec = 'La durée doit être d\'au moins 1 seconde';
+        newErrors.movementDurationSec = t('clients', 'movement_duration_required');
       }
       if (!formData.fps || formData.fps < 1 || formData.fps > 60) {
-        newErrors.fps = 'Le FPS doit être entre 1 et 60';
+        newErrors.fps = t('clients', 'fps_required');
       }
     } else if (formData.configType === 'matching') {
       if (!formData.distanceMethod) {
-        newErrors.distanceMethod = 'Veuillez sélectionner une méthode de distance';
+        newErrors.distanceMethod = t('clients', 'distance_method_required');
       }
       if (formData.threshold < 0 || formData.threshold > 1) {
-        newErrors.threshold = 'Le seuil doit être entre 0 et 1';
+        newErrors.threshold = t('clients', 'threshold_required');
       }
       if (formData.minimumConfidence < 0 || formData.minimumConfidence > 1) {
-        newErrors.minimumConfidence = 'La confiance minimale doit être entre 0 et 1';
+        newErrors.minimumConfidence = t('clients', 'minimum_confidence_required');
       }
       if (formData.maxAngle < 0 || formData.maxAngle > 180) {
-        newErrors.maxAngle = 'L\'angle maximum doit être entre 0 et 180 degrés';
+        newErrors.maxAngle = t('clients', 'max_angle_required');
       }
     } else if (formData.configType === 'silent-liveness') {
       if (!formData.fps || formData.fps < 1 || formData.fps > 60) {
-        newErrors.fps = 'Le FPS doit être entre 1 et 60';
+        newErrors.fps = t('clients', 'fps_required');
       }
       if (formData.minFrames < 1) {
-        newErrors.minFrames = 'Le nombre minimum de frames doit être au moins 1';
+        newErrors.minFrames = t('clients', 'min_frames_required');
       }
       if (formData.minDurationSec < 1) {
-        newErrors.minDurationSec = 'La durée minimale doit être d\'au moins 1 seconde';
+        newErrors.minDurationSec = t('clients', 'min_duration_required');
       }
       if (formData.decisionThreshold < 0 || formData.decisionThreshold > 1) {
-        newErrors.decisionThreshold = 'Le seuil de décision doit être entre 0 et 1';
+        newErrors.decisionThreshold = t('clients', 'decision_threshold_required');
       }
     }
 
     // Timeout commun à tous les types
     if (!formData.timeoutSec || formData.timeoutSec < 5) {
-      newErrors.timeoutSec = 'Le timeout doit être d\'au moins 5 secondes';
+      newErrors.timeoutSec = t('clients', 'timeout_required');
     }
 
     setErrors(newErrors);
@@ -275,7 +277,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
       onClose();
     } catch (error: unknown) {
       console.error('Error creating config:', error);
-      setSubmitError((error as Error).message || 'Erreur lors de la création de la configuration');
+      setSubmitError((error as Error).message || t('clients', 'create_config_error'));
     } finally {
       setLoading(false);
     }
@@ -310,7 +312,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || translationLoading) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -328,9 +330,9 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                   <Settings className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-lg font-semibold text-white">Nouvelle Configuration</h3>
+                  <h3 className="text-lg font-semibold text-white">{t('clients', 'new_config_title')}</h3>
                   <p className="text-primary-100 text-sm">
-                    Créer une configuration {CONFIG_TYPES.find(t => t.value === formData.configType)?.label.toLowerCase()}
+                    {t('clients', 'new_config_subtitle').replace('{type}', CONFIG_TYPES.find(t => t.value === formData.configType)?.labelKey ? t('clients', CONFIG_TYPES.find(t => t.value === formData.configType)!.labelKey) : '')}
                   </p>
                 </div>
               </div>
@@ -352,7 +354,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 <div className="flex items-start">
                   <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <h4 className="text-sm font-medium text-red-800">Erreur</h4>
+                    <h4 className="text-sm font-medium text-red-800">{t('clients', 'error_title')}</h4>
                     <p className="text-sm text-red-700 mt-1">{submitError}</p>
                   </div>
                 </div>
@@ -362,7 +364,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
             {/* Config Type Selection */}
             <div className="space-y-2">
               <label className="block text-sm font-medium theme-text-primary theme-transition">
-                Type de Configuration *
+                {t('clients', 'config_type')} *
               </label>
               <div className="grid grid-cols-1 gap-3">
                 {CONFIG_TYPES.map((type) => {
@@ -384,8 +386,8 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                       <div className="flex items-center space-x-3">
                         <Icon className="h-5 w-5" />
                         <div>
-                          <div className="font-medium">{type.label}</div>
-                          <div className="text-sm opacity-75">{type.description}</div>
+                          <div className="font-medium">{t('clients', type.labelKey)}</div>
+                          <div className="text-sm opacity-75">{t('clients', type.descriptionKey)}</div>
                         </div>
                       </div>
                     </button>
@@ -403,7 +405,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
             {/* Client Selection */}
             <div className="space-y-2">
               <label htmlFor="clientId" className="block text-sm font-medium theme-text-primary theme-transition">
-                Client *
+                {t('clients', 'client_selection')} *
               </label>
               <select
                 id="clientId"
@@ -416,7 +418,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 }`}
                 disabled={loading}
               >
-                <option value={0}>Sélectionner un client</option>
+                <option value={0}>{t('clients', 'select_client')}</option>
                 {clients.map((client) => (
                   <option key={client.id} value={client.id}>
                     {client.name} (ID: {client.id})
@@ -437,7 +439,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {/* Required Movements */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium theme-text-primary theme-transition">
-                    Mouvements Requis *
+                    {t('clients', 'required_movements')} *
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     {AVAILABLE_MOVEMENTS.map((movement) => {
@@ -458,7 +460,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                         >
                           <div className="flex items-center space-x-2">
                             <Icon className="h-4 w-4" />
-                            <span className="text-sm font-medium">{movement.label}</span>
+                            <span className="text-sm font-medium">{t('clients', movement.labelKey)}</span>
                           </div>
                         </button>
                       );
@@ -475,7 +477,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {/* Movement Count */}
                 <div className="space-y-2">
                   <label htmlFor="movementCount" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Nombre de Mouvements *
+                    {t('clients', 'movement_count')} *
                   </label>
                   <input
                     type="number"
@@ -503,7 +505,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {/* Movement Duration */}
                 <div className="space-y-2">
                   <label htmlFor="movementDurationSec" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Durée des Mouvements (secondes) *
+                    {t('clients', 'movement_duration')} *
                   </label>
                   <input
                     type="number"
@@ -534,7 +536,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
             {(formData.configType === 'liveness' || formData.configType === 'silent-liveness') && (
               <div className="space-y-2">
                 <label htmlFor="fps" className="block text-sm font-medium theme-text-primary theme-transition">
-                  FPS (Images par seconde) *
+                  {t('clients', 'fps_label')} *
                 </label>
                 <input
                   type="number"
@@ -566,7 +568,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {/* Distance Method */}
                 <div className="space-y-2">
                   <label htmlFor="distanceMethod" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Méthode de Distance *
+                    {t('clients', 'distance_method')} *
                   </label>
                   <select
                     id="distanceMethod"
@@ -581,7 +583,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                   >
                     {DISTANCE_METHODS.map((method) => (
                       <option key={method.value} value={method.value}>
-                        {method.label}
+                        {t('clients', method.labelKey)}
                       </option>
                     ))}
                   </select>
@@ -596,7 +598,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {/* Threshold */}
                 <div className="space-y-2">
                   <label htmlFor="threshold" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Seuil (0-1) *
+                    {t('clients', 'threshold')} *
                   </label>
                   <input
                     type="number"
@@ -625,7 +627,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {/* Minimum Confidence */}
                 <div className="space-y-2">
                   <label htmlFor="minimumConfidence" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Confiance Minimale (0-1) *
+                    {t('clients', 'minimum_confidence')} *
                   </label>
                   <input
                     type="number"
@@ -654,7 +656,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {/* Max Angle */}
                 <div className="space-y-2">
                   <label htmlFor="maxAngle" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Angle Maximum (degrés) *
+                    {t('clients', 'max_angle')} *
                   </label>
                   <input
                     type="number"
@@ -690,7 +692,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                       disabled={loading}
                     />
                     <span className="text-sm font-medium theme-text-primary theme-transition">
-                      Activer le prétraitement
+                      {t('clients', 'enable_preprocessing')}
                     </span>
                   </label>
                 </div>
@@ -706,7 +708,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                       disabled={loading}
                     />
                     <span className="text-sm font-medium theme-text-primary theme-transition">
-                      Activer la vérification anti-fraude
+                      {t('clients', 'enable_fraud_check')}
                     </span>
                   </label>
                 </div>
@@ -719,7 +721,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {/* Min Frames */}
                 <div className="space-y-2">
                   <label htmlFor="minFrames" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Frames Minimum *
+                    {t('clients', 'min_frames')} *
                   </label>
                   <input
                     type="number"
@@ -746,7 +748,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {/* Min Duration */}
                 <div className="space-y-2">
                   <label htmlFor="minDurationSec" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Durée Minimale (secondes) *
+                    {t('clients', 'min_duration')} *
                   </label>
                   <input
                     type="number"
@@ -773,7 +775,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {/* Decision Threshold */}
                 <div className="space-y-2">
                   <label htmlFor="decisionThreshold" className="block text-sm font-medium theme-text-primary theme-transition">
-                    Seuil de Décision (0-1) *
+                    {t('clients', 'decision_threshold')} *
                   </label>
                   <input
                     type="number"
@@ -804,7 +806,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
             {/* Timeout */}
             <div className="space-y-2">
               <label htmlFor="timeoutSec" className="block text-sm font-medium theme-text-primary theme-transition">
-                Timeout (secondes) *
+                {t('clients', 'timeout_seconds')} *
               </label>
               <input
                 type="number"
@@ -837,7 +839,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 disabled={loading}
                 className="px-4 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 theme-transition disabled:opacity-50 theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary"
               >
-                Annuler
+                {t('clients', 'cancel')}
               </button>
               <button
                 type="submit"
@@ -847,12 +849,12 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin mr-2" />
-                    Création...
+                    {t('clients', 'creating')}
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    Créer la Configuration
+                    {t('clients', 'create_config')}
                   </>
                 )}
               </button>

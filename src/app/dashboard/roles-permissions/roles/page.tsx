@@ -23,10 +23,12 @@ import { RolesService } from '@/lib/api/rolesService';
 import { Role } from '@/types';
 import { EditRoleModal } from '@/components/forms/EditRoleModal';
 import { CreateRoleModal } from '@/components/forms/CreateRoleModal';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 export default function RolesPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const router = useRouter();
+  const { t } = useTranslation('roles');
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -45,14 +47,14 @@ export default function RolesPage() {
         setLoading(true);
         setError('');
         
-        console.log('🔍 Chargement des rôles depuis l\'API...');
+        console.log('🔍', t('loadingRoles'));
         const rolesData = await RolesService.getRoles();
         setRoles(rolesData);
-        console.log('✅ Rôles chargés:', rolesData);
+        console.log('✅', t('rolesLoaded'), rolesData);
         
       } catch (err: any) {
         console.error('Erreur détaillée:', err);
-        setError(`Erreur lors du chargement des rôles: ${err.message || 'Erreur inconnue'}`);
+        setError(`${t('errorLoadingRoles')} ${err.message || 'Erreur inconnue'}`);
         setRoles([]);
       } finally {
         setLoading(false);
@@ -69,14 +71,14 @@ export default function RolesPage() {
       setRefreshing(true);
       setError('');
       
-      console.log('🔄 Rafraîchissement des rôles...');
+      console.log('🔄', t('refreshingRoles'));
       const rolesData = await RolesService.getRoles();
       setRoles(rolesData);
-      console.log('✅ Rôles rafraîchis:', rolesData);
+      console.log('✅', t('rolesRefreshed'), rolesData);
       
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement:', err);
-      setError(`Erreur lors du rafraîchissement des rôles: ${err.message || 'Erreur inconnue'}`);
+      setError(`${t('errorRefreshingRoles')} ${err.message || 'Erreur inconnue'}`);
       setRoles([]);
     } finally {
       setRefreshing(false);
@@ -97,26 +99,24 @@ export default function RolesPage() {
     handleRefresh();
     setIsEditModalOpen(false);
     setSelectedRole(null);
-    setSuccessMessage('✅ Rôle mis à jour avec succès');
+    setSuccessMessage(`✅ ${t('roleUpdated')}`);
     setTimeout(() => setSuccessMessage(''), 5000);
   };
 
   const handleCreateSuccess = () => {
     // Rafraîchir la liste des rôles après création
     handleRefresh();
-    setSuccessMessage('✅ Rôle créé avec succès');
+    setSuccessMessage(`✅ ${t('roleCreated')}`);
     setTimeout(() => setSuccessMessage(''), 5000);
   };
 
   const handleDeleteRole = async (roleId: number, roleName: string) => {
     // Confirmation avant suppression avec plus de détails
     const confirmed = window.confirm(
-      `⚠️ ATTENTION - Suppression du rôle "${roleName}"\n\n` +
-      `Cette action est IRRÉVERSIBLE et supprimera :\n` +
-      `• Le rôle "${roleName}" (ID: ${roleId})\n` +
-      `• Toutes les permissions associées\n` +
-      `• L'accès de tous les utilisateurs ayant ce rôle\n\n` +
-      `Êtes-vous ABSOLUMENT SÛR de vouloir continuer ?`
+      `${t('deleteConfirmation')} "${roleName}"\n\n` +
+      `${t('deleteConfirmationMessage')}\n` +
+      t('deleteConfirmationDetails', { roleName, roleId }) + `\n\n` +
+      t('deleteConfirmationQuestion')
     );
 
     if (!confirmed) {
@@ -127,20 +127,20 @@ export default function RolesPage() {
       setDeletingRoleId(roleId);
       setError('');
       
-      console.log(`🔍 Suppression du rôle ${roleName} (ID: ${roleId})...`);
+      console.log(`🔍`, t('deletingRole', { roleName, roleId }));
       await RolesService.deleteRole(roleId);
       
       // Supprimer le rôle de la liste locale
       setRoles(prevRoles => prevRoles.filter(role => role.id !== roleId));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(`✅ Rôle "${roleName}" supprimé avec succès`);
+      setSuccessMessage(`✅ ${t('roleDeletedSuccess', { roleName })}`);
       setTimeout(() => setSuccessMessage(''), 5000);
       
-      console.log(`✅ Rôle ${roleName} supprimé avec succès`);
+      console.log(`✅`, t('roleDeletedSuccess', { roleName }));
     } catch (err: any) {
       console.error('❌ Erreur lors de la suppression du rôle:', err);
-      setError(`❌ Erreur lors de la suppression du rôle "${roleName}": ${err.message || 'Erreur inconnue'}`);
+      setError(`❌ ${t('errorDeletingRole', { roleName })} ${err.message || 'Erreur inconnue'}`);
     } finally {
       setDeletingRoleId(null);
     }
@@ -158,13 +158,13 @@ export default function RolesPage() {
       active: { 
         bg: 'bg-green-500 dark:bg-green-600', 
         text: 'text-white', 
-        label: 'Actif',
+        label: t('active'),
         icon: '✓'
       },
       inactive: { 
         bg: 'bg-gray-500 dark:bg-gray-600', 
         text: 'text-white', 
-        label: 'Inactif',
+        label: t('inactive'),
         icon: '✗'
       },
     };
@@ -209,9 +209,9 @@ export default function RolesPage() {
               <div>
                 <h1 className="text-2xl font-bold flex items-center theme-text-primary theme-transition">
                   <Shield className="h-7 w-7 mr-3 text-blue-600" />
-                  Gestion des Rôles
+                  {t('pageTitle')}
                 </h1>
-                <p className="mt-1 theme-text-secondary theme-transition">Gérez les rôles et permissions du système</p>
+                <p className="mt-1 theme-text-secondary theme-transition">{t('pageDescription')}</p>
               </div>
               <div className="flex items-center space-x-3">
                 <button 
@@ -220,14 +220,14 @@ export default function RolesPage() {
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                  Rafraîchir
+                  {t('refresh')}
                 </button>
                 <button 
                   onClick={() => setIsCreateModalOpen(true)}
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Nouveau Rôle
+                  {t('newRole')}
                 </button>
               </div>
             </div>
@@ -242,7 +242,7 @@ export default function RolesPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition" />
                 <input
                   type="text"
-                  placeholder="Rechercher un rôle..."
+                  placeholder={t('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
@@ -250,7 +250,7 @@ export default function RolesPage() {
               </div>
               <button className="px-4 py-2 border rounded-lg flex items-center theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary theme-transition">
                 <Filter className="h-4 w-4 mr-2" />
-                Filtres
+                {t('filters')}
               </button>
             </div>
           </div>
@@ -289,25 +289,25 @@ export default function RolesPage() {
                   <thead className="theme-bg-secondary theme-transition">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Rôle
+                        {t('role')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Description
+                        {t('description')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Permissions
+                        {t('permissions')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Utilisateurs
+                        {t('users')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Statut
+                        {t('status')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Date de création
+                        {t('createdDate')}
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                        Actions
+                        {t('actions')}
                       </th>
                     </tr>
                   </thead>
@@ -327,17 +327,20 @@ export default function RolesPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm theme-text-primary theme-transition max-w-xs truncate">
-                            Rôle système avec {role.permissions?.length || 0} permissions
+                            {t('systemRoleWithPermissions', { count: role.permissions?.length || 0 })}
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm theme-text-primary theme-transition">
-                            {role.permissions?.length || 0} permission{(role.permissions?.length || 0) > 1 ? 's' : ''}
+                            {(role.permissions?.length || 0) > 1 
+                              ? t('permissionCountPlural', { count: role.permissions?.length || 0 })
+                              : t('permissionCount', { count: role.permissions?.length || 0 })
+                            }
                           </div>
                           {role.permissions && role.permissions.length > 0 && (
                             <div className="text-xs theme-text-tertiary theme-transition mt-1">
                               {role.permissions.slice(0, 3).map(p => p.permission.name).join(', ')}
-                              {role.permissions.length > 3 && ` +${role.permissions.length - 3} autres`}
+                              {role.permissions.length > 3 && ` ${t('otherPermissions', { count: role.permissions.length - 3 })}`}
                             </div>
                           )}
                         </td>
@@ -349,7 +352,7 @@ export default function RolesPage() {
                           {role.admins && role.admins.length > 0 && (
                             <div className="text-xs theme-text-tertiary theme-transition mt-1">
                               {role.admins.slice(0, 2).map(admin => admin.username).join(', ')}
-                              {role.admins.length > 2 && ` +${role.admins.length - 2} autres`}
+                              {role.admins.length > 2 && ` ${t('otherUsers', { count: role.admins.length - 2 })}`}
                             </div>
                           )}
                         </td>
@@ -357,21 +360,21 @@ export default function RolesPage() {
                           {getStatusBadge('active')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm theme-text-secondary theme-transition">
-                          Système
+                          {t('system')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
                             <button 
                               onClick={() => handleViewRole(role)}
                               className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
-                              title="Voir les détails du rôle"
+                              title={t('viewRoleDetails')}
                             >
                               <Eye className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handleEditRole(role)}
                               className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
-                              title="Modifier le rôle"
+                              title={t('editRole')}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
@@ -379,7 +382,7 @@ export default function RolesPage() {
                               onClick={() => handleDeleteRole(role.id, role.name)}
                               disabled={deletingRoleId === role.id}
                               className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                              title={`Supprimer le rôle "${role.name}"`}
+                              title={`${t('deleteRole')} "${role.name}"`}
                             >
                               {deletingRoleId === role.id ? (
                                 <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -402,8 +405,8 @@ export default function RolesPage() {
             {filteredRoles.length === 0 && !loading && (
               <div className="text-center py-12">
                 <Shield className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-                <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">Aucun rôle trouvé</h3>
-                <p className="theme-text-secondary theme-transition">Commencez par créer votre premier rôle.</p>
+                <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('noRolesFound')}</h3>
+                <p className="theme-text-secondary theme-transition">{t('noRolesDescription')}</p>
               </div>
             )}
           </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Shield, Save, AlertCircle } from 'lucide-react';
 import { adminsService, UpdateAdminRequest, Admin } from '@/lib/api';
 import { Role } from '@/types';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 interface EditAdminModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
   admin,
   roles = new Map(),
 }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState<FormData>({
     email: '',
     username: '',
@@ -59,21 +61,21 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
 
     // Validation email
     if (!formData.email.trim()) {
-      newErrors.email = 'L\'email est requis';
+      newErrors.email = t('admins', 'email_required');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Format d\'email invalide';
+      newErrors.email = t('admins', 'email_invalid');
     }
 
     // Validation username
     if (!formData.username.trim()) {
-      newErrors.username = 'Le nom d\'utilisateur est requis';
+      newErrors.username = t('admins', 'username_required');
     } else if (formData.username.length < 3) {
-      newErrors.username = 'Le nom d\'utilisateur doit contenir au moins 3 caractères';
+      newErrors.username = t('admins', 'username_min_length');
     }
 
     // Validation fullName
     if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Le nom complet est requis';
+      newErrors.fullName = t('admins', 'full_name_required');
     }
 
     setErrors(newErrors);
@@ -105,7 +107,7 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
       console.error('Erreur lors de la mise à jour de l\'administrateur:', error);
       setSubmitError(
         error.response?.data?.message || 
-        'Erreur lors de la mise à jour de l\'administrateur'
+        t('admins', 'update_error')
       );
     } finally {
       setLoading(false);
@@ -132,8 +134,8 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
               <User className="h-5 w-5 text-primary-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold theme-text-primary">Modifier l'Administrateur</h2>
-              <p className="text-sm theme-text-secondary">Modifier les informations de {admin.fullName}</p>
+              <h2 className="text-lg font-semibold theme-text-primary">{t('admins', 'edit_admin_title')}</h2>
+              <p className="text-sm theme-text-secondary">{t('admins', 'edit_admin_subtitle').replace('{name}', admin.fullName)}</p>
             </div>
           </div>
           <button
@@ -160,7 +162,7 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <Mail className="h-4 w-4 inline mr-2" />
-              Email *
+              {t('admins', 'email_label')} *
             </label>
             <input
               type="email"
@@ -180,7 +182,7 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <User className="h-4 w-4 inline mr-2" />
-              Nom d'utilisateur *
+              {t('admins', 'username_label')} *
             </label>
             <input
               type="text"
@@ -200,7 +202,7 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <User className="h-4 w-4 inline mr-2" />
-              Nom complet *
+              {t('admins', 'full_name_label')} *
             </label>
             <input
               type="text"
@@ -221,24 +223,24 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium theme-text-secondary mb-1">
-                  Rôle actuel
+                  {t('admins', 'current_role')}
                 </label>
                 <div className="text-sm theme-text-primary">
-                  {roles.get(admin.roleId)?.name || 'Rôle inconnu'}
+                  {roles.get(admin.roleId)?.name || t('admins', 'unknown_role')}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium theme-text-secondary mb-1">
-                  Statut actuel
+                  {t('admins', 'current_status')}
                 </label>
                 <div className="text-sm theme-text-primary">
-                  {admin.status === 'active' ? 'Actif' : 
-                   admin.status === 'inactive' ? 'Inactif' : 'Suspendu'}
+                  {admin.status === 'active' ? t('admins', 'active') : 
+                   admin.status === 'inactive' ? t('admins', 'inactive') : t('admins', 'suspended')}
                 </div>
               </div>
             </div>
             <p className="text-xs theme-text-tertiary mt-2">
-              💡 Le rôle et le statut peuvent être modifiés via les boutons d'action dans le tableau
+              {t('admins', 'role_status_note')}
             </p>
           </div>
 
@@ -249,7 +251,7 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium theme-text-secondary hover:theme-text-primary theme-transition"
             >
-              Annuler
+              {t('admins', 'cancel')}
             </button>
             <button
               type="submit"
@@ -259,12 +261,12 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Mise à jour...
+                  {t('admins', 'updating')}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Mettre à jour
+                  {t('admins', 'update')}
                 </>
               )}
             </button>

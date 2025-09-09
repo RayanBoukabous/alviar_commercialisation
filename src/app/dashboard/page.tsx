@@ -6,6 +6,7 @@ import { Layout } from '@/components/layout';
 import { ThemeCard } from '@/lib/theme/ThemeProvider';
 import { useRequireAuth } from '@/lib/hooks/useAuth';
 import { useDashboardData, useLivenessMetrics, useDetailedStats } from '@/lib/hooks/useDashboardData';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { DashboardCharts } from '@/components/charts/DashboardCharts';
 import { ConfigsMetrics } from '@/components/charts/ConfigsMetrics';
 import { Users, TrendingUp, ArrowUpRight, ArrowDownRight, RefreshCw, AlertCircle, Shield, Settings } from 'lucide-react';
@@ -15,6 +16,33 @@ export default function DashboardPage() {
   const { metrics, advancedMetrics, chartData, refreshData } = useDashboardData();
   const livenessMetrics = useLivenessMetrics();
   const detailedStats = useDetailedStats();
+  const { t, loading: translationLoading } = useLanguage();
+
+  // Si les traductions sont en cours de chargement, afficher un loader
+  if (translationLoading) {
+    return (
+      <ThemeProvider>
+        <Layout>
+          <div className="space-y-6">
+            <div className="animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-8 w-48 rounded mb-2"></div>
+                  <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-6 w-64 rounded"></div>
+                </div>
+                <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-10 w-24 rounded"></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse bg-gray-200 dark:bg-gray-700 h-32 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </Layout>
+      </ThemeProvider>
+    );
+  }
 
   // Afficher un loader pendant la vérification de l'authentification
   if (isLoading) {
@@ -35,7 +63,7 @@ export default function DashboardPage() {
   // 4 cartes principales importantes
   const mainStats = [
     {
-      name: 'Utilisateurs',
+      name: t('dashboard', 'users'),
       value: metrics.totalUsers.toLocaleString(),
       change: detailedStats.users.active > 0 ? `+${Math.round((detailedStats.users.active / metrics.totalUsers) * 100)}%` : '0%',
       changeType: 'positive',
@@ -44,10 +72,10 @@ export default function DashboardPage() {
       bgColor: 'theme-bg-tertiary',
       iconColor: 'text-blue-600 dark:text-blue-400',
       isLoading: metrics.isLoading,
-      description: 'Utilisateurs enregistrés',
+      description: t('dashboard', 'users_description'),
     },
     {
-      name: 'Admins',
+      name: t('dashboard', 'admins'),
       value: metrics.totalAdmins.toLocaleString(),
       change: '+2%',
       changeType: 'positive',
@@ -56,10 +84,10 @@ export default function DashboardPage() {
       bgColor: 'theme-bg-tertiary',
       iconColor: 'text-red-600 dark:text-red-400',
       isLoading: metrics.isLoading,
-      description: 'Administrateurs système',
+      description: t('dashboard', 'admins_description'),
     },
     {
-      name: 'Clients',
+      name: t('dashboard', 'clients'),
       value: metrics.totalClients.toLocaleString(),
       change: detailedStats.clients.active > 0 ? `+${Math.round((detailedStats.clients.active / metrics.totalClients) * 100)}%` : '0%',
       changeType: 'positive',
@@ -68,10 +96,10 @@ export default function DashboardPage() {
       bgColor: 'theme-bg-tertiary',
       iconColor: 'text-green-600 dark:text-green-500',
       isLoading: metrics.isLoading,
-      description: 'Clients actifs',
+      description: t('dashboard', 'clients_description'),
     },
     {
-      name: 'Config Count',
+      name: t('dashboard', 'config_count'),
       value: metrics.totalConfigs.toLocaleString(),
       change: '+22%',
       changeType: 'positive',
@@ -80,7 +108,7 @@ export default function DashboardPage() {
       bgColor: 'theme-bg-tertiary',
       iconColor: 'text-indigo-600 dark:text-indigo-400',
       isLoading: metrics.isLoading,
-      description: 'Configurations totales',
+      description: t('dashboard', 'config_count_description'),
     },
   ];
 
@@ -93,11 +121,11 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
           <div>
                 <h1 className="text-3xl font-bold theme-text-primary bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
-                  Dashboard
+                  {t('dashboard', 'title')}
                 </h1>
                 <p className="mt-2 text-lg theme-text-secondary">
-              Vue d'ensemble de votre activité liveness
-            </p>
+                  {t('dashboard', 'subtitle')}
+                </p>
               </div>
               <button
                 onClick={refreshData}
@@ -105,7 +133,7 @@ export default function DashboardPage() {
                 className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <RefreshCw className={`w-4 h-4 ${metrics.isLoading ? 'animate-spin' : ''}`} />
-                <span>Actualiser</span>
+                <span>{t('dashboard', 'refresh')}</span>
               </button>
             </div>
             
@@ -113,7 +141,9 @@ export default function DashboardPage() {
             {metrics.error && (
               <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center space-x-2">
                 <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                <span className="text-red-700 dark:text-red-300">{metrics.error}</span>
+                <span className="text-red-700 dark:text-red-300">
+                  {t('dashboard', 'error_message')}
+                </span>
               </div>
             )}
           </div>

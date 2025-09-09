@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Building2, User, DollarSign, MapPin, Save, AlertCircle } from 'lucide-react';
 import { clientsService, CreateClientRequest, PaymentPlan } from '@/lib/api';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 interface CreateClientModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t, loading: translationLoading } = useLanguage();
   const [formData, setFormData] = useState<FormData>({
     name: '',
     status: 'ACTIVE',
@@ -73,21 +75,21 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
     const newErrors: FormErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Le nom du client est requis';
+      newErrors.name = t('clients', 'client_name_required');
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Le nom doit contenir au moins 2 caractères';
+      newErrors.name = t('clients', 'client_name_min_length');
     }
 
     if (!formData.paymentPlanId || formData.paymentPlanId < 1) {
-      newErrors.paymentPlanId = 'L\'ID du plan de paiement est requis';
+      newErrors.paymentPlanId = t('clients', 'payment_plan_required');
     }
 
     if (!formData.distributorId || formData.distributorId < 1) {
-      newErrors.distributorId = 'L\'ID du distributeur est requis';
+      newErrors.distributorId = t('clients', 'distributor_id_required');
     }
 
     if (!formData.createdBy.trim()) {
-      newErrors.createdBy = 'Le créateur est requis';
+      newErrors.createdBy = t('clients', 'created_by_required');
     }
 
     setErrors(newErrors);
@@ -144,7 +146,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
       onClose();
     } catch (error: any) {
       console.error('Error creating client:', error);
-      setSubmitError(error.message || 'Erreur lors de la création du client');
+      setSubmitError(error.message || t('clients', 'create_error'));
     } finally {
       setLoading(false);
     }
@@ -165,7 +167,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || translationLoading) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -183,8 +185,8 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                   <Building2 className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-lg font-semibold text-white">Nouveau Client</h3>
-                  <p className="text-primary-100 text-sm">Créer un nouveau client</p>
+                  <h3 className="text-lg font-semibold text-white">{t('clients', 'new_client_title')}</h3>
+                  <p className="text-primary-100 text-sm">{t('clients', 'new_client_subtitle')}</p>
                 </div>
               </div>
               <button
@@ -205,7 +207,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 <div className="flex items-start">
                   <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <h4 className="text-sm font-medium text-red-800">Erreur</h4>
+                    <h4 className="text-sm font-medium text-red-800">{t('clients', 'error_title')}</h4>
                     <p className="text-sm text-red-700 mt-1">{submitError}</p>
                   </div>
                 </div>
@@ -215,7 +217,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
             {/* Name Field */}
             <div className="space-y-2">
               <label htmlFor="name" className="block text-sm font-medium theme-text-primary theme-transition">
-                Nom du Client *
+                {t('clients', 'client_name')} *
               </label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 theme-text-tertiary theme-transition" />
@@ -229,7 +231,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                       ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
                       : 'theme-bg-elevated theme-border-primary theme-text-primary placeholder-gray-500 dark:placeholder-slate-400'
                   }`}
-                  placeholder="Ex: SGA, TechCorp..."
+                  placeholder={t('clients', 'client_name_placeholder')}
                   disabled={loading}
                 />
               </div>
@@ -244,7 +246,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
             {/* Status Field */}
             <div className="space-y-2">
               <label htmlFor="status" className="block text-sm font-medium theme-text-primary theme-transition">
-                Statut
+                {t('clients', 'status_label')}
               </label>
               <select
                 id="status"
@@ -253,23 +255,23 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
                 disabled={loading}
               >
-                <option value="ACTIVE">Actif</option>
-                <option value="INACTIVE">Inactif</option>
-                <option value="SUSPENDED">Suspendu</option>
+                <option value="ACTIVE">{t('clients', 'active')}</option>
+                <option value="INACTIVE">{t('clients', 'inactive')}</option>
+                <option value="SUSPENDED">{t('clients', 'suspended')}</option>
               </select>
             </div>
 
             {/* Payment Plan */}
             <div className="space-y-2">
               <label htmlFor="paymentPlanId" className="block text-sm font-medium theme-text-primary theme-transition">
-                Plan de Paiement *
+                {t('clients', 'payment_plan')} *
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 theme-text-tertiary theme-transition" />
                 {loadingPlans ? (
                   <div className="w-full pl-10 pr-4 py-3 border rounded-lg theme-bg-elevated theme-border-primary theme-text-primary flex items-center">
                     <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin mr-2" />
-                    Chargement des plans...
+                    {t('clients', 'payment_plan_loading')}
                   </div>
                 ) : (
                   <select
@@ -283,7 +285,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                     }`}
                     disabled={loading || loadingPlans}
                   >
-                    <option value="">Sélectionner un plan</option>
+                    <option value="">{t('clients', 'payment_plan_select')}</option>
                     {paymentPlans.map((plan) => (
                       <option key={plan.id} value={plan.id}>
                         {plan.name} - {plan.price} {plan.currency} ({plan.billingCycle})
@@ -303,7 +305,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
             {/* Distributor ID */}
             <div className="space-y-2">
               <label htmlFor="distributorId" className="block text-sm font-medium theme-text-primary theme-transition">
-                ID du Distributeur *
+                {t('clients', 'distributor_id')} *
               </label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 theme-text-tertiary theme-transition" />
@@ -333,7 +335,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
             {/* Created By */}
             <div className="space-y-2">
               <label htmlFor="createdBy" className="block text-sm font-medium theme-text-primary theme-transition">
-                Créé par *
+                {t('clients', 'created_by')} *
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 theme-text-tertiary theme-transition" />
@@ -347,7 +349,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                       ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
                       : 'theme-bg-elevated theme-border-primary theme-text-primary placeholder-gray-500 dark:placeholder-slate-400'
                   }`}
-                  placeholder="admin"
+                  placeholder={t('clients', 'created_by_placeholder')}
                   disabled={loading}
                 />
               </div>
@@ -367,7 +369,7 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 disabled={loading}
                 className="px-4 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 theme-transition disabled:opacity-50 theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary"
               >
-                Annuler
+                {t('clients', 'cancel')}
               </button>
               <button
                 type="submit"
@@ -377,12 +379,12 @@ export const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin mr-2" />
-                    Création...
+                    {t('clients', 'creating')}
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    Créer le Client
+                    {t('clients', 'create_client')}
                   </>
                 )}
               </button>

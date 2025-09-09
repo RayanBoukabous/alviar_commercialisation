@@ -7,6 +7,8 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Eye, EyeOff, Mail, Lock, LogIn, Shield, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { useTranslation } from '@/lib/hooks/useTranslation';
+import { LanguageSelector } from '@/components/ui/LanguageSelector';
 
 interface LoginFormProps {
   onSubmit?: (data: { email: string; password: string }) => void;
@@ -20,6 +22,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   error,
 }) => {
   const { theme } = useTheme();
+  const { t } = useTranslation('login');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -31,15 +34,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     const errors: Record<string, string> = {};
 
     if (!formData.email) {
-      errors.email = 'L\'email est requis';
+      errors.email = t('emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'L\'email n\'est pas valide';
+      errors.email = t('emailInvalid');
     }
 
     if (!formData.password) {
-      errors.password = 'Le mot de passe est requis';
+      errors.password = t('passwordRequired');
     } else if (formData.password.length < 6) {
-      errors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+      errors.password = t('passwordMinLength');
     }
 
     setFormErrors(errors);
@@ -79,7 +82,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       <div className="relative z-10 flex items-center justify-center min-h-screen py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full">
           {/* Main Card */}
-          <div className="theme-bg-elevated rounded-2xl shadow-2xl border theme-border-primary p-8 backdrop-blur-sm">
+          <div className="relative theme-bg-elevated rounded-2xl shadow-2xl border theme-border-primary p-8 backdrop-blur-sm">
             {/* Header with Logo */}
             <div className="text-center mb-8">
               <div className="mx-auto mb-6 relative">
@@ -103,7 +106,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 AIKAMELEON
               </h1>
               <p className="text-base theme-text-secondary font-medium">
-                Plateforme sécurisée de vérification d'identité
+                {t('secureIdentityPlatform')}
               </p>
               <div className="mt-3 flex items-center justify-center space-x-2">
                 <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
@@ -112,19 +115,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               </div>
             </div>
 
-            {/* Theme Toggle */}
-            <div className="flex justify-center mb-6">
-              <div className="flex items-center space-x-3 bg-theme-bg-secondary rounded-full p-1.5 border theme-border-primary shadow-lg backdrop-blur-sm">
-                <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary-100 to-primary-200 dark:from-primary-800 dark:to-primary-900 shadow-sm">
-                  <Sparkles className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                  <span className="text-xs font-semibold text-primary-700 dark:text-primary-300">Thème</span>
-                </div>
-                <div className="relative">
-                  <ThemeToggle size="sm" />
-                  <div className="absolute inset-0 rounded-md bg-gradient-to-r from-primary-500/20 to-primary-600/20 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
-                </div>
-              </div>
-            </div>
 
             {/* Form */}
             <form className="space-y-6" onSubmit={handleSubmit}>
@@ -132,7 +122,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 {/* Email Field */}
                 <div className="space-y-2">
                   <label htmlFor="email" className="block text-sm font-semibold theme-text-primary">
-                    Adresse email
+                    {t('email')}
                   </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -160,7 +150,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                           ? 'bg-slate-800/50 border-slate-600 text-slate-100 placeholder-slate-400 backdrop-blur-sm' 
                           : 'bg-white/80 border-slate-200 text-slate-900 placeholder-slate-400 backdrop-blur-sm'
                       )}
-                      placeholder="votre@email.com"
+                      placeholder={t('emailPlaceholder')}
                     />
                   </div>
                   {formErrors.email && (
@@ -174,7 +164,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 {/* Password Field */}
                 <div className="space-y-2">
                   <label htmlFor="password" className="block text-sm font-semibold theme-text-primary">
-                    Mot de passe
+                    {t('password')}
                   </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -202,7 +192,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                           ? 'bg-slate-800/50 border-slate-600 text-slate-100 placeholder-slate-400 backdrop-blur-sm' 
                           : 'bg-white/80 border-slate-200 text-slate-900 placeholder-slate-400 backdrop-blur-sm'
                       )}
-                      placeholder="••••••••"
+                      placeholder={t('passwordPlaceholder')}
                     />
                     <button
                       type="button"
@@ -235,7 +225,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                     className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded transition-colors"
                   />
                   <label htmlFor="remember-me" className="ml-3 block text-sm theme-text-secondary group-hover:theme-text-primary transition-colors cursor-pointer">
-                    Se souvenir de moi
+                    {t('rememberMe')}
                   </label>
                 </div>
 
@@ -244,7 +234,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                     href="#"
                     className="font-medium text-primary-600 hover:text-primary-500 transition-colors hover:underline"
                   >
-                    Mot de passe oublié ?
+                    {t('forgotPassword')}
                   </a>
                 </div>
               </div>
@@ -260,7 +250,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                     </div>
                     <div className="ml-3">
                       <h3 className="text-sm font-semibold text-red-800 dark:text-red-200">
-                        Erreur de connexion
+                        {t('loginError')}
                       </h3>
                       <div className="mt-1 text-sm text-red-700 dark:text-red-300">
                         {error}
@@ -282,12 +272,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                   {loading ? (
                     <div className="flex items-center justify-center">
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                      Connexion en cours...
+                      {t('signingIn')}
                     </div>
                   ) : (
                     <div className="flex items-center justify-center">
                       <LogIn className="w-5 h-5 mr-2" />
-                      Se connecter
+                      {t('signIn')}
                     </div>
                   )}
                 </Button>
@@ -296,23 +286,30 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               {/* Sign up link */}
               <div className="text-center pt-4">
                 <p className="text-sm theme-text-secondary">
-                  Pas encore de compte ?{' '}
+                  {t('noAccount')}{' '}
                   <a
                     href="#"
                     className="font-semibold text-primary-600 hover:text-primary-500 transition-colors hover:underline"
                   >
-                    Créer un compte
+                    {t('createAccount')}
                   </a>
                 </p>
               </div>
             </form>
+
+            {/* Language Selector - Bottom Right */}
+            <div className="absolute bottom-4 right-4">
+              <div className="relative px-3 py-2 rounded-lg backdrop-blur-sm border border-emerald-200 dark:border-slate-600 transition-all duration-300 shadow-sm hover:shadow-md bg-white/50 dark:bg-slate-700/50">
+                <LanguageSelector />
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-xs theme-text-tertiary">
-            © 2024 AIKAMELEON. Tous droits réservés.
+            {t('copyright')}
           </p>
         </div>
       </div>

@@ -1,27 +1,7 @@
 import { apiClient } from './client';
+import { Client } from '@/types';
 
-export interface Client {
-    id: number;
-    name: string;
-    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
-    createdAt: string;
-    updatedAt: string;
-    createdBy: string;
-    updatedBy: string | null;
-    paymentPlan: {
-        id: number;
-        name: string;
-    };
-    distributor: {
-        id: number;
-        name: string;
-    };
-    keys: Array<{
-        id: number;
-        key: string;
-        isActive: boolean;
-    }>;
-}
+export type { Client };
 
 export interface PaymentPlan {
     id: number;
@@ -122,7 +102,17 @@ class ClientsService {
     async getClientById(id: number): Promise<Client> {
         try {
             const response = await apiClient.get(`/clients/${id}`);
-            return response.data;
+            console.log('🔍 Debug getClientById response:', response);
+
+            // L'API retourne directement l'objet client
+            if (response && typeof response === 'object' && (response as any).id) {
+                return response as unknown as Client;
+            } else if (response && (response as any).data && typeof (response as any).data === 'object' && (response as any).data.id) {
+                return (response as any).data as Client;
+            } else {
+                console.warn('Structure de réponse inattendue pour getClientById:', response);
+                throw new Error('Invalid response structure');
+            }
         } catch (error) {
             console.error(`Error fetching client ${id}:`, error);
             throw error;
@@ -150,6 +140,18 @@ class ClientsService {
             await apiClient.delete(`/clients/${id}`);
         } catch (error) {
             console.error(`Error deleting client ${id}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Supprime la configuration d'un client
+     */
+    async deleteClientConfig(clientId: number): Promise<void> {
+        try {
+            await apiClient.delete(`/clients/${clientId}/config`);
+        } catch (error) {
+            console.error(`Error deleting config for client ${clientId}:`, error);
             throw error;
         }
     }

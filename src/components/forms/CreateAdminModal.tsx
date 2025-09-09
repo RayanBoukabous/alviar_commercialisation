@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Shield, Save, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { adminsService, CreateAdminRequest, rolesService, Role } from '@/lib/api';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 interface CreateAdminModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState<FormData>({
     email: '',
     username: '',
@@ -71,7 +73,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           }
         } catch (err: any) {
           console.error('❌ Erreur lors de la récupération des rôles:', err);
-          setRolesError(`Erreur lors du chargement des rôles: ${err.message || 'Erreur inconnue'}`);
+          setRolesError(t('admins', 'roles_error').replace('{error}', err.message || 'Erreur inconnue'));
         } finally {
           setRolesLoading(false);
         }
@@ -86,42 +88,42 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
 
     // Validation email
     if (!formData.email.trim()) {
-      newErrors.email = 'L\'email est requis';
+      newErrors.email = t('admins', 'email_required');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Format d\'email invalide';
+      newErrors.email = t('admins', 'email_invalid');
     }
 
     // Validation username
     if (!formData.username.trim()) {
-      newErrors.username = 'Le nom d\'utilisateur est requis';
+      newErrors.username = t('admins', 'username_required');
     } else if (formData.username.length < 3) {
-      newErrors.username = 'Le nom d\'utilisateur doit contenir au moins 3 caractères';
+      newErrors.username = t('admins', 'username_min_length');
     }
 
     // Validation fullName
     if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Le nom complet est requis';
+      newErrors.fullName = t('admins', 'full_name_required');
     } else if (formData.fullName.trim().length < 3) {
-      newErrors.fullName = 'Le nom complet doit contenir au moins 3 caractères';
+      newErrors.fullName = t('admins', 'full_name_min_length');
     }
 
     // Validation password
     if (!formData.password) {
-      newErrors.password = 'Le mot de passe est requis';
+      newErrors.password = t('admins', 'password_required');
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Le mot de passe doit contenir au moins 8 caractères';
+      newErrors.password = t('admins', 'password_min_length');
     }
 
     // Validation confirmPassword
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'La confirmation du mot de passe est requise';
+      newErrors.confirmPassword = t('admins', 'confirm_password_required');
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+      newErrors.confirmPassword = t('admins', 'passwords_not_match');
     }
 
     // Validation roleId
     if (!formData.roleId) {
-      newErrors.roleId = 'Le rôle est requis';
+      newErrors.roleId = t('admins', 'role_required');
     }
 
     setErrors(newErrors);
@@ -166,7 +168,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
       console.error('Erreur lors de la création de l\'administrateur:', error);
       
       // Gérer les erreurs de validation de l'API
-      let errorMessage = 'Erreur lors de la création de l\'administrateur';
+      let errorMessage = t('admins', 'create_error');
       
       if (error.response?.data?.message) {
         const apiMessage = error.response.data.message;
@@ -206,8 +208,8 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
               <User className="h-5 w-5 text-primary-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold theme-text-primary">Nouvel Administrateur</h2>
-              <p className="text-sm theme-text-secondary">Créer un nouveau compte administrateur</p>
+              <h2 className="text-lg font-semibold theme-text-primary">{t('admins', 'create_admin_title')}</h2>
+              <p className="text-sm theme-text-secondary">{t('admins', 'create_admin_subtitle')}</p>
             </div>
           </div>
           <button
@@ -244,7 +246,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <Mail className="h-4 w-4 inline mr-2" />
-              Email *
+              {t('admins', 'email_label')} *
             </label>
             <input
               type="email"
@@ -264,7 +266,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <User className="h-4 w-4 inline mr-2" />
-              Nom d'utilisateur *
+              {t('admins', 'username_label')} *
             </label>
             <input
               type="text"
@@ -284,7 +286,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <User className="h-4 w-4 inline mr-2" />
-              Nom complet *
+              {t('admins', 'full_name_label')} *
             </label>
             <input
               type="text"
@@ -304,12 +306,12 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <Shield className="h-4 w-4 inline mr-2" />
-              Rôle *
+              {t('admins', 'role_label')} *
             </label>
             {rolesLoading ? (
               <div className="w-full px-3 py-2 border rounded-lg theme-bg-elevated theme-border-primary flex items-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-                <span className="text-sm theme-text-secondary">Chargement des rôles...</span>
+                <span className="text-sm theme-text-secondary">{t('admins', 'loading_roles')}</span>
               </div>
             ) : rolesError ? (
               <div className="w-full px-3 py-2 border border-red-500 rounded-lg theme-bg-elevated">
@@ -325,7 +327,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
                 disabled={roles.length === 0}
               >
                 {roles.length === 0 ? (
-                  <option value="">Aucun rôle disponible</option>
+                  <option value="">{t('admins', 'no_roles_available')}</option>
                 ) : (
                   roles.map((role) => (
                     <option key={role.id} value={role.id}>
@@ -344,7 +346,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <Shield className="h-4 w-4 inline mr-2" />
-              Mot de passe *
+              {t('admins', 'password_label')} *
             </label>
             <div className="relative">
               <input
@@ -373,7 +375,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <Shield className="h-4 w-4 inline mr-2" />
-              Confirmer le mot de passe *
+              {t('admins', 'confirm_password_label')} *
             </label>
             <div className="relative">
               <input
@@ -405,7 +407,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium theme-text-secondary hover:theme-text-primary theme-transition"
             >
-              Annuler
+              {t('admins', 'cancel')}
             </button>
             <button
               type="submit"
@@ -415,12 +417,12 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Création...
+                  {t('admins', 'creating')}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Créer
+                  {t('admins', 'create')}
                 </>
               )}
             </button>

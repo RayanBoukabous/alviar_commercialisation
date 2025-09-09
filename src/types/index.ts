@@ -1,6 +1,6 @@
 // Types de base pour l'application
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   data?: T;
   message?: string;
   success?: boolean;
@@ -28,14 +28,19 @@ export interface RegisterRequest {
 export interface RegisterResponse {
   access_token: string;
   message: string;
-  user?: any;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    role?: string;
+  };
 }
 
 export interface ApiError {
   message: string;
   code?: string;
   status: number;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 export interface PaginationParams {
@@ -134,7 +139,7 @@ export interface FormField {
 }
 
 export interface FormData {
-  [key: string]: any;
+  [key: string]: string | number | boolean | File | null | undefined;
 }
 
 // Types pour les notifications
@@ -161,16 +166,16 @@ export interface NavItem {
 }
 
 // Types pour les tables
-export interface TableColumn<T = any> {
+export interface TableColumn<T = Record<string, unknown>> {
   key: keyof T | string;
   label: string;
   sortable?: boolean;
-  render?: (value: any, row: T) => React.ReactNode;
+  render?: (value: unknown, row: T) => React.ReactNode;
   width?: string;
   align?: 'left' | 'center' | 'right';
 }
 
-export interface TableProps<T = any> {
+export interface TableProps<T = Record<string, unknown>> {
   data: T[];
   columns: TableColumn<T>[];
   loading?: boolean;
@@ -316,9 +321,15 @@ export interface CreateSilentLivenessConfigRequest {
 }
 
 // Types pour les requêtes de mise à jour
-export interface UpdateLivenessConfigRequest extends CreateLivenessConfigRequest { }
-export interface UpdateMatchingConfigRequest extends CreateMatchingConfigRequest { }
-export interface UpdateSilentLivenessConfigRequest extends CreateSilentLivenessConfigRequest { }
+export interface UpdateLivenessConfigRequest extends CreateLivenessConfigRequest {
+  id: string;
+}
+export interface UpdateMatchingConfigRequest extends CreateMatchingConfigRequest {
+  id: string;
+}
+export interface UpdateSilentLivenessConfigRequest extends CreateSilentLivenessConfigRequest {
+  id: string;
+}
 
 // Union types pour les requêtes
 export type CreateConfigRequest = CreateLivenessConfigRequest | CreateMatchingConfigRequest | CreateSilentLivenessConfigRequest;
@@ -351,6 +362,51 @@ export interface User {
   lastRequestAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// Types pour les clients avec la nouvelle structure
+export interface ClientKey {
+  id: number;
+  key: string;
+  isActive: boolean;
+}
+
+export interface PaymentPlan {
+  id: number;
+  name: string;
+}
+
+export interface Distributor {
+  id: number;
+  name: string;
+}
+
+export interface ClientCounts {
+  keys: number;
+  users: number;
+  livenessSessions: number;
+  livenessResults: number;
+}
+
+export interface Client {
+  id: number;
+  name: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  paymentPlanId: number;
+  distributorId: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string | null;
+  paymentPlan: PaymentPlan;
+  distributor: Distributor;
+  keys: ClientKey[];
+  livenessConfig: LivenessConfig | null;
+  matchingConfig: MatchingConfig | null;
+  silentLivenessConfig: SilentLivenessConfig | null;
+  users: User[];
+  _count: ClientCounts;
+  apiKeysCount: number;
 }
 
 // Types pour les requêtes d'utilisateurs

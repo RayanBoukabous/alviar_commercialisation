@@ -3,7 +3,7 @@ import { ApiResponse, ApiError } from '@/types';
 
 interface UseApiOptions {
   immediate?: boolean;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: unknown) => void;
   onError?: (error: ApiError) => void;
 }
 
@@ -11,41 +11,41 @@ interface UseApiReturn<T> {
   data: T | null;
   loading: boolean;
   error: ApiError | null;
-  execute: (...args: any[]) => Promise<T | null>;
+  execute: (...args: unknown[]) => Promise<T | null>;
   reset: () => void;
 }
 
-export function useApi<T = any>(
-  apiFunction: (...args: any[]) => Promise<ApiResponse<T>>,
+export function useApi<T = unknown>(
+  apiFunction: (...args: unknown[]) => Promise<ApiResponse<T>>,
   options: UseApiOptions = {}
 ): UseApiReturn<T> {
   const { immediate = false, onSuccess, onError } = options;
-  
+
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(immediate);
   const [error, setError] = useState<ApiError | null>(null);
 
-  const execute = useCallback(async (...args: any[]): Promise<T | null> => {
+  const execute = useCallback(async (...args: unknown[]): Promise<T | null> => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await apiFunction(...args);
       setData(response.data);
-      
+
       if (onSuccess) {
         onSuccess(response.data);
       }
-      
+
       return response.data;
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError);
-      
+
       if (onError) {
         onError(apiError);
       }
-      
+
       return null;
     } finally {
       setLoading(false);
@@ -92,7 +92,7 @@ export function usePaginatedApi<T = any>(
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await apiFunction({ ...initialParams, ...params });
       setData(response.data.data);
       setPagination(response.data.pagination);
@@ -137,7 +137,7 @@ export function useForm<T extends Record<string, any>>(
 
   const setValue = useCallback((name: keyof T, value: any) => {
     setValues(prev => ({ ...prev, [name]: value }));
-    
+
     // Validation en temps réel
     if (validationSchema) {
       const newValues = { ...values, [name]: value };
@@ -152,11 +152,11 @@ export function useForm<T extends Record<string, any>>(
 
   const validate = useCallback(() => {
     if (!validationSchema) return true;
-    
+
     const newErrors = validationSchema(values);
     setErrors(newErrors);
     setTouched(Object.keys(values).reduce((acc, key) => ({ ...acc, [key]: true }), {}));
-    
+
     return Object.keys(newErrors).length === 0;
   }, [values, validationSchema]);
 
@@ -187,16 +187,16 @@ export function useNotification() {
   const addNotification = useCallback((notification: any) => {
     const id = Math.random().toString(36).substr(2, 9);
     const newNotification = { ...notification, id };
-    
+
     setNotifications(prev => [...prev, newNotification]);
-    
+
     // Auto-remove après la durée spécifiée
     if (notification.duration !== 0) {
       setTimeout(() => {
         removeNotification(id);
       }, notification.duration || 5000);
     }
-    
+
     return id;
   }, []);
 
@@ -222,7 +222,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     if (typeof window === 'undefined') {
       return initialValue;
     }
-    
+
     try {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
@@ -236,7 +236,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
-      
+
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
@@ -274,10 +274,10 @@ export function useMediaQuery(query: string): boolean {
     if (media.matches !== matches) {
       setMatches(media.matches);
     }
-    
+
     const listener = () => setMatches(media.matches);
     media.addEventListener('change', listener);
-    
+
     return () => media.removeEventListener('change', listener);
   }, [matches, query]);
 

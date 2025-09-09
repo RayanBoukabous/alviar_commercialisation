@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Building2, User, DollarSign, MapPin, Save, AlertCircle } from 'lucide-react';
 import { clientsService, CreateClientRequest, PaymentPlan, Client } from '@/lib/api';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 interface EditClientModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
   onSuccess,
   client,
 }) => {
+  const { t, loading: translationLoading } = useLanguage();
   const [formData, setFormData] = useState<FormData>({
     name: '',
     status: 'ACTIVE',
@@ -78,21 +80,21 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
     const newErrors: FormErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Le nom du client est requis';
+      newErrors.name = t('clients', 'client_name_required');
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Le nom doit contenir au moins 2 caractères';
+      newErrors.name = t('clients', 'client_name_min_length');
     }
 
     if (!formData.paymentPlanId || formData.paymentPlanId < 1) {
-      newErrors.paymentPlanId = 'Le plan de paiement est requis';
+      newErrors.paymentPlanId = t('clients', 'payment_plan_required');
     }
 
     if (!formData.distributorId || formData.distributorId < 1) {
-      newErrors.distributorId = 'L\'ID du distributeur est requis';
+      newErrors.distributorId = t('clients', 'distributor_id_required');
     }
 
     if (!formData.createdBy.trim()) {
-      newErrors.createdBy = 'Le créateur est requis';
+      newErrors.createdBy = t('clients', 'created_by_required');
     }
 
     setErrors(newErrors);
@@ -142,7 +144,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
       onClose();
     } catch (error: any) {
       console.error('Error updating client:', error);
-      setSubmitError(error.message || 'Erreur lors de la mise à jour du client');
+      setSubmitError(error.message || t('clients', 'update_error'));
     } finally {
       setLoading(false);
     }
@@ -156,7 +158,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
     }
   };
 
-  if (!isOpen || !client) return null;
+  if (!isOpen || !client || translationLoading) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -174,8 +176,8 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                   <Building2 className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-lg font-semibold text-white">Modifier le Client</h3>
-                  <p className="text-blue-100 text-sm">Mettre à jour les informations</p>
+                  <h3 className="text-lg font-semibold text-white">{t('clients', 'edit_client_title')}</h3>
+                  <p className="text-blue-100 text-sm">{t('clients', 'edit_client_subtitle')}</p>
                 </div>
               </div>
               <button
@@ -196,7 +198,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                 <div className="flex items-start">
                   <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <h4 className="text-sm font-medium text-red-800">Erreur</h4>
+                    <h4 className="text-sm font-medium text-red-800">{t('clients', 'error_title')}</h4>
                     <p className="text-sm text-red-700 mt-1">{submitError}</p>
                   </div>
                 </div>
@@ -206,7 +208,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
             {/* Name Field */}
             <div className="space-y-2">
               <label htmlFor="name" className="block text-sm font-medium theme-text-primary theme-transition">
-                Nom du Client *
+                {t('clients', 'client_name')} *
               </label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 theme-text-tertiary theme-transition" />
@@ -220,7 +222,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                       ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
                       : 'theme-bg-elevated theme-border-primary theme-text-primary placeholder-gray-500 dark:placeholder-slate-400'
                   }`}
-                  placeholder="Ex: SGA, TechCorp..."
+                  placeholder={t('clients', 'client_name_placeholder')}
                   disabled={loading}
                 />
               </div>
@@ -235,7 +237,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
             {/* Status Field */}
             <div className="space-y-2">
               <label htmlFor="status" className="block text-sm font-medium theme-text-primary theme-transition">
-                Statut
+                {t('clients', 'status_label')}
               </label>
               <select
                 id="status"
@@ -244,23 +246,23 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                 className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
                 disabled={loading}
               >
-                <option value="ACTIVE">Actif</option>
-                <option value="INACTIVE">Inactif</option>
-                <option value="SUSPENDED">Suspendu</option>
+                <option value="ACTIVE">{t('clients', 'active')}</option>
+                <option value="INACTIVE">{t('clients', 'inactive')}</option>
+                <option value="SUSPENDED">{t('clients', 'suspended')}</option>
               </select>
             </div>
 
             {/* Payment Plan */}
             <div className="space-y-2">
               <label htmlFor="paymentPlanId" className="block text-sm font-medium theme-text-primary theme-transition">
-                Plan de Paiement *
+                {t('clients', 'payment_plan')} *
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 theme-text-tertiary theme-transition" />
                 {loadingPlans ? (
                   <div className="w-full pl-10 pr-4 py-3 border rounded-lg theme-bg-elevated theme-border-primary theme-text-primary flex items-center">
                     <div className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin mr-2" />
-                    Chargement des plans...
+                    {t('clients', 'payment_plan_loading')}
                   </div>
                 ) : (
                   <select
@@ -274,7 +276,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                     }`}
                     disabled={loading || loadingPlans}
                   >
-                    <option value="">Sélectionner un plan</option>
+                    <option value="">{t('clients', 'payment_plan_select')}</option>
                     {paymentPlans.map((plan) => (
                       <option key={plan.id} value={plan.id}>
                         {plan.name} - {plan.price} {plan.currency} ({plan.billingCycle})
@@ -294,7 +296,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
             {/* Distributor ID */}
             <div className="space-y-2">
               <label htmlFor="distributorId" className="block text-sm font-medium theme-text-primary theme-transition">
-                ID du Distributeur *
+                {t('clients', 'distributor_id')} *
               </label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 theme-text-tertiary theme-transition" />
@@ -324,7 +326,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
             {/* Created By */}
             <div className="space-y-2">
               <label htmlFor="createdBy" className="block text-sm font-medium theme-text-primary theme-transition">
-                Créé par *
+                {t('clients', 'created_by')} *
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 theme-text-tertiary theme-transition" />
@@ -338,7 +340,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                       ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
                       : 'theme-bg-elevated theme-border-primary theme-text-primary placeholder-gray-500 dark:placeholder-slate-400'
                   }`}
-                  placeholder="admin"
+                  placeholder={t('clients', 'created_by_placeholder')}
                   disabled={loading}
                 />
               </div>
@@ -358,7 +360,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                 disabled={loading}
                 className="px-4 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 theme-transition disabled:opacity-50 theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary"
               >
-                Annuler
+                {t('clients', 'cancel')}
               </button>
               <button
                 type="submit"
@@ -368,12 +370,12 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                    Mise à jour...
+                    {t('clients', 'updating')}
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    Mettre à jour
+                    {t('clients', 'update_client')}
                   </>
                 )}
               </button>

@@ -27,9 +27,11 @@ import { Role } from '@/types';
 import { Layout } from '@/components/layout/Layout';
 import { CreateAdminModal } from '@/components/forms/CreateAdminModal';
 import { EditAdminModal } from '@/components/forms/EditAdminModal';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 export default function AdminsPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
+  const { t, loading: translationLoading } = useLanguage();
   const router = useRouter();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [roles, setRoles] = useState<Map<number, Role>>(new Map());
@@ -109,7 +111,7 @@ export default function AdminsPage() {
         console.error('Erreur détaillée:', err);
         console.error('Message d\'erreur:', err.message);
         console.error('Réponse d\'erreur:', err.response);
-        setError(`Erreur lors du chargement des administrateurs: ${err.message || 'Erreur inconnue'}`);
+        setError(t('admins', 'loading_error'));
         // En cas d'erreur, ne pas utiliser de données mock
         setAdmins([]);
         setRoles(new Map());
@@ -142,7 +144,7 @@ export default function AdminsPage() {
       console.log('Admins rafraîchis depuis l\'API:', adminsData);
     } catch (err: any) {
       console.error('Erreur lors du rafraîchissement:', err);
-      setError(`Erreur lors du rafraîchissement des administrateurs: ${err.message || 'Erreur inconnue'}`);
+      setError(t('admins', 'refresh_error'));
       // En cas d'erreur, ne pas utiliser de données mock
       setAdmins([]);
       setRoles(new Map());
@@ -174,7 +176,7 @@ export default function AdminsPage() {
   const handleDeleteAdmin = async (adminId: number, adminName: string) => {
     // Confirmation avant suppression
     const confirmed = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer l'administrateur "${adminName}" ?\n\nCette action est irréversible.`
+      t('admins', 'delete_admin_confirm').replace('{name}', adminName)
     );
 
     if (!confirmed) {
@@ -189,13 +191,13 @@ export default function AdminsPage() {
       setAdmins(prevAdmins => prevAdmins.filter(admin => admin.id !== adminId));
       
       // Afficher un message de succès temporaire
-      setSuccessMessage(`Administrateur "${adminName}" supprimé avec succès`);
+      setSuccessMessage(t('admins', 'admin_deleted_success').replace('{name}', adminName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Administrateur ${adminName} supprimé avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression de l\'administrateur:', err);
-      setError('Erreur lors de la suppression de l\'administrateur');
+      setError(t('admins', 'delete_admin_error'));
     } finally {
       setDeletingAdminId(null);
     }
@@ -203,7 +205,7 @@ export default function AdminsPage() {
 
   const handleActivateAdmin = async (adminId: number, adminName: string) => {
     const confirmed = window.confirm(
-      `Êtes-vous sûr de vouloir activer l'administrateur "${adminName}" ?`
+      t('admins', 'activate_admin_confirm').replace('{name}', adminName)
     );
 
     if (!confirmed) {
@@ -221,13 +223,13 @@ export default function AdminsPage() {
         )
       );
       
-      setSuccessMessage(`Administrateur "${adminName}" activé avec succès`);
+      setSuccessMessage(t('admins', 'admin_activated_success').replace('{name}', adminName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Administrateur ${adminName} activé avec succès`);
     } catch (err) {
       console.error('Erreur lors de l\'activation de l\'administrateur:', err);
-      setError('Erreur lors de l\'activation de l\'administrateur');
+      setError(t('admins', 'activate_admin_error'));
     } finally {
       setActivatingAdminId(null);
     }
@@ -235,7 +237,7 @@ export default function AdminsPage() {
 
   const handleSuspendAdmin = async (adminId: number, adminName: string) => {
     const confirmed = window.confirm(
-      `Êtes-vous sûr de vouloir suspendre l'administrateur "${adminName}" ?`
+      t('admins', 'suspend_admin_confirm').replace('{name}', adminName)
     );
 
     if (!confirmed) {
@@ -253,13 +255,13 @@ export default function AdminsPage() {
         )
       );
       
-      setSuccessMessage(`Administrateur "${adminName}" suspendu avec succès`);
+      setSuccessMessage(t('admins', 'admin_suspended_success').replace('{name}', adminName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Administrateur ${adminName} suspendu avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suspension de l\'administrateur:', err);
-      setError('Erreur lors de la suspension de l\'administrateur');
+      setError(t('admins', 'suspend_admin_error'));
     } finally {
       setSuspendingAdminId(null);
     }
@@ -280,9 +282,9 @@ export default function AdminsPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { bg: 'bg-green-100', text: 'text-green-800', label: 'Actif' },
-      inactive: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Inactif' },
-      suspended: { bg: 'bg-red-100', text: 'text-red-800', label: 'Suspendu' }
+      active: { bg: 'bg-green-100', text: 'text-green-800', label: t('admins', 'active') },
+      inactive: { bg: 'bg-gray-100', text: 'text-gray-800', label: t('admins', 'inactive') },
+      suspended: { bg: 'bg-red-100', text: 'text-red-800', label: t('admins', 'suspended') }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.inactive;
@@ -296,7 +298,7 @@ export default function AdminsPage() {
 
   const getRoleBadge = (roleId: number) => {
     const role = roles.get(roleId);
-    const roleName = role?.name || 'Rôle inconnu';
+    const roleName = role?.name || t('admins', 'unknown_role');
     
     // Configuration des couleurs basée sur le nom du rôle
     const getRoleConfig = (name: string) => {
@@ -331,7 +333,7 @@ export default function AdminsPage() {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || translationLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -351,9 +353,9 @@ export default function AdminsPage() {
             <div>
               <h1 className="text-2xl font-bold flex items-center theme-text-primary theme-transition">
                 <Shield className="h-7 w-7 mr-3 text-primary-600" />
-                Gestion des Administrateurs
+                {t('admins', 'admins_management')}
               </h1>
-              <p className="mt-1 theme-text-secondary theme-transition">Gérez les administrateurs et leurs permissions</p>
+              <p className="mt-1 theme-text-secondary theme-transition">{t('admins', 'admins_management_description')}</p>
             </div>
             <div className="flex items-center space-x-3">
               <button 
@@ -362,14 +364,14 @@ export default function AdminsPage() {
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Rafraîchir
+                {t('admins', 'refresh')}
               </button>
               <button 
                 onClick={() => setIsCreateModalOpen(true)}
                 className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Nouvel Admin
+                {t('admins', 'new_admin')}
               </button>
             </div>
           </div>
@@ -384,7 +386,7 @@ export default function AdminsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition" />
               <input
                 type="text"
-                placeholder="Rechercher un administrateur..."
+                placeholder={t('admins', 'search_admin')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
@@ -395,14 +397,14 @@ export default function AdminsPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
             >
-              <option value="ALL">Tous les statuts</option>
-              <option value="active">Actif</option>
-              <option value="inactive">Inactif</option>
-              <option value="suspended">Suspendu</option>
+              <option value="ALL">{t('admins', 'all_statuses')}</option>
+              <option value="active">{t('admins', 'active')}</option>
+              <option value="inactive">{t('admins', 'inactive')}</option>
+              <option value="suspended">{t('admins', 'suspended')}</option>
             </select>
             <button className="px-4 py-2 border rounded-lg flex items-center theme-bg-elevated theme-border-primary theme-text-primary hover:theme-bg-secondary theme-transition">
               <Filter className="h-4 w-4 mr-2" />
-              Filtres
+              {t('admins', 'filters')}
             </button>
           </div>
         </div>
@@ -441,25 +443,25 @@ export default function AdminsPage() {
                 <thead className="theme-bg-secondary theme-transition">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Administrateur
+                      {t('admins', 'administrator')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Email
+                      {t('admins', 'email')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Rôle
+                      {t('admins', 'role')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Statut
+                      {t('admins', 'status')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Dernière connexion
+                      {t('admins', 'last_login')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Date de création
+                      {t('admins', 'creation_date')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition">
-                      Actions
+                      {t('admins', 'actions')}
                     </th>
                   </tr>
                 </thead>
@@ -490,7 +492,7 @@ export default function AdminsPage() {
                         {getStatusBadge(admin.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm theme-text-secondary theme-transition">
-                        {admin.lastLogin ? formatDate(admin.lastLogin) : 'Jamais connecté'}
+                        {admin.lastLogin ? formatDate(admin.lastLogin) : t('admins', 'never_connected')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm theme-text-secondary theme-transition">
                         {formatDate(admin.createdAt)}
@@ -500,14 +502,14 @@ export default function AdminsPage() {
                           <button 
                             onClick={() => handleViewAdmin(admin)}
                             className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
-                            title="Voir les détails de l'administrateur"
+                            title={t('admins', 'view_admin_details')}
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handleEditAdmin(admin)}
                             className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
-                            title="Modifier l'administrateur"
+                            title={t('admins', 'edit_admin')}
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -518,7 +520,7 @@ export default function AdminsPage() {
                               onClick={() => handleActivateAdmin(admin.id, admin.fullName)}
                               disabled={activatingAdminId === admin.id}
                               className="p-1 theme-text-tertiary hover:text-green-500 theme-transition disabled:opacity-50"
-                              title="Activer l'administrateur"
+                              title={t('admins', 'activate_admin')}
                             >
                               {activatingAdminId === admin.id ? (
                                 <div className="w-4 h-4 border-2 border-green-300 border-t-green-600 rounded-full animate-spin" />
@@ -534,7 +536,7 @@ export default function AdminsPage() {
                               onClick={() => handleSuspendAdmin(admin.id, admin.fullName)}
                               disabled={suspendingAdminId === admin.id}
                               className="p-1 theme-text-tertiary hover:text-orange-500 theme-transition disabled:opacity-50"
-                              title="Suspendre l'administrateur"
+                              title={t('admins', 'suspend_admin')}
                             >
                               {suspendingAdminId === admin.id ? (
                                 <div className="w-4 h-4 border-2 border-orange-300 border-t-orange-600 rounded-full animate-spin" />
@@ -548,7 +550,7 @@ export default function AdminsPage() {
                             onClick={() => handleDeleteAdmin(admin.id, admin.fullName)}
                             disabled={deletingAdminId === admin.id}
                             className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50"
-                            title="Supprimer l'administrateur"
+                            title={t('admins', 'delete_admin')}
                           >
                             {deletingAdminId === admin.id ? (
                               <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
@@ -568,20 +570,20 @@ export default function AdminsPage() {
           {filteredAdmins.length === 0 && !loading && (
             <div className="text-center py-12">
               <Shield className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">Aucun administrateur trouvé</h3>
-              <p className="theme-text-secondary theme-transition">Commencez par ajouter votre premier administrateur.</p>
+              <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('admins', 'no_admin_found')}</h3>
+              <p className="theme-text-secondary theme-transition">{t('admins', 'start_adding_admin')}</p>
               <div className="mt-4 text-sm theme-text-tertiary bg-gray-100 dark:bg-gray-800 p-4 rounded">
-                <p><strong>Debug Info:</strong></p>
-                <p>Total admins: {admins.length}</p>
-                <p>Filtered admins: {filteredAdmins.length}</p>
-                <p>Search term: "{searchTerm}"</p>
-                <p>Status filter: "{statusFilter}"</p>
-                <p>Loading: {loading.toString()}</p>
-                <p>Error: {error}</p>
-                <p>Admins data: {JSON.stringify(admins, null, 2)}</p>
-                <p>Admins type: {typeof admins}</p>
-                <p>Is array: {Array.isArray(admins).toString()}</p>
-                <p>First admin: {admins[0] ? JSON.stringify(admins[0]) : 'None'}</p>
+                <p><strong>{t('admins', 'debug_info')}:</strong></p>
+                <p>{t('admins', 'total_admins')}: {admins.length}</p>
+                <p>{t('admins', 'filtered_admins')}: {filteredAdmins.length}</p>
+                <p>{t('admins', 'search_term')}: "{searchTerm}"</p>
+                <p>{t('admins', 'status_filter')}: "{statusFilter}"</p>
+                <p>{t('admins', 'loading')}: {loading.toString()}</p>
+                <p>{t('admins', 'error')}: {error}</p>
+                <p>{t('admins', 'admins_data')}: {JSON.stringify(admins, null, 2)}</p>
+                <p>{t('admins', 'admins_type')}: {typeof admins}</p>
+                <p>{t('admins', 'is_array')}: {Array.isArray(admins).toString()}</p>
+                <p>{t('admins', 'first_admin')}: {admins[0] ? JSON.stringify(admins[0]) : t('admins', 'none')}</p>
               </div>
             </div>
           )}

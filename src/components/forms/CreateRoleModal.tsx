@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Shield, Save, AlertCircle, CheckSquare, Square } from 'lucide-react';
 import { rolesService, permissionsService, Permission } from '@/lib/api';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 interface CreateRoleModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t } = useTranslation('roles');
   const [formData, setFormData] = useState<FormData>({
     name: '',
     permissionsIds: [],
@@ -44,7 +46,7 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
         try {
           setPermissionsLoading(true);
           setPermissionsError('');
-          console.log('🔍 Récupération des permissions pour le formulaire de création de rôle...');
+          console.log('🔍', t('createRole.loadingPermissions'));
           
           const permissionsData = await permissionsService.getAllPermissions();
           console.log('✅ Permissions récupérées pour le formulaire:', permissionsData);
@@ -52,7 +54,7 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
           setPermissions(permissionsData);
         } catch (err: any) {
           console.error('❌ Erreur lors de la récupération des permissions:', err);
-          setPermissionsError(`Erreur lors du chargement des permissions: ${err.message || 'Erreur inconnue'}`);
+          setPermissionsError(`${t('createRole.errorLoadingPermissions')} ${err.message || 'Erreur inconnue'}`);
         } finally {
           setPermissionsLoading(false);
         }
@@ -67,14 +69,14 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
 
     // Validation name
     if (!formData.name.trim()) {
-      newErrors.name = 'Le nom du rôle est requis';
+      newErrors.name = t('createRole.roleNameRequired');
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Le nom du rôle doit contenir au moins 2 caractères';
+      newErrors.name = t('createRole.roleNameMinLength');
     }
 
     // Validation permissions
     if (formData.permissionsIds.length === 0) {
-      newErrors.permissionsIds = 'Au moins une permission est requise';
+      newErrors.permissionsIds = t('createRole.permissionsRequired');
     }
 
     setErrors(newErrors);
@@ -113,7 +115,7 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
       console.error('Erreur lors de la création du rôle:', error);
       
       // Gérer les erreurs de validation de l'API
-      let errorMessage = 'Erreur lors de la création du rôle';
+      let errorMessage = t('createRole.errorCreating');
       
       if (error.response?.data?.message) {
         const apiMessage = error.response.data.message;
@@ -194,8 +196,8 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
               <Shield className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold theme-text-primary">Nouveau Rôle</h2>
-              <p className="text-sm theme-text-secondary">Créer un nouveau rôle avec ses permissions</p>
+              <h2 className="text-lg font-semibold theme-text-primary">{t('createRole.title')}</h2>
+              <p className="text-sm theme-text-secondary">{t('createRole.description')}</p>
             </div>
           </div>
           <button
@@ -232,7 +234,7 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
           <div>
             <label className="block text-sm font-medium theme-text-primary mb-2">
               <Shield className="h-4 w-4 inline mr-2" />
-              Nom du rôle *
+              {t('createRole.roleName')} *
             </label>
             <input
               type="text"
@@ -241,7 +243,7 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition ${
                 errors.name ? 'border-red-500' : ''
               }`}
-              placeholder="ex: admin, moderator, user"
+              placeholder={t('createRole.roleNamePlaceholder')}
             />
             {errors.name && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name}</p>
@@ -253,7 +255,10 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
             <div className="flex items-center justify-between mb-4">
               <label className="block text-sm font-medium theme-text-primary">
                 <Shield className="h-4 w-4 inline mr-2" />
-                Permissions * ({formData.permissionsIds.length} sélectionnée{formData.permissionsIds.length > 1 ? 's' : ''})
+                {t('createRole.permissions')} * ({formData.permissionsIds.length > 1 
+                  ? t('createRole.permissionsSelectedPlural', { count: formData.permissionsIds.length })
+                  : t('createRole.permissionsSelected', { count: formData.permissionsIds.length })
+                })
               </label>
               {permissions.length > 0 && (
                 <button
@@ -261,7 +266,7 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
                   onClick={handleSelectAll}
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
+                  {allSelected ? t('createRole.deselectAll') : t('createRole.selectAll')}
                 </button>
               )}
             </div>
@@ -270,7 +275,7 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
               <div className="border rounded-lg p-4 theme-bg-elevated theme-border-primary">
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                  <span className="text-sm theme-text-secondary">Chargement des permissions...</span>
+                  <span className="text-sm theme-text-secondary">{t('createRole.loadingPermissions')}</span>
                 </div>
               </div>
             ) : permissionsError ? (
@@ -333,7 +338,7 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium theme-text-secondary hover:theme-text-primary theme-transition"
             >
-              Annuler
+              {t('createRole.cancel')}
             </button>
             <button
               type="submit"
@@ -343,12 +348,12 @@ export const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Création...
+                  {t('createRole.creating')}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Créer le rôle
+                  {t('createRole.create')}
                 </>
               )}
             </button>

@@ -1,0 +1,15 @@
+{
+    "dashboard": "Dashboard",
+    "clients": "Clients",
+    "configurations": "Configurations",
+    "users": "Users",
+    "admin": "Admin",
+    "user": "User",
+    "roles_permissions": "Roles & Permissions",
+    "roles": "Roles",
+    "permissions": "Permissions",
+    "payment_plans": "Payment Plans",
+    "version": "Version 1.0.0",
+    "developed_by": "Developed by AIUNIVERS",
+    "no_results": "No results found"
+}

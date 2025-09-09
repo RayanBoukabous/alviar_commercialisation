@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, CreditCard, Save, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { paymentPlansService, BillingCycle, Currency, CreatePaymentPlanRequest, PaymentPlanType } from '@/lib/api';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 interface EditPaymentPlanModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
   onSuccess,
   plan,
 }) => {
+  const { t } = useTranslation('paymentPlans');
   const [formData, setFormData] = useState<FormData>({
     name: '',
     price: '',
@@ -101,51 +103,51 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
 
     // Validation du nom
     if (!formData.name.trim()) {
-      newErrors.name = 'Le nom du plan est requis';
+      newErrors.name = t('editPlan.planNameRequired');
     } else if (formData.name.trim().length < 3) {
-      newErrors.name = 'Le nom du plan doit contenir au moins 3 caractères';
+      newErrors.name = t('editPlan.planNameMinLength');
     }
 
     // Validation du prix
     if (!formData.price.trim()) {
-      newErrors.price = 'Le prix est requis';
+      newErrors.price = t('editPlan.priceRequired');
     } else {
       const price = parseFloat(formData.price);
       if (isNaN(price) || price < 0) {
-        newErrors.price = 'Le prix doit être un nombre positif';
+        newErrors.price = t('editPlan.priceInvalid');
       }
     }
 
     // Validation de la devise
     if (!formData.currency) {
-      newErrors.currency = 'La devise est requise';
+      newErrors.currency = t('editPlan.currencyRequired');
     }
 
     // Validation du cycle de facturation
     if (!formData.billingCycle) {
-      newErrors.billingCycle = 'Le cycle de facturation est requis';
+      newErrors.billingCycle = t('editPlan.billingCycleRequired');
     }
 
     // Validation de la limite de requêtes
     if (!formData.requestLimit.trim()) {
-      newErrors.requestLimit = 'La limite de requêtes est requise';
+      newErrors.requestLimit = t('editPlan.requestLimitRequired');
     } else {
       const limit = parseInt(formData.requestLimit);
       if (isNaN(limit) || limit < 1) {
-        newErrors.requestLimit = 'La limite doit être un nombre positif';
+        newErrors.requestLimit = t('editPlan.requestLimitInvalid');
       }
     }
 
     // Validation des jours d'essai
     const trialDays = parseInt(formData.trialDays);
     if (isNaN(trialDays) || trialDays < 0) {
-      newErrors.trialDays = 'Les jours d\'essai doivent être un nombre positif ou zéro';
+      newErrors.trialDays = t('editPlan.trialDaysInvalid');
     }
 
     // Validation des fonctionnalités
     const validFeatures = formData.features.filter(f => f.trim() !== '');
     if (validFeatures.length === 0) {
-      newErrors.features = 'Au moins une fonctionnalité est requise';
+      newErrors.features = t('editPlan.featuresRequired');
     }
 
     setErrors(newErrors);
@@ -184,7 +186,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
     } catch (error: any) {
       console.error('Erreur lors de la mise à jour du plan:', error);
       
-      let errorMessage = 'Erreur lors de la mise à jour du plan';
+      let errorMessage = t('editPlan.errorUpdating');
       
       if (error.response?.data?.message) {
         const apiMessage = error.response.data.message;
@@ -243,8 +245,8 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
               <CreditCard className="h-5 w-5 text-primary-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold theme-text-primary theme-transition">Modifier le Plan</h2>
-              <p className="text-sm theme-text-secondary theme-transition">Modifier "{plan.name}"</p>
+              <h2 className="text-lg font-semibold theme-text-primary theme-transition">{t('editPlan.title')}</h2>
+              <p className="text-sm theme-text-secondary theme-transition">{t('editPlan.description', { planName: plan.name })}</p>
             </div>
           </div>
           <button
@@ -281,7 +283,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
           {loadingOptions && (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-sm theme-text-secondary mt-2">Chargement des options...</p>
+              <p className="text-sm theme-text-secondary mt-2">{t('editPlan.loadingOptions')}</p>
             </div>
           )}
 
@@ -289,14 +291,14 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
             {/* Nom du plan */}
             <div className="md:col-span-2">
               <label htmlFor="name" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-                Nom du Plan *
+                {t('editPlan.planName')} *
               </label>
               <input
                 type="text"
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="Ex: Premium Plan, Basic Plan..."
+                placeholder={t('editPlan.planNamePlaceholder')}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400 ${
                   errors.name ? 'border-red-500' : ''
                 }`}
@@ -309,7 +311,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
             {/* Prix */}
             <div>
               <label htmlFor="price" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-                Prix *
+                {t('editPlan.price')} *
               </label>
               <input
                 type="number"
@@ -318,7 +320,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
                 min="0"
                 value={formData.price}
                 onChange={(e) => handleInputChange('price', e.target.value)}
-                placeholder="Ex: 29.99"
+                placeholder={t('editPlan.pricePlaceholder')}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400 ${
                   errors.price ? 'border-red-500' : ''
                 }`}
@@ -331,7 +333,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
             {/* Devise */}
             <div>
               <label htmlFor="currency" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-                Devise *
+                {t('editPlan.currency')} *
               </label>
               <select
                 id="currency"
@@ -341,7 +343,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
                   errors.currency ? 'border-red-500' : ''
                 }`}
               >
-                <option value="">Sélectionner une devise</option>
+                <option value="">{t('editPlan.selectCurrency')}</option>
                 {currencies.map((currency) => (
                   <option key={currency.value} value={currency.value}>
                     {currency.symbol} {currency.value}
@@ -356,7 +358,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
             {/* Cycle de facturation */}
             <div>
               <label htmlFor="billingCycle" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-                Cycle de Facturation *
+                {t('editPlan.billingCycle')} *
               </label>
               <select
                 id="billingCycle"
@@ -366,7 +368,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
                   errors.billingCycle ? 'border-red-500' : ''
                 }`}
               >
-                <option value="">Sélectionner un cycle</option>
+                <option value="">{t('editPlan.selectBillingCycle')}</option>
                 {billingCycles.map((cycle) => (
                   <option key={cycle.value} value={cycle.value}>
                     {cycle.label}
@@ -381,7 +383,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
             {/* Limite de requêtes */}
             <div>
               <label htmlFor="requestLimit" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-                Limite de Requêtes *
+                {t('editPlan.requestLimit')} *
               </label>
               <input
                 type="number"
@@ -389,7 +391,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
                 min="1"
                 value={formData.requestLimit}
                 onChange={(e) => handleInputChange('requestLimit', e.target.value)}
-                placeholder="Ex: 1000"
+                placeholder={t('editPlan.requestLimitPlaceholder')}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400 ${
                   errors.requestLimit ? 'border-red-500' : ''
                 }`}
@@ -402,7 +404,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
             {/* Jours d'essai */}
             <div>
               <label htmlFor="trialDays" className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-                Jours d'Essai
+                {t('editPlan.trialDays')}
               </label>
               <input
                 type="number"
@@ -410,7 +412,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
                 min="0"
                 value={formData.trialDays}
                 onChange={(e) => handleInputChange('trialDays', e.target.value)}
-                placeholder="Ex: 30"
+                placeholder={t('editPlan.trialDaysPlaceholder')}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400 ${
                   errors.trialDays ? 'border-red-500' : ''
                 }`}
@@ -424,7 +426,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
           {/* Fonctionnalités */}
           <div>
             <label className="block text-sm font-medium theme-text-primary theme-transition mb-1">
-              Fonctionnalités *
+              {t('editPlan.features')} *
             </label>
             {formData.features.map((feature, index) => (
               <div key={index} className="flex items-center space-x-2 mb-2">
@@ -432,7 +434,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
                   type="text"
                   value={feature}
                   onChange={(e) => handleFeatureChange(index, e.target.value)}
-                  placeholder="Ex: api_access, premium_support..."
+                  placeholder={t('editPlan.featurePlaceholder')}
                   className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
                 />
                 {formData.features.length > 1 && (
@@ -451,8 +453,8 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
               onClick={addFeature}
               className="flex items-center text-sm text-blue-600 hover:text-blue-700 theme-transition"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Ajouter une fonctionnalité
+              <Plus className='h-4 w-4 mr-1' />
+              {t('editPlan.addFeature')}
             </button>
             {errors.features && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.features}</p>
@@ -468,7 +470,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
                 onChange={(e) => handleInputChange('isDefault', e.target.checked)}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-              <span className="ml-2 text-sm theme-text-primary">Plan par défaut</span>
+              <span className="ml-2 text-sm theme-text-primary">{t('editPlan.isDefault')}</span>
             </label>
             <label className="flex items-center">
               <input
@@ -477,7 +479,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
                 onChange={(e) => handleInputChange('isActive', e.target.checked)}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-              <span className="ml-2 text-sm theme-text-primary">Plan actif</span>
+              <span className="ml-2 text-sm theme-text-primary">{t('editPlan.isActive')}</span>
             </label>
           </div>
 
@@ -488,7 +490,7 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium theme-text-secondary hover:theme-text-primary theme-transition"
             >
-              Annuler
+              {t('editPlan.cancel')}
             </button>
             <button
               type="submit"
@@ -498,12 +500,12 @@ export const EditPaymentPlanModal: React.FC<EditPaymentPlanModalProps> = ({
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Mise à jour...
+                  {t('editPlan.updating')}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Mettre à jour
+                  {t('editPlan.update')}
                 </>
               )}
             </button>

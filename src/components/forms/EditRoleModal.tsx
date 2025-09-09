@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle, CheckCircle, Shield, Users, Key, CheckSquare, Square } from 'lucide-react';
 import { Role, Permission } from '@/types';
 import { rolesService, permissionsService } from '@/lib/api';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 interface EditRoleModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface EditRoleModalProps {
 }
 
 export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModalProps) {
+  const { t } = useTranslation('roles');
   const [formData, setFormData] = useState({
     name: '',
     permissions: [] as number[]
@@ -31,13 +33,13 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
       try {
         setLoadingPermissions(true);
         setError('');
-        console.log('🔍 Chargement des permissions pour l\'édition du rôle...');
+        console.log('🔍', t('editRole.loadingPermissions'));
         const permissions = await permissionsService.getAllPermissions();
         setAllPermissions(permissions);
         console.log('✅ Permissions chargées pour l\'édition:', permissions);
       } catch (err: any) {
         console.error('❌ Erreur lors du chargement des permissions:', err);
-        setError(`Erreur lors du chargement des permissions: ${err.message}`);
+        setError(`${t('editRole.errorLoadingPermissions')} ${err.message}`);
       } finally {
         setLoadingPermissions(false);
       }
@@ -62,11 +64,11 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
     
     if (!role) return;
     if (!formData.name.trim()) {
-      setError('Le nom du rôle est requis.');
+      setError(t('editRole.roleNameRequired'));
       return;
     }
     if (formData.permissions.length === 0) {
-      setError('Au moins une permission doit être sélectionnée.');
+      setError(t('editRole.permissionsRequired'));
       return;
     }
 
@@ -85,7 +87,7 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
 
       console.log('✅ Rôle et permissions mis à jour avec succès:', updatedRole);
       
-      setSuccess('Rôle et permissions mis à jour avec succès');
+      setSuccess(t('editRole.successUpdating'));
       
       // Appeler onSuccess pour rafraîchir la liste des rôles
       onSuccess(updatedRole);
@@ -98,7 +100,7 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
 
     } catch (err: any) {
       console.error('❌ Erreur lors de la mise à jour du rôle:', err);
-      setError(`Erreur lors de la mise à jour du rôle: ${err.message || 'Erreur inconnue'}`);
+      setError(`${t('editRole.errorUpdating')} ${err.message || 'Erreur inconnue'}`);
     } finally {
       setLoading(false);
     }
@@ -164,8 +166,8 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
                 <Shield className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold theme-text-primary">Modifier le Rôle</h2>
-                <p className="text-sm theme-text-secondary">Modifier les informations de "{role.name}" (ID: {role.id})</p>
+                <h2 className="text-lg font-semibold theme-text-primary">{t('editRole.title')}</h2>
+                <p className="text-sm theme-text-secondary">{t('editRole.description', { roleName: role.name, roleId: role.id })}</p>
               </div>
             </div>
             <button
@@ -207,14 +209,14 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
             <div>
               <label className="block text-sm font-medium theme-text-primary mb-2">
                 <Shield className="h-4 w-4 inline mr-2" />
-                Nom du rôle *
+                {t('editRole.roleName')} *
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400"
-                placeholder="ex: admin, moderator, user"
+                placeholder={t('editRole.roleNamePlaceholder')}
                 required
                 disabled={loading}
               />
@@ -225,7 +227,10 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
               <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-medium theme-text-primary">
                   <Shield className="h-4 w-4 inline mr-2" />
-                  Permissions * ({formData.permissions.length} sélectionnée{formData.permissions.length > 1 ? 's' : ''})
+                  {t('editRole.permissions')} * ({formData.permissions.length > 1 
+                    ? t('editRole.permissionsSelectedPlural', { count: formData.permissions.length })
+                    : t('editRole.permissionsSelected', { count: formData.permissions.length })
+                  })
                 </label>
                 {allPermissions.length > 0 && (
                   <button
@@ -233,7 +238,7 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
                     onClick={handleSelectAll}
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                   >
-                    {formData.permissions.length === allPermissions.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                    {formData.permissions.length === allPermissions.length ? t('editRole.deselectAll') : t('editRole.selectAll')}
                   </button>
                 )}
               </div>
@@ -242,7 +247,7 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
                 <div className="border rounded-lg p-4 theme-bg-elevated theme-border-primary">
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                    <span className="text-sm theme-text-secondary">Chargement des permissions...</span>
+                    <span className="text-sm theme-text-secondary">{t('editRole.loadingPermissions')}</span>
                   </div>
                 </div>
               ) : (
@@ -298,7 +303,7 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
                 disabled={loading}
                 className="px-4 py-2 text-sm font-medium theme-text-secondary hover:theme-text-primary theme-transition disabled:opacity-50"
               >
-                Annuler
+                {t('editRole.cancel')}
               </button>
               <button
                 type="submit"
@@ -308,12 +313,12 @@ export function EditRoleModal({ isOpen, onClose, role, onSuccess }: EditRoleModa
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Mise à jour...
+                    {t('editRole.updating')}
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    Mettre à jour le rôle
+                    {t('editRole.update')}
                   </>
                 )}
               </button>
