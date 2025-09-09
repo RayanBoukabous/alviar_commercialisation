@@ -5,17 +5,14 @@ import { NavItem } from '@/types';
 import { 
   Home, 
   Users, 
-  BarChart3, 
-  Settings, 
-  FileText, 
-  Bell,
   ChevronRight,
   Activity,
   Building2,
   Cog,
   User,
   Shield,
-  Key
+  Key,
+  CreditCard
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -40,12 +37,6 @@ const navigationItems: NavItem[] = [
     label: 'Configurations',
     href: '/dashboard/configs',
     icon: Cog,
-  },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    href: '/dashboard/analytics',
-    icon: BarChart3,
   },
   {
     id: 'users',
@@ -88,29 +79,10 @@ const navigationItems: NavItem[] = [
     ],
   },
   {
-    id: 'liveness',
-    label: 'Liveness',
-    href: '/dashboard/liveness',
-    icon: Activity,
-  },
-  {
-    id: 'reports',
-    label: 'Rapports',
-    href: '/dashboard/reports',
-    icon: FileText,
-  },
-  {
-    id: 'notifications',
-    label: 'Notifications',
-    href: '/dashboard/notifications',
-    icon: Bell,
-    badge: 3,
-  },
-  {
-    id: 'settings',
-    label: 'Paramètres',
-    href: '/dashboard/settings',
-    icon: Settings,
+    id: 'payment-plans',
+    label: 'Payment Plans',
+    href: '/dashboard/payment-plans',
+    icon: CreditCard,
   },
 ];
 
@@ -122,17 +94,13 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   // Déterminer l'item actif basé sur l'URL actuelle
   const getActiveItem = () => {
     if (pathname.startsWith('/dashboard/clients')) return 'clients';
-    if (pathname.startsWith('/dashboard/analytics')) return 'analytics';
     if (pathname.startsWith('/dashboard/users/admins')) return 'admins';
     if (pathname.startsWith('/dashboard/users/list')) return 'users-list';
     if (pathname.startsWith('/dashboard/users')) return 'users';
     if (pathname.startsWith('/dashboard/roles-permissions/roles')) return 'roles';
     if (pathname.startsWith('/dashboard/roles-permissions/permissions')) return 'permissions';
     if (pathname.startsWith('/dashboard/roles-permissions')) return 'roles-permissions';
-    if (pathname.startsWith('/dashboard/liveness')) return 'liveness';
-    if (pathname.startsWith('/dashboard/reports')) return 'reports';
-    if (pathname.startsWith('/dashboard/notifications')) return 'notifications';
-    if (pathname.startsWith('/dashboard/settings')) return 'settings';
+    if (pathname.startsWith('/dashboard/payment-plans')) return 'payment-plans';
     return 'dashboard';
   };
 

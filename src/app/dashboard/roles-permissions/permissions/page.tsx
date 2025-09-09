@@ -6,9 +6,7 @@ import {
   Search, 
   Filter, 
   MoreVertical, 
-  Edit, 
   Trash2, 
-  Eye,
   Key,
   RefreshCw
 } from 'lucide-react';
@@ -18,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/layout/Layout';
 import { PermissionsService } from '@/lib/api/permissionsService';
 import { Permission } from '@/types';
+import { CreatePermissionModal } from '@/components/forms/CreatePermissionModal';
 
 export default function PermissionsPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
@@ -29,6 +28,7 @@ export default function PermissionsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [deletingPermissionId, setDeletingPermissionId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -74,14 +74,6 @@ export default function PermissionsPage() {
     }
   };
 
-  const handleViewPermission = (permission: Permission) => {
-    router.push(`/dashboard/roles-permissions/permissions/${permission.id}`);
-  };
-
-  const handleEditPermission = (permission: Permission) => {
-    // TODO: Implémenter l'édition
-    console.log('Éditer permission:', permission);
-  };
 
   const handleDeletePermission = async (permissionId: number, permissionName: string) => {
     // Confirmation avant suppression avec plus de détails
@@ -120,6 +112,20 @@ export default function PermissionsPage() {
     }
   };
 
+  const handleCreatePermissionSuccess = async () => {
+    // Rafraîchir la liste des permissions après création
+    try {
+      setError('');
+      const permissionsData = await PermissionsService.getAllPermissions();
+      setPermissions(permissionsData);
+      setSuccessMessage('✅ Permission créée avec succès');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (err: any) {
+      console.error('Erreur lors du rafraîchissement après création:', err);
+      setError(`Erreur lors du rafraîchissement: ${err.message || 'Erreur inconnue'}`);
+    }
+  };
+
   const filteredPermissions = permissions.filter(permission => {
     const matchesSearch = 
       permission.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -137,27 +143,27 @@ export default function PermissionsPage() {
   const getActionBadge = (action: string) => {
     const badgeConfig = {
       manage: { 
-        bg: 'bg-blue-500 dark:bg-blue-600', 
+        bg: 'bg-slate-600 dark:bg-slate-500', 
         text: 'text-white', 
         label: 'Gérer'
       },
       read: { 
-        bg: 'bg-green-500 dark:bg-green-600', 
+        bg: 'bg-emerald-600 dark:bg-emerald-500', 
         text: 'text-white', 
         label: 'Lire'
       },
       create: { 
-        bg: 'bg-purple-500 dark:bg-purple-600', 
+        bg: 'bg-blue-600 dark:bg-blue-500', 
         text: 'text-white', 
         label: 'Créer'
       },
       update: { 
-        bg: 'bg-orange-500 dark:bg-orange-600', 
+        bg: 'bg-amber-600 dark:bg-amber-500', 
         text: 'text-white', 
         label: 'Modifier'
       },
       delete: { 
-        bg: 'bg-red-500 dark:bg-red-600', 
+        bg: 'bg-red-600 dark:bg-red-500', 
         text: 'text-white', 
         label: 'Supprimer'
       },
@@ -206,7 +212,7 @@ export default function PermissionsPage() {
                   Rafraîchir
                 </button>
                 <button 
-                  onClick={() => console.log('Créer nouvelle permission')}
+                  onClick={() => setIsCreateModalOpen(true)}
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -338,20 +344,6 @@ export default function PermissionsPage() {
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center justify-end space-x-2">
                               <button 
-                                onClick={() => handleViewPermission(permission)}
-                                className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
-                                title="Voir les détails de la permission"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleEditPermission(permission)}
-                                className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
-                                title="Modifier la permission"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                              <button 
                                 onClick={() => handleDeletePermission(permission.id, permission.name)}
                                 disabled={deletingPermissionId === permission.id}
                                 className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
@@ -385,6 +377,13 @@ export default function PermissionsPage() {
             )}
           </div>
         </div>
+
+        {/* Create Permission Modal */}
+        <CreatePermissionModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSuccess={handleCreatePermissionSuccess}
+        />
       </div>
     </Layout>
   );
