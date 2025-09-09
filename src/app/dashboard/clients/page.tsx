@@ -42,63 +42,6 @@ export default function ClientsPage() {
   const [deletingClientId, setDeletingClientId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
 
-  // Simuler des données de clients pour le moment
-  const mockClients: Client[] = [
-    {
-      id: 1,
-      name: 'SGA',
-      status: 'ACTIVE',
-      createdBy: 'admin',
-      createdAt: '2024-01-15T10:30:00Z',
-      updatedAt: '2024-01-15T10:30:00Z',
-      updatedBy: null,
-      paymentPlan: {
-        id: 1,
-        name: 'Premium Plan'
-      },
-      distributor: {
-        id: 1,
-        name: 'SGA Distribution'
-      },
-      keys: []
-    },
-    {
-      id: 2,
-      name: 'TechCorp',
-      status: 'ACTIVE',
-      createdBy: 'admin',
-      createdAt: '2024-01-20T14:15:00Z',
-      updatedAt: '2024-01-20T14:15:00Z',
-      updatedBy: null,
-      paymentPlan: {
-        id: 2,
-        name: 'Basic Plan'
-      },
-      distributor: {
-        id: 1,
-        name: 'SGA Distribution'
-      },
-      keys: []
-    },
-    {
-      id: 3,
-      name: 'Global Solutions',
-      status: 'INACTIVE',
-      createdBy: 'admin',
-      createdAt: '2024-01-25T09:45:00Z',
-      updatedAt: '2024-01-25T09:45:00Z',
-      updatedBy: null,
-      paymentPlan: {
-        id: 1,
-        name: 'Premium Plan'
-      },
-      distributor: {
-        id: 2,
-        name: 'AIunivers'
-      },
-      keys: []
-    }
-  ];
 
   useEffect(() => {
     const fetchClients = async () => {
