@@ -209,11 +209,41 @@ export const adminsService = {
   },
 
   /**
-   * Change le statut d'un administrateur
+   * Active un administrateur
+   */
+  async activateAdmin(id: number): Promise<Admin> {
+    try {
+      console.log('🔄 Activation de l\'admin ID:', id);
+      const response = await apiClient.patch(`/admins/${id}/activate`);
+      console.log('✅ Admin activé avec succès:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`Erreur lors de l'activation de l'administrateur ${id}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Suspend un administrateur
+   */
+  async suspendAdmin(id: number): Promise<Admin> {
+    try {
+      console.log('🔄 Suspension de l\'admin ID:', id);
+      const response = await apiClient.patch(`/admins/${id}/suspend`);
+      console.log('✅ Admin suspendu avec succès:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`Erreur lors de la suspension de l'administrateur ${id}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Change le statut d'un administrateur (méthode générique)
    */
   async updateAdminStatus(id: number, status: 'active' | 'inactive' | 'suspended'): Promise<Admin> {
     try {
-      const response = await apiClient.patch(`/api/v1/admins/${id}/status`, { status });
+      const response = await apiClient.patch(`/admins/${id}/status`, { status });
       return response.data;
     } catch (error) {
       console.error(`Erreur lors de la mise à jour du statut de l'administrateur ${id}:`, error);

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Shield, Save, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { adminsService, CreateAdminRequest } from '@/lib/api';
+import { adminsService, CreateAdminRequest, rolesService, Role } from '@/lib/api';
 
 interface CreateAdminModalProps {
   isOpen: boolean;
@@ -47,12 +47,39 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
   const [submitError, setSubmitError] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [rolesError, setRolesError] = useState<string>('');
 
-  const roleOptions = [
-    { value: 1, label: 'Super Admin' },
-    { value: 2, label: 'Admin' },
-    { value: 3, label: 'Moderator' },
-  ];
+  // Récupérer les rôles quand le modal s'ouvre
+  useEffect(() => {
+    const fetchRoles = async () => {
+      if (isOpen && roles.length === 0) {
+        try {
+          setRolesLoading(true);
+          setRolesError('');
+          console.log('🔍 Récupération des rôles pour le formulaire de création...');
+          
+          const rolesData = await rolesService.getRoles();
+          console.log('✅ Rôles récupérés pour le formulaire:', rolesData);
+          
+          setRoles(rolesData);
+          
+          // Définir le premier rôle comme valeur par défaut si aucun n'est sélectionné
+          if (rolesData.length > 0 && formData.roleId === 2) {
+            setFormData(prev => ({ ...prev, roleId: rolesData[0].id }));
+          }
+        } catch (err: any) {
+          console.error('❌ Erreur lors de la récupération des rôles:', err);
+          setRolesError(`Erreur lors du chargement des rôles: ${err.message || 'Erreur inconnue'}`);
+        } finally {
+          setRolesLoading(false);
+        }
+      }
+    };
+
+    fetchRoles();
+  }, [isOpen, roles.length, formData.roleId]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -129,7 +156,7 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
         fullName: '',
         password: '',
         confirmPassword: '',
-        roleId: 2,
+        roleId: roles.length > 0 ? roles[0].id : 2,
       });
       setErrors({});
       
@@ -279,19 +306,35 @@ export const CreateAdminModal: React.FC<CreateAdminModalProps> = ({
               <Shield className="h-4 w-4 inline mr-2" />
               Rôle *
             </label>
-            <select
-              value={formData.roleId}
-              onChange={(e) => handleInputChange('roleId', parseInt(e.target.value))}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition ${
-                errors.roleId ? 'border-red-500' : ''
-              }`}
-            >
-              {roleOptions.map((role) => (
-                <option key={role.value} value={role.value}>
-                  {role.label}
-                </option>
-              ))}
-            </select>
+            {rolesLoading ? (
+              <div className="w-full px-3 py-2 border rounded-lg theme-bg-elevated theme-border-primary flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
+                <span className="text-sm theme-text-secondary">Chargement des rôles...</span>
+              </div>
+            ) : rolesError ? (
+              <div className="w-full px-3 py-2 border border-red-500 rounded-lg theme-bg-elevated">
+                <span className="text-sm text-red-600 dark:text-red-400">{rolesError}</span>
+              </div>
+            ) : (
+              <select
+                value={formData.roleId}
+                onChange={(e) => handleInputChange('roleId', parseInt(e.target.value))}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition ${
+                  errors.roleId ? 'border-red-500' : ''
+                }`}
+                disabled={roles.length === 0}
+              >
+                {roles.length === 0 ? (
+                  <option value="">Aucun rôle disponible</option>
+                ) : (
+                  roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
             {errors.roleId && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.roleId}</p>
             )}

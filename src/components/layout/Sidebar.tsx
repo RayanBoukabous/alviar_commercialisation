@@ -1,5 +1,6 @@
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { NavItem } from '@/types';
 import { 
@@ -177,14 +178,21 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   return (
     <div className={cn('flex flex-col w-64 theme-bg-elevated border-r theme-border-primary theme-transition', className)}>
       {/* Logo */}
-      <div className="flex items-center h-16 px-4 border-b theme-border-primary">
+      <div className="flex items-center h-24 px-4 border-b theme-border-primary">
         <div className="flex items-center">
-          <div className="h-8 w-8 bg-primary-600 rounded-lg flex items-center justify-center">
-            <Activity className="h-5 w-5 text-white" />
+          <div className="h-16 w-16 relative">
+            <Image
+              src="/MainLogo.png"
+              alt="Liveness Dashboard"
+              fill
+              className="object-contain"
+            />
           </div>
-          <span className="ml-2 text-lg font-semibold theme-text-primary">
-            Dashboard
-          </span>
+          <div className="ml-3">
+            <div className="text-xl font-bold theme-text-primary">
+              Dashboard
+            </div>
+          </div>
         </div>
       </div>
 
@@ -195,8 +203,23 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
       {/* Footer */}
       <div className="p-4 border-t theme-border-primary">
-        <div className="text-xs theme-text-tertiary">
+        <div className="text-xs theme-text-tertiary mb-4">
           Version 1.0.0
+        </div>
+        <div className="flex items-center justify-center">
+          <div className="flex items-center space-x-3">
+            <div className="h-10 w-10 relative">
+              <Image
+                src="/aiunivers.png"
+                alt="AIUNIVERS"
+                fill
+                className="object-contain"
+              />
+            </div>
+            <span className="text-sm theme-text-tertiary font-medium">
+              Developed by AIUNIVERS
+            </span>
+          </div>
         </div>
       </div>
     </div>

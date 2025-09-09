@@ -60,7 +60,7 @@ export class RolesService {
     /**
      * Met à jour un rôle
      */
-    static async updateRole(id: number, roleData: { name?: string; permissions?: number[] }): Promise<Role> {
+    static async updateRole(id: number, roleData: { name?: string; permissionsIds?: number[] }): Promise<Role> {
         try {
             console.log(`🔍 Mise à jour du rôle ${id}...`, roleData);
 
@@ -72,26 +72,6 @@ export class RolesService {
         } catch (error: any) {
             console.error(`❌ Erreur lors de la mise à jour du rôle ${id}:`, error);
             throw new Error(`Erreur lors de la mise à jour du rôle: ${error.message || 'Erreur inconnue'}`);
-        }
-    }
-
-    /**
-     * Met à jour les permissions d'un rôle
-     */
-    static async updateRolePermissions(roleId: number, permissionIds: number[]): Promise<Role> {
-        try {
-            console.log(`🔍 Mise à jour des permissions du rôle ${roleId}...`, permissionIds);
-
-            const response = await apiClient.put<Role>(`/roles/${roleId}/permissions`, {
-                permissions: permissionIds
-            });
-
-            console.log(`✅ Permissions du rôle ${roleId} mises à jour avec succès:`, response);
-
-            return response.data || response;
-        } catch (error: any) {
-            console.error(`❌ Erreur lors de la mise à jour des permissions du rôle ${roleId}:`, error);
-            throw new Error(`Erreur lors de la mise à jour des permissions: ${error.message || 'Erreur inconnue'}`);
         }
     }
 

@@ -3,28 +3,26 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Shield, Save, AlertCircle } from 'lucide-react';
 import { adminsService, UpdateAdminRequest, Admin } from '@/lib/api';
+import { Role } from '@/types';
 
 interface EditAdminModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   admin: Admin | null;
+  roles?: Map<number, Role>;
 }
 
 interface FormData {
   email: string;
   username: string;
   fullName: string;
-  roleId: number;
-  status: 'active' | 'inactive' | 'suspended';
 }
 
 interface FormErrors {
   email?: string;
   username?: string;
   fullName?: string;
-  roleId?: string;
-  status?: string;
 }
 
 export const EditAdminModal: React.FC<EditAdminModalProps> = ({
@@ -32,30 +30,18 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
   onClose,
   onSuccess,
   admin,
+  roles = new Map(),
 }) => {
   const [formData, setFormData] = useState<FormData>({
     email: '',
     username: '',
     fullName: '',
-    roleId: 2,
-    status: 'active',
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
 
-  const roleOptions = [
-    { value: 1, label: 'Super Admin' },
-    { value: 2, label: 'Admin' },
-    { value: 3, label: 'Moderator' },
-  ];
-
-  const statusOptions = [
-    { value: 'active', label: 'Actif' },
-    { value: 'inactive', label: 'Inactif' },
-    { value: 'suspended', label: 'Suspendu' },
-  ];
 
   // Initialiser le formulaire avec les données de l'admin
   useEffect(() => {
@@ -64,8 +50,6 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
         email: admin.email,
         username: admin.username,
         fullName: admin.fullName,
-        roleId: admin.roleId,
-        status: admin.status,
       });
     }
   }, [admin]);
@@ -92,11 +76,6 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
       newErrors.fullName = 'Le nom complet est requis';
     }
 
-    // Validation roleId
-    if (!formData.roleId) {
-      newErrors.roleId = 'Le rôle est requis';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -116,8 +95,6 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
         email: formData.email.trim(),
         username: formData.username.trim(),
         fullName: formData.fullName.trim(),
-        roleId: formData.roleId,
-        status: formData.status,
       };
 
       await adminsService.updateAdmin(admin.id, updateData);
@@ -239,52 +216,30 @@ export const EditAdminModal: React.FC<EditAdminModalProps> = ({
             )}
           </div>
 
-          {/* Role */}
-          <div>
-            <label className="block text-sm font-medium theme-text-primary mb-2">
-              <Shield className="h-4 w-4 inline mr-2" />
-              Rôle *
-            </label>
-            <select
-              value={formData.roleId}
-              onChange={(e) => handleInputChange('roleId', parseInt(e.target.value))}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition ${
-                errors.roleId ? 'border-red-500' : ''
-              }`}
-            >
-              {roleOptions.map((role) => (
-                <option key={role.value} value={role.value}>
-                  {role.label}
-                </option>
-              ))}
-            </select>
-            {errors.roleId && (
-              <p className="mt-1 text-sm text-red-600">{errors.roleId}</p>
-            )}
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-medium theme-text-primary mb-2">
-              <Shield className="h-4 w-4 inline mr-2" />
-              Statut *
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => handleInputChange('status', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition ${
-                errors.status ? 'border-red-500' : ''
-              }`}
-            >
-              {statusOptions.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
-              ))}
-            </select>
-            {errors.status && (
-              <p className="mt-1 text-sm text-red-600">{errors.status}</p>
-            )}
+          {/* Info sur le rôle et statut (lecture seule) */}
+          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium theme-text-secondary mb-1">
+                  Rôle actuel
+                </label>
+                <div className="text-sm theme-text-primary">
+                  {roles.get(admin.roleId)?.name || 'Rôle inconnu'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium theme-text-secondary mb-1">
+                  Statut actuel
+                </label>
+                <div className="text-sm theme-text-primary">
+                  {admin.status === 'active' ? 'Actif' : 
+                   admin.status === 'inactive' ? 'Inactif' : 'Suspendu'}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs theme-text-tertiary mt-2">
+              💡 Le rôle et le statut peuvent être modifiés via les boutons d'action dans le tableau
+            </p>
           </div>
 
           {/* Actions */}
