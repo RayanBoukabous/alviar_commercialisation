@@ -15,9 +15,27 @@ export class PermissionsService {
 
             // L'API retourne directement un tableau de permissions
             return response.data || response || [];
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('❌ Erreur lors de la récupération des permissions:', error);
-            throw new Error(`Erreur lors de la récupération des permissions: ${error.message || 'Erreur inconnue'}`);
+            throw new Error(`Erreur lors de la récupération des permissions: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        }
+    }
+
+    /**
+     * Récupère une permission par son ID
+     */
+    static async getPermissionById(id: string): Promise<Permission> {
+        try {
+            console.log(`🔍 Récupération de la permission ${id} depuis l'API...`);
+
+            const response = await apiClient.get<Permission>(`/roles/permissions/${id}`);
+
+            console.log('✅ Permission récupérée avec succès:', response);
+
+            return response.data || response;
+        } catch (error: unknown) {
+            console.error(`❌ Erreur lors de la récupération de la permission ${id}:`, error);
+            throw new Error(`Erreur lors de la récupération de la permission: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
         }
     }
 
@@ -33,9 +51,9 @@ export class PermissionsService {
             console.log('✅ Permission créée avec succès:', response);
 
             return response.data || response;
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('❌ Erreur lors de la création de la permission:', error);
-            throw new Error(`Erreur lors de la création de la permission: ${error.message || 'Erreur inconnue'}`);
+            throw new Error(`Erreur lors de la création de la permission: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
         }
     }
 
@@ -49,9 +67,9 @@ export class PermissionsService {
             await apiClient.delete(`/roles/permissions/${id}`);
 
             console.log(`✅ Permission ${id} supprimée avec succès`);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(`❌ Erreur lors de la suppression de la permission ${id}:`, error);
-            throw new Error(`Erreur lors de la suppression de la permission: ${error.message || 'Erreur inconnue'}`);
+            throw new Error(`Erreur lors de la suppression de la permission: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
         }
     }
 }

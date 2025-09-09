@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { NavItem } from '@/types';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { useSearch } from '@/lib/contexts/SearchContext';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { 
   Home, 
@@ -95,6 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
   const { t, loading } = useLanguage();
+  const { searchQuery } = useSearch();
 
   // Déterminer l'item actif basé sur l'URL actuelle
   const getActiveItem = () => {
@@ -112,7 +114,43 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const activeItem = getActiveItem();
   
   // Créer les éléments de navigation avec les traductions
-  const navigationItems = createNavigationItems(t);
+  const allNavigationItems = createNavigationItems(t);
+
+  // Fonction pour filtrer les éléments de navigation
+  const filterNavigationItems = (items: NavItem[], query: string): NavItem[] => {
+    if (!query.trim()) return items;
+    
+    const lowercaseQuery = query.toLowerCase();
+    
+    return items.map(item => {
+      // Vérifier si l'item principal correspond
+      const itemMatches = item.label.toLowerCase().includes(lowercaseQuery);
+      
+      // Si l'item a des enfants, filtrer les enfants
+      if (item.children) {
+        const filteredChildren = item.children.filter(child => 
+          child.label.toLowerCase().includes(lowercaseQuery)
+        );
+        
+        // Si l'item principal correspond OU qu'il y a des enfants qui correspondent
+        if (itemMatches || filteredChildren.length > 0) {
+          return {
+            ...item,
+            children: itemMatches ? item.children : filteredChildren
+          };
+        }
+        
+        // Si ni l'item ni ses enfants ne correspondent, exclure l'item
+        return null;
+      }
+      
+      // Si l'item n'a pas d'enfants, vérifier seulement l'item principal
+      return itemMatches ? item : null;
+    }).filter((item): item is NavItem => item !== null);
+  };
+
+  // Filtrer les éléments de navigation basé sur la recherche
+  const navigationItems = filterNavigationItems(allNavigationItems, searchQuery);
 
   const handleItemClick = (item: NavItem) => {
     // Gestion des sous-éléments
@@ -187,7 +225,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       {/* Logo */}
       <div className="flex items-center h-24 px-4 border-b theme-border-primary">
         <div className="flex items-center">
-          <div className="h-16 w-16 relative">
+          <div className="h-35 w-35 relative">
             <Image
               src="/MainLogo.png"
               alt="Liveness Dashboard"
@@ -195,11 +233,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
               className="object-contain"
             />
           </div>
-          <div className="ml-3">
-            <div className="text-xl font-bold theme-text-primary">
-              {loading ? '...' : t('dashboard', 'title')}
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -209,34 +243,60 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
           </div>
+        ) : searchQuery && navigationItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="text-4xl mb-2">🔍</div>
+            <div className="text-sm theme-text-tertiary mb-1">
+              {t('sidebar', 'no_results') || 'Aucun résultat'}
+            </div>
+            <div className="text-xs theme-text-tertiary">
+              "{searchQuery}"
+            </div>
+          </div>
         ) : (
           navigationItems.map(item => renderNavItem(item))
         )}
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t theme-border-primary">
-        <div className="text-xs theme-text-tertiary mb-4">
-          {t('sidebar', 'version')}
-        </div>
-        <div className="flex items-center justify-center mb-3">
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 relative">
-              <Image
-                src="/aiunivers.png"
-                alt="AIUNIVERS"
-                fill
-                className="object-contain"
-              />
-            </div>
-            <span className="text-sm theme-text-tertiary font-medium">
-              {t('sidebar', 'developed_by')}
-            </span>
+      <div className="border-t theme-border-primary">
+        {/* Sélecteur de langue */}
+        <div className="p-3 border-b theme-border-primary">
+          <div className="flex justify-center">
+            <LanguageSelector compact />
           </div>
         </div>
-        {/* Sélecteur de langue */}
-        <div className="flex justify-center">
-          <LanguageSelector />
+        
+        {/* Informations de version et développeur */}
+        <div className="p-4 space-y-3">
+          {/* Version */}
+          <div className="text-center">
+            <div className="text-xs theme-text-tertiary font-medium">
+              {t('sidebar', 'version')}
+            </div>
+          </div>
+          
+          {/* Développeur */}
+          <div className="flex items-center justify-center">
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 relative">
+                <Image
+                  src="/aiunivers.png"
+                  alt="AIUNIVERS"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-semibold theme-text-primary">
+                  AIUNIVERS
+                </div>
+                <div className="text-xs theme-text-tertiary">
+                  {t('sidebar', 'developed_by')}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

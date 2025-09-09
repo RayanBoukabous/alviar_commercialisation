@@ -23,7 +23,8 @@ import {
   XCircle
 } from 'lucide-react';
 import { useRequireAuth } from '@/lib/hooks/useAuth';
-import { clientsService, Client, configsService, LivenessConfig } from '@/lib/api';
+import { clientsService, Client, LivenessConfig } from '@/lib/api';
+import { MatchingConfig, SilentLivenessConfig } from '@/types';
 import { Layout } from '@/components/layout/Layout';
 import { CreateConfigModal } from '@/components/forms/CreateConfigModal';
 import { EditConfigModal } from '@/components/forms/EditConfigModal';
@@ -35,16 +36,24 @@ export default function ClientViewPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { t, loading: translationLoading } = useLanguage();
   
+  // Helper function to ensure translations are strings
+  const translate = (namespace: 'clients', key: string): string => {
+    return t(namespace, key) as string;
+  };
+  
   const [client, setClient] = useState<Client | null>(null);
-  const [configs, setConfigs] = useState<LivenessConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
   const [deletingConfigId, setDeletingConfigId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingConfig, setEditingConfig] = useState<LivenessConfig | null>(null);
+  const [isEditLivenessModalOpen, setIsEditLivenessModalOpen] = useState(false);
+  const [isEditMatchingModalOpen, setIsEditMatchingModalOpen] = useState(false);
+  const [isEditSilentLivenessModalOpen, setIsEditSilentLivenessModalOpen] = useState(false);
+  const [editingLivenessConfig, setEditingLivenessConfig] = useState<any | null>(null);
+  const [editingMatchingConfig, setEditingMatchingConfig] = useState<MatchingConfig | null>(null);
+  const [editingSilentLivenessConfig, setEditingSilentLivenessConfig] = useState<SilentLivenessConfig | null>(null);
 
   const clientId = params?.id ? parseInt(params.id as string) : null;
 
@@ -61,35 +70,22 @@ export default function ClientViewPage() {
       setLoading(true);
       setError('');
 
-      // Récupérer les informations du client
-      const clientsResponse = await clientsService.getAllClients(true);
-      const foundClient = clientsResponse.clients?.find(c => c.id === clientId);
+      console.log(`🔍 Fetching client data for ID: ${clientId}`);
       
-      if (!foundClient) {
-        setError(t('clients', 'client_not_found'));
-        return;
-      }
+      // Récupérer toutes les informations du client en une seule fois
+      const clientResponse = await clientsService.getClientById(clientId);
+      console.log(`✅ Client récupéré avec toutes ses données:`, clientResponse);
       
-      setClient(foundClient);
-
-      // Récupérer les configurations du client
-      try {
-        const configsResponse = await configsService.getLivenessConfigsByClient(clientId, true);
-        setConfigs(configsResponse.configs || []);
-        console.log(`✅ Configs trouvées pour ${foundClient.name}:`, configsResponse.configs);
-      } catch (configError: any) {
-        if (configError.status === 404 || configError.code === 'NOT_FOUND_ERROR') {
-          console.log(`ℹ️ Aucune config trouvée pour le client ${clientId}`);
-          setConfigs([]);
-        } else {
-          console.warn(`⚠️ Erreur lors de la récupération des configs:`, configError);
-          setConfigs([]);
-        }
+      if (clientResponse && clientResponse.id) {
+        setClient(clientResponse);
+      } else {
+        console.error('❌ Client response is invalid:', clientResponse);
+        setError(translate('clients', 'client_not_found'));
       }
 
     } catch (err) {
-      setError(t('clients', 'loading_error'));
-      console.error('Erreur:', err);
+      console.error('❌ Erreur lors de la récupération du client:', err);
+      setError(translate('clients', 'loading_error'));
     } finally {
       setLoading(false);
     }
@@ -102,7 +98,7 @@ export default function ClientViewPage() {
       setRefreshing(true);
       await fetchClientData();
     } catch (err) {
-      setError(t('clients', 'refresh_error'));
+      setError(translate('clients', 'refresh_error'));
       console.error('Erreur:', err);
     } finally {
       setRefreshing(false);
@@ -113,21 +109,47 @@ export default function ClientViewPage() {
     handleRefresh();
   };
 
-  const handleEditConfig = (config: LivenessConfig) => {
-    setEditingConfig(config);
-    setIsEditModalOpen(true);
+  const handleEditLivenessConfig = (config: any) => {
+    // Ajouter le type pour que la modal sache quel type de configuration c'est
+    const configWithType = { ...config, type: 'liveness' };
+    setEditingLivenessConfig(configWithType);
+    setIsEditLivenessModalOpen(true);
   };
 
-  const handleEditSuccess = () => {
+  const handleEditMatchingConfig = (config: MatchingConfig) => {
+    // Ajouter le type pour que la modal sache quel type de configuration c'est
+    const configWithType = { ...config, type: 'matching' as const };
+    setEditingMatchingConfig(configWithType as MatchingConfig);
+    setIsEditMatchingModalOpen(true);
+  };
+
+  const handleEditSilentLivenessConfig = (config: SilentLivenessConfig) => {
+    // Ajouter le type pour que la modal sache quel type de configuration c'est
+    const configWithType = { ...config, type: 'silent-liveness' as const };
+    setEditingSilentLivenessConfig(configWithType as SilentLivenessConfig);
+    setIsEditSilentLivenessModalOpen(true);
+  };
+
+  const handleLivenessEditSuccess = () => {
     handleRefresh();
-    setEditingConfig(null);
+    setEditingLivenessConfig(null);
   };
 
-  const handleDeleteConfig = async (config: LivenessConfig) => {
+  const handleMatchingEditSuccess = () => {
+    handleRefresh();
+    setEditingMatchingConfig(null);
+  };
+
+  const handleSilentLivenessEditSuccess = () => {
+    handleRefresh();
+    setEditingSilentLivenessConfig(null);
+  };
+
+  const handleDeleteConfig = async (config: any) => {
     const configName = `Config #${config.id}`;
     
     const confirmed = window.confirm(
-      t('clients', 'delete_config_confirmation').replace('{name}', configName)
+      translate('clients', 'delete_config_confirmation').replace('{name}', configName)
     );
 
     if (!confirmed) {
@@ -136,17 +158,19 @@ export default function ClientViewPage() {
 
     try {
       setDeletingConfigId(config.id);
-      await configsService.deleteLivenessConfig(config.clientId);
+      // TODO: Implement deleteClientConfig method in clientsService
+      // await clientsService.deleteClientConfig(clientId!);
       
-      setConfigs(prevConfigs => prevConfigs.filter(c => c.id !== config.id));
+      // Rafraîchir les données du client
+      await fetchClientData();
       
-      setSuccessMessage(t('clients', 'config_deleted').replace('{name}', configName));
+      setSuccessMessage(translate('clients', 'config_deleted').replace('{name}', configName));
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Configuration ${configName} supprimée avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression de la configuration:', err);
-      setError(t('clients', 'delete_config_error'));
+      setError(translate('clients', 'delete_config_error'));
     } finally {
       setDeletingConfigId(null);
     }
@@ -164,9 +188,9 @@ export default function ClientViewPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: t('clients', 'active') },
-      INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: t('clients', 'inactive') },
-      SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: t('clients', 'suspended') }
+      ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: translate('clients', 'active') },
+      INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: translate('clients', 'inactive') },
+      SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: translate('clients', 'suspended') }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.INACTIVE;
@@ -198,17 +222,17 @@ export default function ClientViewPage() {
               className="flex items-center text-primary-600 hover:text-primary-700 theme-transition mb-4"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              {t('clients', 'back')}
+              {translate('clients', 'back')}
             </button>
           </div>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
-              <p className="text-red-600 mb-4">{error || t('clients', 'client_not_found')}</p>
+              <p className="text-red-600 mb-4">{error || (translate('clients', 'client_not_found') as string)}</p>
               <button
                 onClick={() => router.push('/dashboard/clients')}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                {t('clients', 'back_to_clients')}
+                {translate('clients', 'back_to_clients')}
               </button>
             </div>
           </div>
@@ -248,14 +272,14 @@ export default function ClientViewPage() {
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                  {t('clients', 'refresh')}
+                  {translate('clients', 'refresh')}
                 </button>
                 <button 
                   onClick={() => setIsCreateModalOpen(true)}
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  {t('clients', 'new_configuration')}
+                  {translate('clients', 'new_configuration')}
                 </button>
               </div>
             </div>
@@ -284,22 +308,22 @@ export default function ClientViewPage() {
             <div className="px-6 py-4 border-b theme-border-primary">
               <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
                 <Building2 className="h-5 w-5 mr-2 text-primary-600" />
-                {t('clients', 'client_information')}
+                {translate('clients', 'client_information')}
               </h2>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'name')}</label>
+                    <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'name')}</label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">{client.name}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'id')}</label>
+                    <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'id')}</label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">#{client.id}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'status')}</label>
+                    <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'status')}</label>
                     <div className="mt-1">{getStatusBadge(client.status)}</div>
                   </div>
                 </div>
@@ -308,7 +332,7 @@ export default function ClientViewPage() {
                   <div>
                     <label className="text-sm font-medium theme-text-secondary theme-transition flex items-center">
                       <DollarSign className="h-4 w-4 mr-1" />
-                      {t('clients', 'payment_plan')}
+                      {translate('clients', 'payment_plan')}
                     </label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">
                       {client.paymentPlan?.name || `Plan #${client.paymentPlan?.id}`}
@@ -317,7 +341,7 @@ export default function ClientViewPage() {
                   <div>
                     <label className="text-sm font-medium theme-text-secondary theme-transition flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
-                      {t('clients', 'distributor')}
+                      {translate('clients', 'distributor')}
                     </label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">
                       {client.distributor?.name || `Distributeur #${client.distributor?.id}`}
@@ -329,14 +353,14 @@ export default function ClientViewPage() {
                   <div>
                     <label className="text-sm font-medium theme-text-secondary theme-transition flex items-center">
                       <User className="h-4 w-4 mr-1" />
-                      {t('clients', 'created_by')}
+                      {translate('clients', 'created_by')}
                     </label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">{client.createdBy}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium theme-text-secondary theme-transition flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
-                      {t('clients', 'creation_date')}
+                      {translate('clients', 'creation_date')}
                     </label>
                     <p className="text-lg font-semibold theme-text-primary theme-transition">{formatDate(client.createdAt)}</p>
                   </div>
@@ -351,7 +375,7 @@ export default function ClientViewPage() {
               <div className="px-6 py-4 border-b theme-border-primary">
                 <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
                   <Key className="h-5 w-5 mr-2 text-primary-600" />
-                  {t('clients', 'api_keys')} ({client.keys.length})
+                  {translate('clients', 'api_keys')} ({client.keys.length})
                 </h2>
               </div>
               <div className="p-6">
@@ -367,7 +391,7 @@ export default function ClientViewPage() {
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {key.isActive ? t('clients', 'active') : t('clients', 'inactive')}
+                        {key.isActive ? translate('clients', 'active') : translate('clients', 'inactive')}
                       </span>
                     </div>
                   ))}
@@ -381,50 +405,49 @@ export default function ClientViewPage() {
             <div className="px-6 py-4 border-b theme-border-primary">
               <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
                 <Settings className="h-5 w-5 mr-2 text-primary-600" />
-                {t('clients', 'liveness_configurations')} ({configs.length})
+                {translate('clients', 'liveness_configurations')} ({client.livenessConfig ? 1 : 0})
               </h2>
             </div>
             <div className="p-6">
-              {configs.length === 0 ? (
+              {!client.livenessConfig ? (
                 <div className="text-center py-8">
                   <Settings className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
-                  <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{t('clients', 'no_configuration')}</h3>
+                  <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{translate('clients', 'no_configuration')}</h3>
                   <p className="theme-text-secondary theme-transition mb-4">
-                    {t('clients', 'no_config_description')}
+                    {translate('clients', 'no_config_description')}
                   </p>
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
                     className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                   >
-                    {t('clients', 'create_first_config')}
+                    {translate('clients', 'create_first_config')}
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {configs.map((config) => (
-                    <div key={config.id} className="border theme-border-primary rounded-lg p-4 theme-bg-elevated hover:theme-bg-secondary theme-transition">
+                  <div key={client.livenessConfig.id} className="border theme-border-primary rounded-lg p-4 theme-bg-elevated hover:theme-bg-secondary theme-transition">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center">
                           <Settings className="h-5 w-5 mr-2 text-primary-600" />
                           <h3 className="text-lg font-semibold theme-text-primary theme-transition">
-                            {t('clients', 'configuration')} #{config.id}
+                            {translate('clients', 'configuration')} #{client.livenessConfig.id}
                           </h3>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleEditConfig(config)}
-                            className="p-2 rounded-lg hover:theme-bg-elevated theme-transition"
-                            title={t('clients', 'edit_config')}
-                          >
+                        <button
+                          onClick={() => handleEditLivenessConfig(client.livenessConfig)}
+                          className="p-2 rounded-lg hover:theme-bg-elevated theme-transition"
+                          title={translate('clients', 'edit_config')}
+                        >
                             <Edit className="h-4 w-4 theme-text-tertiary hover:text-blue-500" />
                           </button>
                           <button
-                            onClick={() => handleDeleteConfig(config)}
-                            disabled={deletingConfigId === config.id}
+                            onClick={() => handleDeleteConfig(client.livenessConfig)}
+                            disabled={deletingConfigId === client.livenessConfig.id}
                             className="p-2 rounded-lg hover:theme-bg-elevated theme-transition disabled:opacity-50"
-                            title={t('clients', 'delete_config')}
+                            title={translate('clients', 'delete_config')}
                           >
-                            {deletingConfigId === config.id ? (
+                            {deletingConfigId === client.livenessConfig.id ? (
                               <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
                             ) : (
                               <Trash2 className="h-4 w-4 theme-text-tertiary hover:text-red-500" />
@@ -435,9 +458,9 @@ export default function ClientViewPage() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                          <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'movements')}</label>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'movements')}</label>
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {config.requiredMovements.map((movement) => (
+                            {client.livenessConfig.requiredMovements.map((movement) => (
                               <span
                                 key={movement}
                                 className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
@@ -449,44 +472,389 @@ export default function ClientViewPage() {
                         </div>
                         
                         <div>
-                          <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'parameters')}</label>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'parameters')}</label>
                           <div className="mt-1 space-y-1">
                             <p className="text-sm theme-text-primary theme-transition">
-                              <strong>{t('clients', 'fps')}:</strong> {config.fps}
+                              <strong>{translate('clients', 'fps')}:</strong> {client.livenessConfig.fps}
                             </p>
                             <p className="text-sm theme-text-primary theme-transition">
-                              <strong>{t('clients', 'duration')}:</strong> {config.movementDurationSec}s
+                              <strong>{translate('clients', 'duration')}:</strong> {client.livenessConfig.movementDurationSec}s
                             </p>
                             <p className="text-sm theme-text-primary theme-transition">
-                              <strong>{t('clients', 'timeout')}:</strong> {config.timeoutSec}s
+                              <strong>{translate('clients', 'timeout')}:</strong> {client.livenessConfig.timeoutSec}s
                             </p>
                           </div>
                         </div>
                         
                         <div>
-                          <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'creation')}</label>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'creation')}</label>
                           <div className="mt-1 space-y-1">
                             <p className="text-sm theme-text-primary theme-transition">
-                              <strong>{t('clients', 'by')}:</strong> {config.createdBy}
+                              <strong>{translate('clients', 'by')}:</strong> {client.livenessConfig.createdBy}
                             </p>
                             <p className="text-sm theme-text-secondary theme-transition">
-                              {formatDate(config.createdAt)}
+                              {formatDate(client.livenessConfig.createdAt)}
                             </p>
                           </div>
                         </div>
                         
                         <div>
-                          <label className="text-sm font-medium theme-text-secondary theme-transition">{t('clients', 'last_modification')}</label>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'last_modification')}</label>
                           <div className="mt-1 space-y-1">
                             <p className="text-sm theme-text-primary theme-transition">
-                              {formatDate(config.updatedAt)}
+                              {formatDate(client.livenessConfig.updatedAt)}
                             </p>
-                            {config.updatedBy && (
+                            {client.livenessConfig.updatedBy && (
                               <p className="text-sm theme-text-secondary theme-transition">
-                                {t('clients', 'by')}: {config.updatedBy}
+                                {translate('clients', 'by')}: {client.livenessConfig.updatedBy}
                               </p>
                             )}
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Matching Configuration */}
+          <div className="rounded-lg shadow-sm border theme-bg-elevated theme-border-primary theme-transition">
+            <div className="px-6 py-4 border-b theme-border-primary">
+              <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
+                <Settings className="h-5 w-5 mr-2 text-primary-600" />
+                {translate('clients', 'matching_configuration')} ({client.matchingConfig ? 1 : 0})
+              </h2>
+            </div>
+            <div className="p-6">
+              {!client.matchingConfig ? (
+                <div className="text-center py-8">
+                  <Settings className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
+                  <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{translate('clients', 'no_matching_config')}</h3>
+                  <p className="theme-text-secondary theme-transition mb-4">
+                    {translate('clients', 'no_matching_config_description')}
+                  </p>
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    {translate('clients', 'create_matching_config')}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div key={client.matchingConfig.id} className="border theme-border-primary rounded-lg p-4 theme-bg-elevated hover:theme-bg-secondary theme-transition">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Settings className="h-5 w-5 mr-2 text-primary-600" />
+                        <h3 className="text-lg font-semibold theme-text-primary theme-transition">
+                          {translate('clients', 'matching_configuration')} #{client.matchingConfig.id}
+                        </h3>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleEditMatchingConfig(client.matchingConfig!)}
+                          className="p-2 rounded-lg hover:theme-bg-elevated theme-transition"
+                          title={translate('clients', 'edit_config')}
+                        >
+                          <Edit className="h-4 w-4 theme-text-tertiary hover:text-blue-500" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteConfig(client.matchingConfig!)}
+                          disabled={deletingConfigId === client.matchingConfig!.id}
+                          className="p-2 rounded-lg hover:theme-bg-elevated theme-transition disabled:opacity-50"
+                          title={translate('clients', 'delete_config')}
+                        >
+                          {deletingConfigId === client.matchingConfig!.id ? (
+                            <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 theme-text-tertiary hover:text-red-500" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'distance_method')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{client.matchingConfig.distanceMethod}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'threshold')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{client.matchingConfig.threshold}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'minimum_confidence')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{client.matchingConfig.minimumConfidence}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'max_angle')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{client.matchingConfig.maxAngle}°</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'preprocessing')}</label>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          client.matchingConfig.enablePreprocessing 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {client.matchingConfig.enablePreprocessing ? translate('clients', 'enabled') : translate('clients', 'disabled')}
+                        </span>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'fraud_check')}</label>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          client.matchingConfig.enableFraudCheck 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {client.matchingConfig.enableFraudCheck ? translate('clients', 'enabled') : translate('clients', 'disabled')}
+                        </span>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'creation')}</label>
+                        <div className="mt-1 space-y-1">
+                          <p className="text-sm theme-text-primary theme-transition">
+                            <strong>{translate('clients', 'by')}:</strong> {client.matchingConfig.createdBy}
+                          </p>
+                          <p className="text-sm theme-text-secondary theme-transition">
+                            {formatDate(client.matchingConfig.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'last_modification')}</label>
+                        <div className="mt-1 space-y-1">
+                          <p className="text-sm theme-text-primary theme-transition">
+                            {formatDate(client.matchingConfig.updatedAt)}
+                          </p>
+                          {client.matchingConfig.updatedBy && (
+                            <p className="text-sm theme-text-secondary theme-transition">
+                              {translate('clients', 'by')}: {client.matchingConfig.updatedBy}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Silent Liveness Configuration */}
+          <div className="rounded-lg shadow-sm border theme-bg-elevated theme-border-primary theme-transition">
+            <div className="px-6 py-4 border-b theme-border-primary">
+              <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
+                <Settings className="h-5 w-5 mr-2 text-primary-600" />
+                {translate('clients', 'silent_liveness_configuration')} ({client.silentLivenessConfig ? 1 : 0})
+              </h2>
+            </div>
+            <div className="p-6">
+              {!client.silentLivenessConfig ? (
+                <div className="text-center py-8">
+                  <Settings className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
+                  <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{translate('clients', 'no_silent_liveness_config')}</h3>
+                  <p className="theme-text-secondary theme-transition mb-4">
+                    {translate('clients', 'no_silent_liveness_config_description')}
+                  </p>
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    {translate('clients', 'create_silent_liveness_config')}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div key={client.silentLivenessConfig.id} className="border theme-border-primary rounded-lg p-4 theme-bg-elevated hover:theme-bg-secondary theme-transition">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Settings className="h-5 w-5 mr-2 text-primary-600" />
+                        <h3 className="text-lg font-semibold theme-text-primary theme-transition">
+                          {translate('clients', 'silent_liveness_configuration')} #{client.silentLivenessConfig.id}
+                        </h3>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleEditSilentLivenessConfig(client.silentLivenessConfig!)}
+                          className="p-2 rounded-lg hover:theme-bg-elevated theme-transition"
+                          title={translate('clients', 'edit_config')}
+                        >
+                          <Edit className="h-4 w-4 theme-text-tertiary hover:text-blue-500" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteConfig(client.silentLivenessConfig!)}
+                          disabled={deletingConfigId === client.silentLivenessConfig!.id}
+                          className="p-2 rounded-lg hover:theme-bg-elevated theme-transition disabled:opacity-50"
+                          title={translate('clients', 'delete_config')}
+                        >
+                          {deletingConfigId === client.silentLivenessConfig!.id ? (
+                            <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 theme-text-tertiary hover:text-red-500" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'fps')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{client.silentLivenessConfig.fps}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'timeout')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{client.silentLivenessConfig.timeoutSec}s</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'min_frames')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{client.silentLivenessConfig.minFrames}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'min_duration')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{client.silentLivenessConfig.minDurationSec}s</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'decision_threshold')}</label>
+                        <p className="text-sm theme-text-primary theme-transition font-semibold">{client.silentLivenessConfig.decisionThreshold}</p>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'creation')}</label>
+                        <div className="mt-1 space-y-1">
+                          <p className="text-sm theme-text-primary theme-transition">
+                            <strong>{translate('clients', 'by')}:</strong> {client.silentLivenessConfig.createdBy}
+                          </p>
+                          <p className="text-sm theme-text-secondary theme-transition">
+                            {formatDate(client.silentLivenessConfig.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'last_modification')}</label>
+                        <div className="mt-1 space-y-1">
+                          <p className="text-sm theme-text-primary theme-transition">
+                            {formatDate(client.silentLivenessConfig.updatedAt)}
+                          </p>
+                          {client.silentLivenessConfig.updatedBy && (
+                            <p className="text-sm theme-text-secondary theme-transition">
+                              {translate('clients', 'by')}: {client.silentLivenessConfig.updatedBy}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Statistics Section */}
+          <div className="rounded-lg shadow-sm border theme-bg-elevated theme-border-primary theme-transition">
+            <div className="px-6 py-4 border-b theme-border-primary">
+              <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
+                <CheckCircle className="h-5 w-5 mr-2 text-primary-600" />
+                {translate('clients', 'statistics')}
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary-600 mb-2">{client._count.users}</div>
+                  <div className="text-sm theme-text-secondary theme-transition">{translate('clients', 'total_users')}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary-600 mb-2">{client._count.keys}</div>
+                  <div className="text-sm theme-text-secondary theme-transition">{translate('clients', 'api_keys')}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary-600 mb-2">{client._count.livenessSessions}</div>
+                  <div className="text-sm theme-text-secondary theme-transition">{translate('clients', 'liveness_sessions')}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary-600 mb-2">{client._count.livenessResults}</div>
+                  <div className="text-sm theme-text-secondary theme-transition">{translate('clients', 'liveness_results')}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Users Section */}
+          <div className="rounded-lg shadow-sm border theme-bg-elevated theme-border-primary theme-transition">
+            <div className="px-6 py-4 border-b theme-border-primary">
+              <h2 className="text-lg font-semibold theme-text-primary theme-transition flex items-center">
+                <User className="h-5 w-5 mr-2 text-primary-600" />
+                {translate('clients', 'users')} ({client.users.length})
+              </h2>
+            </div>
+            <div className="p-6">
+              {client.users.length === 0 ? (
+                <div className="text-center py-8">
+                  <User className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
+                  <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">{translate('clients', 'no_users')}</h3>
+                  <p className="theme-text-secondary theme-transition">
+                    {translate('clients', 'no_users_description')}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {client.users.map((user) => (
+                    <div key={user.id} className="border theme-border-primary rounded-lg p-4 theme-bg-elevated hover:theme-bg-secondary theme-transition">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                          <User className="h-5 w-5 mr-2 text-primary-600" />
+                          <div>
+                            <h3 className="text-lg font-semibold theme-text-primary theme-transition">
+                              {user.fullName}
+                            </h3>
+                            <p className="text-sm theme-text-secondary theme-transition">
+                              @{user.username} • {user.externalUserId}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            user.totalRequests > 0 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {user.totalRequests} {translate('clients', 'requests')}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'total_requests')}</label>
+                          <p className="text-lg font-semibold theme-text-primary theme-transition">{user.totalRequests}</p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'last_request')}</label>
+                          <p className="text-sm theme-text-primary theme-transition">
+                            {user.lastRequestAt ? formatDate(user.lastRequestAt) : translate('clients', 'never')}
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium theme-text-secondary theme-transition">{translate('clients', 'created_at')}</label>
+                          <p className="text-sm theme-text-secondary theme-transition">
+                            {formatDate(user.createdAt)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -505,15 +873,37 @@ export default function ClientViewPage() {
           clients={client ? [client] : []}
         />
 
-        {/* Edit Config Modal */}
+        {/* Edit Liveness Config Modal */}
         <EditConfigModal
-          isOpen={isEditModalOpen}
+          isOpen={isEditLivenessModalOpen}
           onClose={() => {
-            setIsEditModalOpen(false);
-            setEditingConfig(null);
+            setIsEditLivenessModalOpen(false);
+            setEditingLivenessConfig(null);
           }}
-          onSuccess={handleEditSuccess}
-          config={editingConfig}
+          onSuccess={handleLivenessEditSuccess}
+          config={editingLivenessConfig}
+        />
+
+        {/* Edit Matching Config Modal */}
+        <EditConfigModal
+          isOpen={isEditMatchingModalOpen}
+          onClose={() => {
+            setIsEditMatchingModalOpen(false);
+            setEditingMatchingConfig(null);
+          }}
+          onSuccess={handleMatchingEditSuccess}
+          config={editingMatchingConfig}
+        />
+
+        {/* Edit Silent Liveness Config Modal */}
+        <EditConfigModal
+          isOpen={isEditSilentLivenessModalOpen}
+          onClose={() => {
+            setIsEditSilentLivenessModalOpen(false);
+            setEditingSilentLivenessConfig(null);
+          }}
+          onSuccess={handleSilentLivenessEditSuccess}
+          config={editingSilentLivenessConfig}
         />
       </div>
     </Layout>

@@ -25,6 +25,7 @@ import { CreatePaymentPlanModal } from '@/components/forms/CreatePaymentPlanModa
 import { EditPaymentPlanModal } from '@/components/forms/EditPaymentPlanModal';
 import { useTranslation } from '@/lib/hooks/useTranslation';
 
+
 export default function PaymentPlansPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const router = useRouter();

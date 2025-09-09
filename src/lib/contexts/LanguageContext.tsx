@@ -158,7 +158,6 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
 
   const t = (namespace: 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login', key: string): string | object => {
     const translation = translations[namespace]?.[key];
-    console.log(`🔍 Traduction demandée: ${namespace}.${key} = "${translation}" (langue: ${currentLocale})`);
     if (!translation) {
       console.warn(`⚠️ Traduction manquante: ${namespace}.${key} pour la langue ${currentLocale}`);
       return key; // Retourner la clé si la traduction n'existe pas

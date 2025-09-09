@@ -4,7 +4,8 @@ import { Button } from '@/components/ui';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
-import { Bell, Search, User, Settings, LogOut } from 'lucide-react';
+import { useSearch } from '@/lib/contexts/SearchContext';
+import { Bell, Search, User, Settings, LogOut, X } from 'lucide-react';
 
 interface HeaderProps {
   className?: string;
@@ -13,6 +14,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ className }) => {
   const { logout } = useAuth();
   const { t, loading } = useLanguage();
+  const { searchQuery, setSearchQuery, clearSearch } = useSearch();
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
 
@@ -56,10 +58,20 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
               <input
                 type="text"
                 placeholder={t('header', 'search_placeholder')}
-                className="block w-full pl-10 pr-3 py-2 border rounded-md leading-5 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm theme-transition theme-border-primary theme-bg-elevated theme-text-primary dark:placeholder-slate-400"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="block w-full pl-10 pr-10 py-2 border rounded-md leading-5 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm theme-transition theme-border-primary theme-bg-elevated theme-text-primary dark:placeholder-slate-400"
                 onFocus={() => setIsSearchOpen(true)}
                 onBlur={() => setIsSearchOpen(false)}
               />
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center hover:theme-text-primary transition-colors"
+                >
+                  <X className="h-4 w-4 theme-text-tertiary" />
+                </button>
+              )}
             </div>
           </div>
 

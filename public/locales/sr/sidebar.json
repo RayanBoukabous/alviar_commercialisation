@@ -10,5 +10,6 @@
     "permissions": "Dozvole",
     "payment_plans": "Planovi plaćanja",
     "version": "Verzija 1.0.0",
-    "developed_by": "Razvijeno od strane AIUNIVERS"
+    "developed_by": "Razvijeno od strane AIUNIVERS",
+    "no_results": "Nema rezultata"
 }
