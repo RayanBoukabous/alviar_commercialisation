@@ -223,17 +223,14 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   return (
     <div className={cn('flex flex-col w-64 theme-bg-elevated border-r theme-border-primary theme-transition', className)}>
       {/* Logo */}
-      <div className="flex items-center h-24 px-4 border-b theme-border-primary">
-        <div className="flex items-center">
-          <div className="h-35 w-35 relative">
-            <Image
-              src="/MainLogo.png"
-              alt="Liveness Dashboard"
-              fill
-              className="object-contain"
-            />
-          </div>
-
+      <div className="flex items-center justify-center h-24 px-4 border-b theme-border-primary">
+        <div className="h-30 w-30 relative">
+          <Image
+            src="/MainLogo.png"
+            alt="Liveness Dashboard"
+            fill
+            className="object-contain"
+          />
         </div>
       </div>
 
