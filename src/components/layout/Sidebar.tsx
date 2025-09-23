@@ -6,6 +6,7 @@ import { NavItem } from '@/types';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useSearch } from '@/lib/contexts/SearchContext';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
+import { useTheme } from '@/lib/theme/ThemeProvider';
 import { 
   Home, 
   Users, 
@@ -16,7 +17,8 @@ import {
   User,
   Shield,
   Key,
-  CreditCard
+  CreditCard,
+  FileText
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -24,40 +26,40 @@ interface SidebarProps {
 }
 
 // Fonction pour créer les éléments de navigation avec traductions
-const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string) => string): NavItem[] => [
+const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string) => string | object): NavItem[] => [
   {
     id: 'dashboard',
-    label: t('sidebar', 'dashboard'),
+    label: String(t('sidebar', 'dashboard')),
     href: '/dashboard',
     icon: Home,
   },
   {
     id: 'clients',
-    label: t('sidebar', 'clients'),
+    label: String(t('sidebar', 'clients')),
     href: '/dashboard/clients',
     icon: Building2,
   },
   {
     id: 'configs',
-    label: t('sidebar', 'configurations'),
+    label: String(t('sidebar', 'configurations')),
     href: '/dashboard/configs',
     icon: Cog,
   },
   {
     id: 'users',
-    label: t('sidebar', 'users'),
+    label: String(t('sidebar', 'users')),
     href: '#',
     icon: Users,
     children: [
       {
         id: 'admins',
-        label: t('sidebar', 'admin'),
+        label: String(t('sidebar', 'admin')),
         href: '/dashboard/users/admins',
         icon: User,
       },
       {
         id: 'users-list',
-        label: t('sidebar', 'user'),
+        label: String(t('sidebar', 'user')),
         href: '/dashboard/users/list',
         icon: User,
       },
@@ -65,19 +67,19 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
   },
   {
     id: 'roles-permissions',
-    label: t('sidebar', 'roles_permissions'),
+    label: String(t('sidebar', 'roles_permissions')),
     href: '#',
     icon: Shield,
     children: [
       {
         id: 'roles',
-        label: t('sidebar', 'roles'),
+        label: String(t('sidebar', 'roles')),
         href: '/dashboard/roles-permissions/roles',
         icon: Shield,
       },
       {
         id: 'permissions',
-        label: t('sidebar', 'permissions'),
+        label: String(t('sidebar', 'permissions')),
         href: '/dashboard/roles-permissions/permissions',
         icon: Key,
       },
@@ -85,9 +87,35 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
   },
   {
     id: 'payment-plans',
-    label: t('sidebar', 'payment_plans'),
+    label: String(t('sidebar', 'payment_plans')),
     href: '/dashboard/payment-plans',
     icon: CreditCard,
+  },
+  {
+    id: 'logs',
+    label: String(t('sidebar', 'logs')),
+    href: '#',
+    icon: FileText,
+    children: [
+      {
+        id: 'logs-list',
+        label: String(t('sidebar', 'logs')),
+        href: '/dashboard/logs',
+        icon: FileText,
+      },
+      {
+        id: 'request-logs',
+        label: String(t('sidebar', 'request_logs')),
+        href: '/dashboard/logs/request-logs',
+        icon: FileText,
+      },
+      {
+        id: 'logs-stats',
+        label: String(t('sidebar', 'logs_stats')),
+        href: '/dashboard/logs/stats',
+        icon: Activity,
+      },
+    ],
   },
 ];
 
@@ -97,6 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
   const { t, loading } = useLanguage();
   const { searchQuery } = useSearch();
+  const { theme } = useTheme();
 
   // Déterminer l'item actif basé sur l'URL actuelle
   const getActiveItem = () => {
@@ -108,6 +137,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     if (pathname.startsWith('/dashboard/roles-permissions/permissions')) return 'permissions';
     if (pathname.startsWith('/dashboard/roles-permissions')) return 'roles-permissions';
     if (pathname.startsWith('/dashboard/payment-plans')) return 'payment-plans';
+    if (pathname.startsWith('/dashboard/logs/stats')) return 'logs-stats';
+    if (pathname.startsWith('/dashboard/logs/request-logs')) return 'request-logs';
+    if (pathname.startsWith('/dashboard/logs')) return 'logs-list';
     return 'dashboard';
   };
 
@@ -226,7 +258,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       <div className="flex items-center justify-center h-24 px-4 border-b theme-border-primary">
         <div className="h-30 w-30 relative">
           <Image
-            src="/MainLogo.png"
+            src={theme === 'dark' ? "/MainLogoDark.png" : "/MainLogo.png"}
             alt="Liveness Dashboard"
             fill
             className="object-contain"
@@ -244,7 +276,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="text-4xl mb-2">🔍</div>
             <div className="text-sm theme-text-tertiary mb-1">
-              {t('sidebar', 'no_results') || 'Aucun résultat'}
+              {String(t('sidebar', 'no_results')) || 'Aucun résultat'}
             </div>
             <div className="text-xs theme-text-tertiary">
               "{searchQuery}"
@@ -269,7 +301,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           {/* Version */}
           <div className="text-center">
             <div className="text-xs theme-text-tertiary font-medium">
-              {t('sidebar', 'version')}
+              {String(t('sidebar', 'version'))}
             </div>
           </div>
           
@@ -289,7 +321,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                   AIUNIVERS
                 </div>
                 <div className="text-xs theme-text-tertiary">
-                  {t('sidebar', 'developed_by')}
+                  {String(t('sidebar', 'developed_by'))}
                 </div>
               </div>
             </div>

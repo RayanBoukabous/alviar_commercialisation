@@ -10,7 +10,7 @@ export const useTranslation = (namespace: string) => {
             const rootKey = keys[0];
 
             // Get the root object from the namespace
-            const rootTranslation = contextT(namespace as 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login', rootKey);
+            const rootTranslation = contextT(namespace as 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login' | 'logs', rootKey);
 
             if (typeof rootTranslation === 'object' && rootTranslation !== null) {
                 // Navigate through nested keys
@@ -39,7 +39,7 @@ export const useTranslation = (namespace: string) => {
             }
         } else {
             // Handle simple keys
-            const translation = contextT(namespace as 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login', key);
+            const translation = contextT(namespace as 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login' | 'logs', key);
 
             // Replace parameters if provided
             if (params && typeof translation === 'string') {

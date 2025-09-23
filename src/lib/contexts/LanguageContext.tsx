@@ -21,12 +21,13 @@ interface TranslationData {
   permissions: Translations;
   paymentPlans: Translations;
   login: Translations;
+  logs: Translations;
 }
 
 interface LanguageContextType {
   currentLocale: Locale;
   changeLanguage: (locale: Locale) => void;
-  t: (namespace: 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'users' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login', key: string) => string | object;
+  t: (namespace: 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'users' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login' | 'logs', key: string) => string | object;
   loading: boolean;
 }
 
@@ -50,7 +51,8 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     roles: {},
     permissions: {},
     paymentPlans: {},
-    login: {}
+    login: {},
+    logs: {}
   });
   const [loading, setLoading] = useState(true);
 
@@ -60,7 +62,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       setLoading(true);
       console.log(`🌍 Chargement des traductions pour: ${locale}`);
       
-      const [sidebarRes, commonRes, headerRes, dashboardRes, clientsRes, usersRes, configsRes, adminsRes, rolesRes, permissionsRes, paymentPlansRes, loginRes] = await Promise.all([
+      const [sidebarRes, commonRes, headerRes, dashboardRes, clientsRes, usersRes, configsRes, adminsRes, rolesRes, permissionsRes, paymentPlansRes, loginRes, logsRes] = await Promise.all([
         fetch(`/locales/${locale}/sidebar.json`),
         fetch(`/locales/${locale}/common.json`),
         fetch(`/locales/${locale}/header.json`),
@@ -72,14 +74,15 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
         fetch(`/locales/${locale}/roles.json`),
         fetch(`/locales/${locale}/permissions.json`),
         fetch(`/locales/${locale}/paymentPlans.json`),
-        fetch(`/locales/${locale}/login.json`)
+        fetch(`/locales/${locale}/login.json`),
+        fetch(`/locales/${locale}/logs.json`)
       ]);
 
-      if (!sidebarRes.ok || !commonRes.ok || !headerRes.ok || !dashboardRes.ok || !clientsRes.ok || !usersRes.ok || !configsRes.ok || !adminsRes.ok || !rolesRes.ok || !permissionsRes.ok || !paymentPlansRes.ok || !loginRes.ok) {
+      if (!sidebarRes.ok || !commonRes.ok || !headerRes.ok || !dashboardRes.ok || !clientsRes.ok || !usersRes.ok || !configsRes.ok || !adminsRes.ok || !rolesRes.ok || !permissionsRes.ok || !paymentPlansRes.ok || !loginRes.ok || !logsRes.ok) {
         throw new Error(`Failed to load translations for ${locale}`);
       }
 
-      const [sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login] = await Promise.all([
+      const [sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login, logs] = await Promise.all([
         sidebarRes.json(),
         commonRes.json(),
         headerRes.json(),
@@ -91,11 +94,12 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
         rolesRes.json(),
         permissionsRes.json(),
         paymentPlansRes.json(),
-        loginRes.json()
+        loginRes.json(),
+        logsRes.json()
       ]);
 
-      console.log(`✅ Traductions chargées pour ${locale}:`, { sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login });
-      setTranslations({ sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login });
+      console.log(`✅ Traductions chargées pour ${locale}:`, { sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login, logs });
+      setTranslations({ sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login, logs });
     } catch (error) {
       console.error(`❌ Erreur lors du chargement des traductions pour ${locale}:`, error);
       
@@ -103,7 +107,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       if (locale !== 'fr') {
         console.log('🔄 Fallback vers le français...');
         try {
-          const [sidebarRes, commonRes, headerRes, dashboardRes, clientsRes, usersRes, configsRes, adminsRes, rolesRes, permissionsRes, paymentPlansRes, loginRes] = await Promise.all([
+          const [sidebarRes, commonRes, headerRes, dashboardRes, clientsRes, usersRes, configsRes, adminsRes, rolesRes, permissionsRes, paymentPlansRes, loginRes, logsRes] = await Promise.all([
             fetch('/locales/fr/sidebar.json'),
             fetch('/locales/fr/common.json'),
             fetch('/locales/fr/header.json'),
@@ -115,9 +119,10 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
             fetch('/locales/fr/roles.json'),
             fetch('/locales/fr/permissions.json'),
             fetch('/locales/fr/paymentPlans.json'),
-            fetch('/locales/fr/login.json')
+            fetch('/locales/fr/login.json'),
+            fetch('/locales/fr/logs.json')
           ]);
-          const [sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login] = await Promise.all([
+          const [sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login, logs] = await Promise.all([
             sidebarRes.json(),
             commonRes.json(),
             headerRes.json(),
@@ -129,9 +134,10 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
             rolesRes.json(),
             permissionsRes.json(),
             paymentPlansRes.json(),
-            loginRes.json()
+            loginRes.json(),
+            logsRes.json()
           ]);
-          setTranslations({ sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login });
+          setTranslations({ sidebar, common, header, dashboard, clients, users, configs, admins, roles, permissions, paymentPlans, login, logs });
         } catch (fallbackError) {
           console.error('❌ Erreur lors du fallback:', fallbackError);
         }
@@ -162,7 +168,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     localStorage.setItem('preferred-language', locale);
   };
 
-  const t = (namespace: 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'users' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login', key: string): string | object => {
+  const t = (namespace: 'sidebar' | 'common' | 'header' | 'dashboard' | 'clients' | 'users' | 'configs' | 'admins' | 'roles' | 'permissions' | 'paymentPlans' | 'login' | 'logs', key: string): string | object => {
     const translation = translations[namespace]?.[key];
     if (!translation) {
       console.warn(`⚠️ Traduction manquante: ${namespace}.${key} pour la langue ${currentLocale}`);

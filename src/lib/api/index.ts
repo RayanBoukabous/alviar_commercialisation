@@ -9,6 +9,7 @@ export { usersService } from './usersService';
 export { RolesService as rolesService } from './rolesService';
 export { PermissionsService as permissionsService } from './permissionsService';
 export { PaymentPlansService as paymentPlansService } from './paymentPlansService';
+export { logsService } from './logsService';
 export type { ApiResponse, ApiError } from './client';
 
 // Re-exports des services individuels pour faciliter l'import
@@ -24,17 +25,10 @@ export {
 
 // Re-exports des types de liveness
 export type {
-  LegacyLivenessSession,
+  LivenessSession,
   LivenessMetrics,
   LivenessFilters,
 } from './livenessService';
-
-// Re-exports des nouveaux types de liveness
-export type {
-  LivenessSession,
-  LivenessResult,
-  LivenessFrame,
-} from '@/types';
 
 // Re-exports des types de clients
 export type {
@@ -90,3 +84,12 @@ export type {
   BillingCyclesAndCurrencies,
   CreatePaymentPlanRequest,
 } from './paymentPlansService';
+
+// Re-exports des types de logs
+export type {
+  RequestLog,
+  LogStats,
+  LogsResponse,
+  GetRequestLogsParams,
+  GetLogStatsParams,
+} from './logsService';

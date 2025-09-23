@@ -9,6 +9,9 @@
     "roles": "Uloge",
     "permissions": "Dozvole",
     "payment_plans": "Planovi plaćanja",
+    "logs": "Logovi",
+    "request_logs": "Logovi zahteva",
+    "logs_stats": "Statistike logova",
     "version": "Verzija 1.0.0",
     "developed_by": "Razvijeno od strane AIUNIVERS",
     "no_results": "Nema rezultata"

@@ -166,7 +166,7 @@ function LoginForm() {
                                         : 'bg-white/90 border-emerald-200'
                                 }`}>
                                     <Image
-                                        src="/MainLogo.png"
+                                        src={isDark ? "/MainLogoDark.png" : "/MainLogo.png"}
                                         alt="AIKAMELEON Logo"
                                         width={80}
                                         height={40}
@@ -383,7 +383,7 @@ function LoginForm() {
                                         : 'bg-gradient-to-br from-emerald-100/80 to-green-100/80 border-emerald-200/50'
                                 }`}>
                                     <Image
-                                        src="/MainLogo.png"
+                                        src={isDark ? "/MainLogoDark.png" : "/MainLogo.png"}
                                         alt="AIKAMELEON"
                                         width={120}
                                         height={60}

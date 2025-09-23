@@ -8,7 +8,10 @@
     "roles_permissions": "Rôles & Permissions",
     "roles": "Rôles",
     "permissions": "Permissions",
-    "payment_plans": "Payment Plans",
+    "payment_plans": "Plans de paiement",
+    "logs": "Journaux",
+    "request_logs": "Journaux de requêtes",
+    "logs_stats": "Statistiques des journaux",
     "version": "Version 1.0.0",
     "developed_by": "Developed by AIUNIVERS",
     "no_results": "Aucun résultat trouvé"

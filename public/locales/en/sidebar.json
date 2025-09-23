@@ -9,6 +9,9 @@
     "roles": "Roles",
     "permissions": "Permissions",
     "payment_plans": "Payment Plans",
+    "logs": "Logs",
+    "request_logs": "Request Logs",
+    "logs_stats": "Logs Statistics",
     "version": "Version 1.0.0",
     "developed_by": "Developed by AIUNIVERS",
     "no_results": "No results found"

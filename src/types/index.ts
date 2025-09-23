@@ -507,3 +507,37 @@ export interface LivenessSession {
   livenessResults: LivenessResult[];
   frames: LivenessFrame[];
 }
+
+// Types pour les logs
+export interface RequestLog {
+  id: string;
+  level: string;
+  message: string;
+  service: string;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+export interface LogStats {
+  levels: Array<{
+    key: string;
+    doc_count: number;
+  }>;
+  services: Array<{
+    key: string;
+    doc_count: number;
+  }>;
+  timeline: Array<{
+    key_as_string: string;
+    key: number;
+    doc_count: number;
+  }>;
+}
+
+export interface LogsResponse {
+  logs: RequestLog[];
+  total: number;
+  page: number;
+  size: number;
+  totalPages: number | null;
+}

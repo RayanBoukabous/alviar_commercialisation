@@ -41,3 +41,4 @@ export const useSearch = (): SearchContextType => {
   }
   return context;
 };
+
