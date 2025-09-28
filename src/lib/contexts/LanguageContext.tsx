@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type Locale = 'fr' | 'en' | 'sr';
+export type Locale = 'fr' | 'en' | 'ar';
 
 interface Translations {
   [key: string]: string;

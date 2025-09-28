@@ -46,19 +46,19 @@ function LoginForm() {
     return (
         <div className={`min-h-screen relative overflow-hidden transition-all duration-500 ${
             isDark 
-                ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900' 
-                : 'bg-gradient-to-br from-emerald-50 via-white to-green-50'
+                ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-red-900' 
+                : 'bg-gradient-to-br from-red-50 via-white to-red-50'
         }`}>
             {/* Animated Background Elements */}
             <div className="absolute inset-0 overflow-hidden">
                 <div className={`absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse ${
-                    isDark ? 'bg-emerald-600' : 'bg-emerald-200'
+                    isDark ? 'bg-red-600' : 'bg-red-200'
                 }`}></div>
                 <div className={`absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse ${
-                    isDark ? 'bg-green-600' : 'bg-green-200'
+                    isDark ? 'bg-red-700' : 'bg-red-300'
                 }`}></div>
                 <div className={`absolute top-40 left-40 w-60 h-60 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse ${
-                    isDark ? 'bg-teal-600' : 'bg-teal-200'
+                    isDark ? 'bg-red-800' : 'bg-red-400'
                 }`}></div>
             </div>
 
@@ -89,7 +89,7 @@ function LoginForm() {
                         <div
                             key={i}
                             className={`absolute w-2 h-2 rounded-full opacity-30 animate-pulse ${
-                                isDark ? 'bg-emerald-400' : 'bg-emerald-400'
+                                isDark ? 'bg-red-400' : 'bg-red-400'
                             }`}
                             style={{
                                 left: `${pos.left}%`,
@@ -107,7 +107,7 @@ function LoginForm() {
                 <div className="relative group">
                     {/* Glow effect */}
                     <div className={`absolute inset-0 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                        isDark ? 'bg-emerald-500/30' : 'bg-emerald-400/30'
+                        isDark ? 'bg-red-500/30' : 'bg-red-400/30'
                     }`}></div>
                     
                     {/* Main button */}
@@ -115,8 +115,8 @@ function LoginForm() {
                         onClick={toggleTheme}
                         className={`relative px-4 py-3 rounded-2xl backdrop-blur-xl border-2 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl ${
                             isDark 
-                                ? 'bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-500/50 text-emerald-400 hover:border-emerald-400/70 hover:shadow-emerald-500/20' 
-                                : 'bg-gradient-to-br from-white/90 to-emerald-50/90 border-emerald-300/50 text-emerald-600 hover:border-emerald-500/70 hover:shadow-emerald-400/20'
+                                ? 'bg-gradient-to-br from-slate-800/90 to-slate-700/90 border-slate-500/50 text-red-400 hover:border-red-400/70 hover:shadow-red-500/20' 
+                                : 'bg-gradient-to-br from-white/90 to-red-50/90 border-red-300/50 text-red-600 hover:border-red-500/70 hover:shadow-red-400/20'
                         }`}
                         aria-label="Toggle theme"
                     >
@@ -124,7 +124,7 @@ function LoginForm() {
                             {/* Icon with animation */}
                             <div className="relative">
                                 <div className={`absolute inset-0 rounded-full animate-pulse ${
-                                    isDark ? 'bg-emerald-400/20' : 'bg-emerald-500/20'
+                                    isDark ? 'bg-red-400/20' : 'bg-red-500/20'
                                 }`}></div>
                                 {isDark ? (
                                     <Sun size={20} className="relative animate-spin-slow" />
@@ -144,8 +144,8 @@ function LoginForm() {
                         {/* Hover effect overlay */}
                         <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
                             isDark 
-                                ? 'bg-gradient-to-r from-emerald-500/10 to-transparent' 
-                                : 'bg-gradient-to-r from-emerald-400/10 to-transparent'
+                                ? 'bg-gradient-to-r from-red-500/10 to-transparent' 
+                                : 'bg-gradient-to-r from-red-400/10 to-transparent'
                         }`}></div>
                     </button>
                 </div>
@@ -159,29 +159,29 @@ function LoginForm() {
                         {/* Logo Section */}
                         <div className="text-center mb-12">
                             <div className="relative inline-block mb-6">
-                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full blur-lg opacity-40 animate-pulse"></div>
+                                <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-500 rounded-full blur-lg opacity-40 animate-pulse"></div>
                                 <div className={`relative backdrop-blur-sm rounded-full p-4 border shadow-lg ${
                                     isDark 
                                         ? 'bg-slate-800/90 border-slate-600' 
-                                        : 'bg-white/90 border-emerald-200'
+                                        : 'bg-white/90 border-red-200'
                                 }`}>
                                     <Image
-                                        src={isDark ? "/MainLogoDark.png" : "/MainLogo.png"}
-                                        alt="AIKAMELEON Logo"
+                                        src={isDark ? "/ALVIAR-Logo-Dark.svg" : "/ALVIAR-Logo.svg"}
+                                        alt="ALVIAR Logo"
                                         width={80}
                                         height={40}
                                         className="mx-auto"
                                     />
                                 </div>
                             </div>
-                            <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent mb-2">
-                                AIKAMELEON
+                            <h1 className="text-4xl font-bold bg-gradient-to-r from-red-600 via-red-700 to-red-800 bg-clip-text text-transparent mb-2">
+                                ALVIAR
                             </h1>
-                            <p className={`text-lg font-medium ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>KYC Dashboard</p>
+                            <p className={`text-lg font-medium ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Dashboard Commercialisation</p>
                             <div className="flex justify-center items-center mt-4 space-x-2">
-                                <Shield className="w-5 h-5 text-emerald-500" />
+                                <Shield className="w-5 h-5 text-red-500" />
                                 <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Secure Authentication</span>
-                                <Zap className="w-5 h-5 text-green-500" />
+                                <Zap className="w-5 h-5 text-red-600" />
                             </div>
                         </div>
 
@@ -189,7 +189,7 @@ function LoginForm() {
                         <div className={`backdrop-blur-xl rounded-3xl p-8 border shadow-2xl ${
                             isDark 
                                 ? 'bg-slate-800/95 border-slate-600' 
-                                : 'bg-white/95 border-emerald-200'
+                                : 'bg-white/95 border-red-200'
                         }`}>
                             <div className="text-center mb-8">
                                 <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-slate-100' : 'text-gray-800'}`}>Welcome Back</h2>
@@ -216,7 +216,7 @@ function LoginForm() {
                                         Email Address
                                     </label>
                                     <div className="relative group">
-                                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
                                         <div className="relative">
                                             <Mail className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDark ? 'text-slate-400' : 'text-gray-400'}`} />
                                             <input
@@ -224,7 +224,7 @@ function LoginForm() {
                                                 id="email"
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
-                                                className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400 transition-all duration-300 shadow-sm ${
+                                                className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400/50 focus:border-red-400 transition-all duration-300 shadow-sm ${
                                                     isDark 
                                                         ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' 
                                                         : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'
@@ -242,7 +242,7 @@ function LoginForm() {
                                         Password
                                     </label>
                                     <div className="relative group">
-                                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
                                         <div className="relative">
                                             <Lock className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDark ? 'text-slate-400' : 'text-gray-400'}`} />
                                             <input
@@ -250,7 +250,7 @@ function LoginForm() {
                                                 id="password"
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
-                                                className={`w-full pl-12 pr-12 py-4 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400 transition-all duration-300 shadow-sm ${
+                                                className={`w-full pl-12 pr-12 py-4 border rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400/50 focus:border-red-400 transition-all duration-300 shadow-sm ${
                                                     isDark 
                                                         ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' 
                                                         : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'
@@ -278,7 +278,7 @@ function LoginForm() {
                                     className={`w-full relative group overflow-hidden rounded-xl py-4 px-6 font-semibold text-white transition-all duration-300 ${
                                         loading 
                                             ? 'bg-gray-300 cursor-not-allowed' 
-                                            : 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 hover:shadow-lg hover:shadow-emerald-500/25 hover:scale-[1.02] active:scale-[0.98]'
+                                            : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 hover:shadow-lg hover:shadow-red-500/25 hover:scale-[1.02] active:scale-[0.98]'
                                     }`}
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -304,8 +304,8 @@ function LoginForm() {
                                     href="/forgot-password" 
                                     className={`transition-colors duration-200 text-sm font-medium ${
                                         isDark 
-                                            ? 'text-slate-400 hover:text-emerald-400' 
-                                            : 'text-gray-600 hover:text-emerald-600'
+                                            ? 'text-slate-400 hover:text-red-400' 
+                                            : 'text-gray-600 hover:text-red-600'
                                     }`}
                                 >
                                     Forgot your password?
@@ -318,25 +318,25 @@ function LoginForm() {
                             <div className={`backdrop-blur-sm rounded-xl p-4 border shadow-sm ${
                                 isDark 
                                     ? 'bg-slate-800/80 border-slate-600' 
-                                    : 'bg-white/80 border-emerald-200'
+                                    : 'bg-white/80 border-red-200'
                             }`}>
-                                <Shield className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
+                                <Shield className="w-6 h-6 text-red-500 mx-auto mb-2" />
                                 <p className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Secure</p>
                             </div>
                             <div className={`backdrop-blur-sm rounded-xl p-4 border shadow-sm ${
                                 isDark 
                                     ? 'bg-slate-800/80 border-slate-600' 
-                                    : 'bg-white/80 border-green-200'
+                                    : 'bg-white/80 border-red-300'
                             }`}>
-                                <Zap className="w-6 h-6 text-green-500 mx-auto mb-2" />
+                                <Zap className="w-6 h-6 text-red-600 mx-auto mb-2" />
                                 <p className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Fast</p>
                             </div>
                             <div className={`backdrop-blur-sm rounded-xl p-4 border shadow-sm ${
                                 isDark 
                                     ? 'bg-slate-800/80 border-slate-600' 
-                                    : 'bg-white/80 border-teal-200'
+                                    : 'bg-white/80 border-red-400'
                             }`}>
-                                <Sparkles className="w-6 h-6 text-teal-500 mx-auto mb-2" />
+                                <Sparkles className="w-6 h-6 text-red-700 mx-auto mb-2" />
                                 <p className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Modern</p>
                             </div>
                         </div>
@@ -351,28 +351,28 @@ function LoginForm() {
                             <div className="relative">
                                 {/* Outer Ring */}
                                 <div className={`w-96 h-96 border rounded-full animate-spin-slow ${
-                                    isDark ? 'border-emerald-600/30' : 'border-emerald-200/30'
+                                    isDark ? 'border-red-600/30' : 'border-red-200/30'
                                 }`}>
                                     <div className={`w-full h-full border rounded-full animate-pulse ${
-                                        isDark ? 'border-emerald-400/40' : 'border-emerald-400/40'
+                                        isDark ? 'border-red-400/40' : 'border-red-400/40'
                                     }`}></div>
                                 </div>
                                 
                                 {/* Middle Ring */}
                                 <div className={`absolute inset-8 border rounded-full animate-spin-reverse ${
-                                    isDark ? 'border-green-600/40' : 'border-green-200/40'
+                                    isDark ? 'border-red-700/40' : 'border-red-300/40'
                                 }`}>
                                     <div className={`w-full h-full border rounded-full animate-pulse ${
-                                        isDark ? 'border-green-400/40' : 'border-green-400/40'
+                                        isDark ? 'border-red-500/40' : 'border-red-500/40'
                                     }`}></div>
                                 </div>
                                 
                                 {/* Inner Ring */}
                                 <div className={`absolute inset-16 border rounded-full animate-spin-slow ${
-                                    isDark ? 'border-teal-600/50' : 'border-teal-200/50'
+                                    isDark ? 'border-red-800/50' : 'border-red-400/50'
                                 }`}>
                                     <div className={`w-full h-full border rounded-full animate-pulse ${
-                                        isDark ? 'border-teal-400/40' : 'border-teal-400/40'
+                                        isDark ? 'border-red-600/40' : 'border-red-600/40'
                                     }`}></div>
                                 </div>
                                 
@@ -380,11 +380,11 @@ function LoginForm() {
                                 <div className={`absolute inset-24 rounded-full backdrop-blur-sm border flex items-center justify-center shadow-lg ${
                                     isDark 
                                         ? 'bg-gradient-to-br from-slate-800/80 to-slate-700/80 border-slate-600/50' 
-                                        : 'bg-gradient-to-br from-emerald-100/80 to-green-100/80 border-emerald-200/50'
+                                        : 'bg-gradient-to-br from-red-100/80 to-red-200/80 border-red-200/50'
                                 }`}>
                                     <Image
-                                        src={isDark ? "/MainLogoDark.png" : "/MainLogo.png"}
-                                        alt="AIKAMELEON"
+                                        src={isDark ? "/ALVIAR-Logo-Dark.svg" : "/ALVIAR-Logo.svg"}
+                                        alt="ALVIAR"
                                         width={120}
                                         height={60}
                                         className="opacity-90"
@@ -394,10 +394,10 @@ function LoginForm() {
                         </div>
 
                         {/* Floating Elements */}
-                        <div className="absolute top-20 left-20 w-4 h-4 bg-emerald-400 rounded-full animate-bounce shadow-lg"></div>
-                        <div className="absolute top-40 right-32 w-3 h-3 bg-green-400 rounded-full animate-bounce shadow-lg" style={{animationDelay: '0.5s'}}></div>
-                        <div className="absolute bottom-32 left-32 w-5 h-5 bg-teal-400 rounded-full animate-bounce shadow-lg" style={{animationDelay: '1s'}}></div>
-                        <div className="absolute bottom-20 right-20 w-2 h-2 bg-emerald-300 rounded-full animate-bounce shadow-lg" style={{animationDelay: '1.5s'}}></div>
+                        <div className="absolute top-20 left-20 w-4 h-4 bg-red-400 rounded-full animate-bounce shadow-lg"></div>
+                        <div className="absolute top-40 right-32 w-3 h-3 bg-red-500 rounded-full animate-bounce shadow-lg" style={{animationDelay: '0.5s'}}></div>
+                        <div className="absolute bottom-32 left-32 w-5 h-5 bg-red-600 rounded-full animate-bounce shadow-lg" style={{animationDelay: '1s'}}></div>
+                        <div className="absolute bottom-20 right-20 w-2 h-2 bg-red-300 rounded-full animate-bounce shadow-lg" style={{animationDelay: '1.5s'}}></div>
                     </div>
                 </div>
             </div>
@@ -437,8 +437,8 @@ export default function Login() {
     if (isAuthenticated === undefined) {
         return (
             <ThemeProvider>
-                <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+                <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
                 </div>
             </ThemeProvider>
         );

@@ -18,7 +18,9 @@ import {
   Shield,
   Key,
   CreditCard,
-  FileText
+  FileText,
+  Heart,
+  Package
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -38,6 +40,24 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
     label: String(t('sidebar', 'clients')),
     href: '/dashboard/clients',
     icon: Building2,
+  },
+  {
+    id: 'abattoirs',
+    label: String(t('sidebar', 'abattoirs')),
+    href: '/dashboard/abattoirs',
+    icon: Building2,
+  },
+  {
+    id: 'livestock',
+    label: String(t('sidebar', 'livestock')),
+    href: '/dashboard/livestock',
+    icon: Heart,
+  },
+  {
+    id: 'stock-management',
+    label: String(t('sidebar', 'stock_management')),
+    href: '/dashboard/stock-management',
+    icon: Package,
   },
   {
     id: 'configs',
@@ -130,6 +150,10 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   // Déterminer l'item actif basé sur l'URL actuelle
   const getActiveItem = () => {
     if (pathname.startsWith('/dashboard/clients')) return 'clients';
+    if (pathname.startsWith('/dashboard/abattoirs')) return 'abattoirs';
+    if (pathname.startsWith('/dashboard/livestock')) return 'livestock';
+    if (pathname.startsWith('/dashboard/stock-management')) return 'stock-management';
+    if (pathname.startsWith('/dashboard/configs')) return 'configs';
     if (pathname.startsWith('/dashboard/users/admins')) return 'admins';
     if (pathname.startsWith('/dashboard/users/list')) return 'users-list';
     if (pathname.startsWith('/dashboard/users')) return 'users';
