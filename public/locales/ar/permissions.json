@@ -1,0 +1,27 @@
+{
+    "title": "الصلاحيات",
+    "subtitle": "إدارة صلاحيات النظام",
+    "refresh": "تحديث",
+    "new_permission": "صلاحية جديدة",
+    "search_placeholder": "البحث عن صلاحية...",
+    "all_categories": "جميع الفئات",
+    "filters": "المرشحات",
+    "permission": "الصلاحية",
+    "name": "الاسم",
+    "description": "الوصف",
+    "category": "الفئة",
+    "created_by": "أنشئ بواسطة",
+    "creation_date": "تاريخ الإنشاء",
+    "actions": "الإجراءات",
+    "view_permission": "عرض الصلاحية",
+    "edit_permission": "تعديل الصلاحية",
+    "delete_permission": "حذف الصلاحية",
+    "no_permissions_found": "لم يتم العثور على صلاحيات",
+    "start_adding": "ابدأ بإضافة أول صلاحية لك.",
+    "delete_confirmation": "هل أنت متأكد من حذف الصلاحية \"{name}\"؟\n\nهذا الإجراء لا يمكن التراجع عنه.",
+    "permission_deleted": "تم حذف الصلاحية \"{name}\" بنجاح",
+    "loading_error": "خطأ في تحميل الصلاحيات",
+    "refresh_error": "خطأ في تحديث الصلاحيات",
+    "delete_error": "خطأ في حذف الصلاحية"
+}
+

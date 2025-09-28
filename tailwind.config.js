@@ -8,6 +8,33 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        'sans': [
+          'Inter',
+          'Roboto',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'sans-serif'
+        ],
+        'display': [
+          'Inter',
+          'Roboto',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'sans-serif'
+        ],
+        'mono': [
+          'JetBrains Mono',
+          'Fira Code',
+          'Consolas',
+          'Monaco',
+          'monospace'
+        ],
+      },
       colors: {
         // Couleurs principales (Vert)
         primary: {

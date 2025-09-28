@@ -88,8 +88,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               <div className="mx-auto mb-6 relative">
                 <div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary-500 to-primary-600 rounded-3xl flex items-center justify-center shadow-2xl border-4 border-white/20 backdrop-blur-sm">
                   <Image
-                    src="/MainLogo.png"
-                    alt="AIKAMELEON"
+                    src="/ALVIAR-Logo.svg"
+                    alt="ALVIAR"
                     width={56}
                     height={56}
                     className="w-14 h-14 object-contain"
@@ -103,7 +103,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               </div>
               
               <h1 className="text-3xl font-extrabold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent mb-3 tracking-tight">
-                AIKAMELEON
+                ALVIAR
               </h1>
               <p className="text-base theme-text-secondary font-medium">
                 {t('secureIdentityPlatform')}

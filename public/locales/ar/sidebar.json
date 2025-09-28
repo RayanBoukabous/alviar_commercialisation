@@ -1,0 +1,21 @@
+{
+    "dashboard": "لوحة التحكم",
+    "clients": "العملاء",
+    "abattoirs": "المجازر",
+    "livestock": "الماشية",
+    "stock_management": "إدارة المخزون",
+    "configurations": "التكوينات",
+    "users": "المستخدمون",
+    "admin": "المديرون",
+    "user": "المستخدمون",
+    "roles_permissions": "الأدوار والصلاحيات",
+    "roles": "الأدوار",
+    "permissions": "الصلاحيات",
+    "payment_plans": "خطط الدفع",
+    "logs": "السجلات",
+    "request_logs": "سجلات الطلبات",
+    "logs_stats": "إحصائيات السجلات",
+    "version": "الإصدار 1.0.0",
+    "developed_by": "مطور بواسطة ALVIAR",
+    "no_results": "لا توجد نتائج"
+}

@@ -1,0 +1,22 @@
+{
+    "title": "السجلات",
+    "subtitle": "عرض وتحليل سجلات النظام",
+    "refresh": "تحديث",
+    "search_placeholder": "البحث في السجلات...",
+    "all_levels": "جميع المستويات",
+    "info": "معلومات",
+    "warning": "تحذير",
+    "error": "خطأ",
+    "debug": "تصحيح",
+    "filters": "المرشحات",
+    "level": "المستوى",
+    "message": "الرسالة",
+    "timestamp": "الوقت",
+    "source": "المصدر",
+    "actions": "الإجراءات",
+    "view_log": "عرض السجل",
+    "no_logs_found": "لم يتم العثور على سجلات",
+    "loading_error": "خطأ في تحميل السجلات",
+    "refresh_error": "خطأ في تحديث السجلات"
+}
+

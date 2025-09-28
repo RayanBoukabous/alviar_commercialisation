@@ -5,9 +5,9 @@ import { Globe } from 'lucide-react';
 import { useLanguage, Locale } from '@/lib/contexts/LanguageContext';
 
 const languages = [
-  { code: 'fr' as Locale, name: 'Français', flag: '🇫🇷' },
-  { code: 'en' as Locale, name: 'English', flag: '🇺🇸' },
-  { code: 'sr' as Locale, name: 'Српски', flag: '🇷🇸' },
+  { code: 'fr' as Locale, name: 'Français', flag: '🇫🇷', dir: 'ltr' },
+  { code: 'en' as Locale, name: 'English', flag: '🇺🇸', dir: 'ltr' },
+  { code: 'ar' as Locale, name: 'العربية', flag: '🇸🇦', dir: 'rtl' },
 ];
 
 interface LanguageSelectorProps {

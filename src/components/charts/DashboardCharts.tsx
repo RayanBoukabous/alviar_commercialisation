@@ -61,8 +61,9 @@ export function DashboardCharts({
   isLoading = false,
 }: DashboardChartsProps) {
   const { theme } = useTheme();
-  const { t, loading: translationLoading } = useLanguage();
-  // Données pour le graphique en barres
+  const { t, loading: translationLoading, currentLocale } = useLanguage();
+  const isRTL = currentLocale === 'ar';
+  // Données pour le graphique en barres avec dégradés
   const barChartData = {
     labels: [t('dashboard', 'users') as string, t('dashboard', 'admins') as string, t('dashboard', 'clients') as string, 'Sessions', 'Rôles', 'Permissions'],
     datasets: [
@@ -70,41 +71,59 @@ export function DashboardCharts({
         label: t('dashboard', 'total_number') as string,
         data: [usersData, adminsData, clientsData, sessionsData, rolesData, permissionsData],
         backgroundColor: [
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(239, 68, 68, 0.8)',
-          'rgba(34, 197, 94, 0.8)',
-          'rgba(168, 85, 247, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
+          'rgba(239, 68, 68, 0.9)',   // Rouge vif
+          'rgba(220, 38, 38, 0.9)',   // Rouge moyen
+          'rgba(185, 28, 28, 0.9)',   // Rouge foncé
+          'rgba(153, 27, 27, 0.9)',   // Rouge très foncé
+          'rgba(127, 29, 29, 0.9)',   // Rouge bordeaux
+          'rgba(248, 113, 113, 0.9)', // Rouge clair
         ],
         borderColor: [
-          'rgba(59, 130, 246, 1)',
           'rgba(239, 68, 68, 1)',
-          'rgba(34, 197, 94, 1)',
-          'rgba(168, 85, 247, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(16, 185, 129, 1)',
+          'rgba(220, 38, 38, 1)',
+          'rgba(185, 28, 28, 1)',
+          'rgba(153, 27, 27, 1)',
+          'rgba(127, 29, 29, 1)',
+          'rgba(248, 113, 113, 1)',
         ],
-        borderWidth: 2,
+        borderWidth: 3,
+        borderRadius: 8,
+        borderSkipped: false,
+        hoverBackgroundColor: [
+          'rgba(239, 68, 68, 1)',
+          'rgba(220, 38, 38, 1)',
+          'rgba(185, 28, 28, 1)',
+          'rgba(153, 27, 27, 1)',
+          'rgba(127, 29, 29, 1)',
+          'rgba(248, 113, 113, 1)',
+        ],
+        hoverBorderWidth: 4,
       },
     ],
   };
 
-  // Données pour le graphique en donut (Users vs Admins)
+  // Données pour le graphique en donut (Users vs Admins) avec dégradés
   const donutChartData = {
     labels: [t('dashboard', 'users') as string, t('dashboard', 'admins') as string],
     datasets: [
       {
         data: [usersData, adminsData],
         backgroundColor: [
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(239, 68, 68, 0.8)',
+          'rgba(239, 68, 68, 0.9)',   // Rouge vif pour Users
+          'rgba(220, 38, 38, 0.9)',   // Rouge moyen pour Admins
         ],
         borderColor: [
-          'rgba(59, 130, 246, 1)',
           'rgba(239, 68, 68, 1)',
+          'rgba(220, 38, 38, 1)',
         ],
-        borderWidth: 2,
+        borderWidth: 4,
+        hoverBackgroundColor: [
+          'rgba(239, 68, 68, 1)',
+          'rgba(220, 38, 38, 1)',
+        ],
+        hoverBorderWidth: 6,
+        cutout: '60%',
+        spacing: 2,
       },
     ],
   };
@@ -137,36 +156,79 @@ export function DashboardCharts({
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 2000,
+      easing: 'easeInOutQuart',
+    },
     plugins: {
       legend: {
         position: 'top' as const,
         labels: {
           color: theme === 'dark' ? '#f5f5f5' : '#0f172a',
           font: {
-            size: 12,
+            size: 13,
+            weight: '600',
           },
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 20,
         },
       },
       title: {
         display: false,
+      },
+      tooltip: {
+        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+        titleColor: theme === 'dark' ? '#f5f5f5' : '#0f172a',
+        bodyColor: theme === 'dark' ? '#d4d4d4' : '#475569',
+        borderColor: '#ef4444',
+        borderWidth: 2,
+        cornerRadius: 12,
+        displayColors: true,
+        titleFont: {
+          size: 14,
+          weight: 'bold',
+        },
+        bodyFont: {
+          size: 13,
+        },
+        padding: 12,
       },
     },
     scales: {
       y: {
         beginAtZero: true,
         grid: {
-          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+          drawBorder: false,
         },
         ticks: {
           color: theme === 'dark' ? '#d4d4d4' : '#475569',
+          font: {
+            size: 12,
+            weight: '500',
+          },
+          padding: 8,
+        },
+        border: {
+          display: false,
         },
       },
       x: {
         grid: {
-          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+          display: false,
         },
         ticks: {
           color: theme === 'dark' ? '#d4d4d4' : '#475569',
+          mirror: isRTL,
+          font: {
+            size: 12,
+            weight: '500',
+          },
+          padding: 8,
+        },
+        border: {
+          display: false,
         },
       },
     },
@@ -175,15 +237,49 @@ export function DashboardCharts({
   const donutOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 2500,
+      easing: 'easeInOutQuart',
+    },
     plugins: {
       legend: {
         position: 'bottom' as const,
         labels: {
           color: theme === 'dark' ? '#f5f5f5' : '#0f172a',
           font: {
-            size: 12,
+            size: 13,
+            weight: '600',
           },
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 15,
         },
+      },
+      tooltip: {
+        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+        titleColor: theme === 'dark' ? '#f5f5f5' : '#0f172a',
+        bodyColor: theme === 'dark' ? '#d4d4d4' : '#475569',
+        borderColor: '#ef4444',
+        borderWidth: 2,
+        cornerRadius: 12,
+        displayColors: true,
+        titleFont: {
+          size: 14,
+          weight: 'bold',
+        },
+        bodyFont: {
+          size: 13,
+        },
+        padding: 12,
+        callbacks: {
+          label: function(context: any) {
+            const label = context.label || '';
+            const value = context.parsed;
+            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+            const percentage = ((value / total) * 100).toFixed(1);
+            return `${label}: ${value} (${percentage}%)`;
+          }
+        }
       },
     },
   };

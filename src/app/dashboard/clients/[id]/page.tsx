@@ -26,8 +26,6 @@ import { useRequireAuth } from '@/lib/hooks/useAuth';
 import { clientsService, Client, LivenessConfig, livenessService } from '@/lib/api';
 import { MatchingConfig, SilentLivenessConfig, LivenessSession } from '@/types';
 import { Layout } from '@/components/layout/Layout';
-import { CreateConfigModal } from '@/components/forms/CreateConfigModal';
-import { EditConfigModal } from '@/components/forms/EditConfigModal';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 export default function ClientViewPage() {
@@ -1059,46 +1057,6 @@ export default function ClientViewPage() {
           </div>
         </div>
 
-        {/* Create Config Modal */}
-        <CreateConfigModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-          onSuccess={handleCreateSuccess}
-          clients={client ? [client] : []}
-        />
-
-        {/* Edit Liveness Config Modal */}
-        <EditConfigModal
-          isOpen={isEditLivenessModalOpen}
-          onClose={() => {
-            setIsEditLivenessModalOpen(false);
-            setEditingLivenessConfig(null);
-          }}
-          onSuccess={handleLivenessEditSuccess}
-          config={editingLivenessConfig}
-        />
-
-        {/* Edit Matching Config Modal */}
-        <EditConfigModal
-          isOpen={isEditMatchingModalOpen}
-          onClose={() => {
-            setIsEditMatchingModalOpen(false);
-            setEditingMatchingConfig(null);
-          }}
-          onSuccess={handleMatchingEditSuccess}
-          config={editingMatchingConfig}
-        />
-
-        {/* Edit Silent Liveness Config Modal */}
-        <EditConfigModal
-          isOpen={isEditSilentLivenessModalOpen}
-          onClose={() => {
-            setIsEditSilentLivenessModalOpen(false);
-            setEditingSilentLivenessConfig(null);
-          }}
-          onSuccess={handleSilentLivenessEditSuccess}
-          config={editingSilentLivenessConfig}
-        />
       </div>
     </Layout>
   );
