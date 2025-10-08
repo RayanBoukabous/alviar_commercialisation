@@ -299,26 +299,30 @@ export default function ReceptionPage() {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       PENDING: { 
-        bg: 'bg-yellow-100 dark:bg-yellow-900/30', 
-        text: 'text-yellow-800 dark:text-yellow-300', 
+        bg: 'bg-orange-200 dark:bg-orange-900/50', 
+        text: 'text-orange-900 dark:text-orange-100', 
+        border: 'border-orange-300 dark:border-orange-700',
         label: isRTL ? 'في الانتظار' : 'En attente',
         icon: Clock
       },
       IN_PROGRESS: { 
-        bg: 'bg-blue-100 dark:bg-blue-900/30', 
-        text: 'text-blue-800 dark:text-blue-300', 
+        bg: 'bg-blue-200 dark:bg-blue-900/50', 
+        text: 'text-blue-900 dark:text-blue-100', 
+        border: 'border-blue-300 dark:border-blue-700',
         label: isRTL ? 'قيد المعالجة' : 'En cours',
         icon: Activity
       },
       COMPLETED: { 
-        bg: 'bg-green-100 dark:bg-green-900/30', 
-        text: 'text-green-800 dark:text-green-300', 
+        bg: 'bg-green-200 dark:bg-green-900/50', 
+        text: 'text-green-900 dark:text-green-100', 
+        border: 'border-green-300 dark:border-green-700',
         label: isRTL ? 'مكتمل' : 'Terminé',
         icon: CheckCircle
       },
       CANCELLED: { 
-        bg: 'bg-red-100 dark:bg-red-900/30', 
-        text: 'text-red-800 dark:text-red-300', 
+        bg: 'bg-red-200 dark:bg-red-900/50', 
+        text: 'text-red-900 dark:text-red-100', 
+        border: 'border-red-300 dark:border-red-700',
         label: isRTL ? 'ملغي' : 'Annulé',
         icon: XCircle
       }
@@ -328,7 +332,7 @@ export default function ReceptionPage() {
     const IconComponent = config.icon;
     
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.bg} ${config.text} ${config.border}`}>
         <IconComponent className={`h-3 w-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
         {config.label}
       </span>

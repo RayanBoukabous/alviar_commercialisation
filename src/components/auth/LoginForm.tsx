@@ -6,7 +6,6 @@ import { Button, Input } from '@/components/ui';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Eye, EyeOff, Mail, Lock, LogIn, Shield, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
 import { useTranslation } from '@/lib/hooks/useTranslation';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 
@@ -87,8 +86,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             <div className="text-center mb-8">
               <div className="mx-auto mb-6 relative">
                 <div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary-500 to-primary-600 rounded-3xl flex items-center justify-center shadow-2xl border-4 border-white/20 backdrop-blur-sm">
-                  <Image
-                    src="/ALVIAR-Logo.svg"
+                  <img
+                    src="/alviar_logo.jpg"
                     alt="ALVIAR"
                     width={56}
                     height={56}

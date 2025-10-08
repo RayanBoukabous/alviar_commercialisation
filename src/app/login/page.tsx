@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles, Shield, Zap, Sun, Moon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth, useRequireGuest } from "@/lib/hooks/useAuth";
@@ -165,8 +164,8 @@ function LoginForm() {
                                         ? 'bg-slate-800/90 border-slate-600' 
                                         : 'bg-white/90 border-red-200'
                                 }`}>
-                                    <Image
-                                        src={isDark ? "/ALVIAR-Logo-Dark.svg" : "/ALVIAR-Logo.svg"}
+                                    <img
+                                        src="/alviar_logo.jpg"
                                         alt="ALVIAR Logo"
                                         width={80}
                                         height={40}
@@ -382,8 +381,8 @@ function LoginForm() {
                                         ? 'bg-gradient-to-br from-slate-800/80 to-slate-700/80 border-slate-600/50' 
                                         : 'bg-gradient-to-br from-red-100/80 to-red-200/80 border-red-200/50'
                                 }`}>
-                                    <Image
-                                        src={isDark ? "/ALVIAR-Logo-Dark.svg" : "/ALVIAR-Logo.svg"}
+                                    <img
+                                        src="/logo_complet.png"
                                         alt="ALVIAR"
                                         width={120}
                                         height={60}

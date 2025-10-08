@@ -1,6 +1,5 @@
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { NavItem } from '@/types';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
@@ -9,16 +8,8 @@ import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { 
   Home, 
-  Users, 
   ChevronRight,
-  Activity,
   Building2,
-  Cog,
-  User,
-  Shield,
-  Key,
-  CreditCard,
-  FileText,
   Heart,
   Package,
   Truck,
@@ -45,44 +36,44 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
     href: '/dashboard/clients',
     icon: Building2,
   },
-        {
-          id: 'reception',
-          label: String(t('sidebar', 'reception')),
-          href: '/dashboard/reception',
-          icon: Truck,
-        },
-        {
-          id: 'stabulation',
-          label: String(t('sidebar', 'stabulation')),
-          href: '/dashboard/stabulation',
-          icon: Warehouse,
-        },
-        {
-          id: 'aliment',
-          label: String(t('sidebar', 'aliment')),
-          href: '#',
-          icon: Wheat,
-          children: [
-            {
-              id: 'stock-aliment',
-              label: String(t('sidebar', 'stock_aliment')),
-              href: '/dashboard/aliment/stock',
-              icon: Package,
-            },
-            {
-              id: 'transfert-aliment',
-              label: String(t('sidebar', 'transfert_aliment')),
-              href: '/dashboard/aliment/transfert',
-              icon: ArrowRightLeft,
-            },
-          ],
-        },
-        {
-          id: 'abattoirs',
-          label: String(t('sidebar', 'abattoirs')),
-          href: '/dashboard/abattoirs',
-          icon: Building2,
-        },
+  {
+    id: 'reception',
+    label: String(t('sidebar', 'reception')),
+    href: '/dashboard/reception',
+    icon: Truck,
+  },
+  {
+    id: 'stabulation',
+    label: String(t('sidebar', 'stabulation')),
+    href: '/dashboard/stabulation',
+    icon: Warehouse,
+  },
+  {
+    id: 'aliment',
+    label: String(t('sidebar', 'aliment')),
+    href: '#',
+    icon: Wheat,
+    children: [
+      {
+        id: 'stock-aliment',
+        label: String(t('sidebar', 'stock_aliment')),
+        href: '/dashboard/aliment/stock',
+        icon: Package,
+      },
+      {
+        id: 'transfert-aliment',
+        label: String(t('sidebar', 'transfert_aliment')),
+        href: '/dashboard/aliment/transfert',
+        icon: ArrowRightLeft,
+      },
+    ],
+  },
+  {
+    id: 'abattoirs',
+    label: String(t('sidebar', 'abattoirs')),
+    href: '/dashboard/abattoirs',
+    icon: Building2,
+  },
   {
     id: 'livestock',
     label: String(t('sidebar', 'livestock')),
@@ -94,84 +85,6 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
     label: String(t('sidebar', 'stock_management')),
     href: '/dashboard/stock-management',
     icon: Package,
-  },
-  {
-    id: 'configs',
-    label: String(t('sidebar', 'configurations')),
-    href: '/dashboard/configs',
-    icon: Cog,
-  },
-  {
-    id: 'users',
-    label: String(t('sidebar', 'users')),
-    href: '#',
-    icon: Users,
-    children: [
-      {
-        id: 'admins',
-        label: String(t('sidebar', 'admin')),
-        href: '/dashboard/users/admins',
-        icon: User,
-      },
-      {
-        id: 'users-list',
-        label: String(t('sidebar', 'user')),
-        href: '/dashboard/users/list',
-        icon: User,
-      },
-    ],
-  },
-  {
-    id: 'roles-permissions',
-    label: String(t('sidebar', 'roles_permissions')),
-    href: '#',
-    icon: Shield,
-    children: [
-      {
-        id: 'roles',
-        label: String(t('sidebar', 'roles')),
-        href: '/dashboard/roles-permissions/roles',
-        icon: Shield,
-      },
-      {
-        id: 'permissions',
-        label: String(t('sidebar', 'permissions')),
-        href: '/dashboard/roles-permissions/permissions',
-        icon: Key,
-      },
-    ],
-  },
-  {
-    id: 'payment-plans',
-    label: String(t('sidebar', 'payment_plans')),
-    href: '/dashboard/payment-plans',
-    icon: CreditCard,
-  },
-  {
-    id: 'logs',
-    label: String(t('sidebar', 'logs')),
-    href: '#',
-    icon: FileText,
-    children: [
-      {
-        id: 'logs-list',
-        label: String(t('sidebar', 'logs')),
-        href: '/dashboard/logs',
-        icon: FileText,
-      },
-      {
-        id: 'request-logs',
-        label: String(t('sidebar', 'request_logs')),
-        href: '/dashboard/logs/request-logs',
-        icon: FileText,
-      },
-      {
-        id: 'logs-stats',
-        label: String(t('sidebar', 'logs_stats')),
-        href: '/dashboard/logs/stats',
-        icon: Activity,
-      },
-    ],
   },
 ];
 
@@ -194,17 +107,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     if (pathname.startsWith('/dashboard/abattoirs')) return 'abattoirs';
     if (pathname.startsWith('/dashboard/livestock')) return 'livestock';
     if (pathname.startsWith('/dashboard/stock-management')) return 'stock-management';
-    if (pathname.startsWith('/dashboard/configs')) return 'configs';
-    if (pathname.startsWith('/dashboard/users/admins')) return 'admins';
-    if (pathname.startsWith('/dashboard/users/list')) return 'users-list';
-    if (pathname.startsWith('/dashboard/users')) return 'users';
-    if (pathname.startsWith('/dashboard/roles-permissions/roles')) return 'roles';
-    if (pathname.startsWith('/dashboard/roles-permissions/permissions')) return 'permissions';
-    if (pathname.startsWith('/dashboard/roles-permissions')) return 'roles-permissions';
-    if (pathname.startsWith('/dashboard/payment-plans')) return 'payment-plans';
-    if (pathname.startsWith('/dashboard/logs/stats')) return 'logs-stats';
-    if (pathname.startsWith('/dashboard/logs/request-logs')) return 'request-logs';
-    if (pathname.startsWith('/dashboard/logs')) return 'logs-list';
     return 'dashboard';
   };
 
@@ -322,11 +224,10 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       {/* Logo */}
       <div className="flex items-center justify-center h-24 px-4 border-b theme-border-primary">
         <div className="h-30 w-30 relative">
-          <Image
-            src={theme === 'dark' ? "/MainLogoDark.png" : "/MainLogo.png"}
-            alt="Liveness Dashboard"
-            fill
-            className="object-contain"
+          <img
+            src="/alviar_logo.jpg"
+            alt="ALVIAR Dashboard"
+            className="h-full w-full object-contain"
           />
         </div>
       </div>
@@ -374,11 +275,10 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
           <div className="flex items-center justify-center">
             <div className="flex items-center space-x-2">
               <div className="h-8 w-8 relative">
-                <Image
+                <img
                   src="/aiunivers.png"
                   alt="AIUNIVERS"
-                  fill
-                  className="object-contain"
+                  className="h-full w-full object-contain"
                 />
               </div>
               <div className="text-left">

@@ -15,14 +15,17 @@ import {
   Clock,
   CheckCircle,
   X,
-  ArrowRight
+  ArrowRight,
+  Edit,
+  Trash2,
+  MoreVertical
 } from 'lucide-react';
 
-interface LiveStockProps {
+interface LiveLivestockProps {
   isRTL: boolean;
 }
 
-interface LiveStockItem {
+interface LiveLivestockItem {
   id: string;
   loopNumber: string;
   type: 'BOVIN' | 'OVIN' | 'CAPRIN';
@@ -38,10 +41,11 @@ interface LiveStockItem {
   abattoirName: string;
   estimatedSlaughterDate?: string;
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  notes?: string;
 }
 
-// Données mock pour le stock vif
-const mockLiveStock: LiveStockItem[] = [
+// Données mock pour les bêtes vivantes
+const mockLiveLivestock: LiveLivestockItem[] = [
   {
     id: 'LIV001',
     loopNumber: 'DZ-ALG-2024-001234',
@@ -57,7 +61,8 @@ const mockLiveStock: LiveStockItem[] = [
     abattoirId: 1,
     abattoirName: "Abattoir Central d'Alger",
     estimatedSlaughterDate: '2024-01-20T00:00:00Z',
-    priority: 'HIGH'
+    priority: 'HIGH',
+    notes: 'Animal en bonne santé, prêt pour l\'abattage'
   },
   {
     id: 'LIV002',
@@ -74,7 +79,8 @@ const mockLiveStock: LiveStockItem[] = [
     abattoirId: 1,
     abattoirName: "Abattoir Central d'Alger",
     estimatedSlaughterDate: '2024-01-18T00:00:00Z',
-    priority: 'HIGH'
+    priority: 'HIGH',
+    notes: 'En cours de traitement'
   },
   {
     id: 'LIV005',
@@ -91,7 +97,8 @@ const mockLiveStock: LiveStockItem[] = [
     abattoirId: 5,
     abattoirName: 'Abattoir de Tizi Ouzou',
     estimatedSlaughterDate: '2024-01-22T00:00:00Z',
-    priority: 'MEDIUM'
+    priority: 'MEDIUM',
+    notes: 'Arrivée récente, en attente d\'examen'
   },
   {
     id: 'LIV007',
@@ -108,7 +115,8 @@ const mockLiveStock: LiveStockItem[] = [
     abattoirId: 8,
     abattoirName: 'Abattoir de Batna',
     estimatedSlaughterDate: '2024-01-19T00:00:00Z',
-    priority: 'MEDIUM'
+    priority: 'MEDIUM',
+    notes: 'En cours de préparation'
   },
   {
     id: 'LIV008',
@@ -125,35 +133,37 @@ const mockLiveStock: LiveStockItem[] = [
     abattoirId: 1,
     abattoirName: "Abattoir Central d'Alger",
     estimatedSlaughterDate: '2024-01-25T00:00:00Z',
-    priority: 'LOW'
+    priority: 'LOW',
+    notes: 'Nouvelle arrivée, en attente d\'examen'
   }
 ];
 
-export default function LiveStockTab({ isRTL }: LiveStockProps) {
-  const [liveStock, setLiveStock] = useState<LiveStockItem[]>([]);
+export default function LiveLivestockTab({ isRTL }: LiveLivestockProps) {
+  const [liveLivestock, setLiveLivestock] = useState<LiveLivestockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
+  const [deletingLivestockId, setDeletingLivestockId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLiveStock = async () => {
+    const fetchLiveLivestock = async () => {
       try {
         setLoading(true);
         await new Promise(resolve => setTimeout(resolve, 1000));
-        setLiveStock(mockLiveStock);
+        setLiveLivestock(mockLiveLivestock);
       } catch (err) {
-        console.error('Erreur lors du chargement du stock vif:', err);
+        console.error('Erreur lors du chargement des bêtes vivantes:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLiveStock();
+    fetchLiveLivestock();
   }, []);
 
-  const filteredLiveStock = liveStock.filter(item => {
+  const filteredLiveLivestock = liveLivestock.filter(item => {
     const matchesSearch = item.loopNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -167,16 +177,16 @@ export default function LiveStockTab({ isRTL }: LiveStockProps) {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       EN_ATTENTE: { 
-        bg: 'bg-blue-100 dark:bg-blue-900/40', 
-        text: 'text-blue-800 dark:text-blue-200', 
-        border: 'border-blue-200 dark:border-blue-700',
+        bg: 'bg-blue-200 dark:bg-blue-900/50', 
+        text: 'text-blue-900 dark:text-blue-100', 
+        border: 'border-blue-300 dark:border-blue-700',
         label: isRTL ? 'في الانتظار' : 'En attente',
         icon: Clock
       },
       EN_TRAITEMENT: { 
-        bg: 'bg-amber-100 dark:bg-amber-900/40', 
-        text: 'text-amber-800 dark:text-amber-200', 
-        border: 'border-amber-200 dark:border-amber-700',
+        bg: 'bg-orange-200 dark:bg-orange-900/50', 
+        text: 'text-orange-900 dark:text-orange-100', 
+        border: 'border-orange-300 dark:border-orange-700',
         label: isRTL ? 'قيد المعالجة' : 'En traitement',
         icon: Activity
       }
@@ -196,21 +206,21 @@ export default function LiveStockTab({ isRTL }: LiveStockProps) {
   const getPriorityBadge = (priority: string) => {
     const priorityConfig = {
       HIGH: { 
-        bg: 'bg-red-100 dark:bg-red-900/40', 
-        text: 'text-red-800 dark:text-red-200', 
-        border: 'border-red-200 dark:border-red-700',
+        bg: 'bg-red-200 dark:bg-red-900/50', 
+        text: 'text-red-900 dark:text-red-100', 
+        border: 'border-red-300 dark:border-red-700',
         label: isRTL ? 'عالي' : 'Élevée'
       },
       MEDIUM: { 
-        bg: 'bg-amber-100 dark:bg-amber-900/40', 
-        text: 'text-amber-800 dark:text-amber-200', 
-        border: 'border-amber-200 dark:border-amber-700',
+        bg: 'bg-orange-200 dark:bg-orange-900/50', 
+        text: 'text-orange-900 dark:text-orange-100', 
+        border: 'border-orange-300 dark:border-orange-700',
         label: isRTL ? 'متوسط' : 'Moyenne'
       },
       LOW: { 
-        bg: 'bg-emerald-100 dark:bg-emerald-900/40', 
-        text: 'text-emerald-800 dark:text-emerald-200', 
-        border: 'border-emerald-200 dark:border-emerald-700',
+        bg: 'bg-green-200 dark:bg-green-900/50', 
+        text: 'text-green-900 dark:text-green-100', 
+        border: 'border-green-300 dark:border-green-700',
         label: isRTL ? 'منخفض' : 'Faible'
       }
     };
@@ -266,9 +276,31 @@ export default function LiveStockTab({ isRTL }: LiveStockProps) {
     });
   };
 
+  const handleDeleteLivestock = async (livestockId: string, loopNumber: string) => {
+    const confirmed = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer la bête "${loopNumber}" ?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingLivestockId(livestockId);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setLiveLivestock(prevLivestock => prevLivestock.filter(item => item.id !== livestockId));
+      console.log(`Bête ${loopNumber} supprimée avec succès`);
+    } catch (err) {
+      console.error('Erreur lors de la suppression de la bête:', err);
+    } finally {
+      setDeletingLivestockId(null);
+    }
+  };
+
   // Statistiques
-  const totalWeight = filteredLiveStock.reduce((sum, item) => sum + item.weight, 0);
-  const totalCount = filteredLiveStock.length;
+  const totalWeight = filteredLiveLivestock.reduce((sum, item) => sum + item.weight, 0);
+  const totalCount = filteredLiveLivestock.length;
   const averageWeight = totalCount > 0 ? Math.round(totalWeight / totalCount) : 0;
 
   return (
@@ -324,7 +356,7 @@ export default function LiveStockTab({ isRTL }: LiveStockProps) {
                 {isRTL ? 'في المعالجة' : 'En traitement'}
               </p>
               <p className="text-2xl font-bold theme-text-primary theme-transition">
-                {filteredLiveStock.filter(item => item.status === 'EN_TRAITEMENT').length}
+                {filteredLiveLivestock.filter(item => item.status === 'EN_TRAITEMENT').length}
               </p>
             </div>
             <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -341,7 +373,7 @@ export default function LiveStockTab({ isRTL }: LiveStockProps) {
             <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-4 w-4 theme-text-tertiary theme-transition`} />
             <input
               type="text"
-              placeholder={isRTL ? 'البحث في المخزون الحي...' : 'Rechercher dans le stock vif...'}
+              placeholder={isRTL ? 'البحث في الماشية الحية...' : 'Rechercher dans les bêtes vivantes...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full ${isRTL ? 'pr-10 pl-3 text-right' : 'pl-10 pr-3'} py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition placeholder-gray-500 dark:placeholder-slate-400`}
@@ -417,7 +449,7 @@ export default function LiveStockTab({ isRTL }: LiveStockProps) {
                 </tr>
               </thead>
               <tbody className="divide-y theme-bg-elevated theme-border-secondary theme-transition">
-                {filteredLiveStock.map((item) => (
+                {filteredLiveLivestock.map((item) => (
                   <tr key={item.id} className="transition-colors hover:theme-bg-secondary">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -469,6 +501,27 @@ export default function LiveStockTab({ isRTL }: LiveStockProps) {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
+                        <button 
+                          className="p-1 theme-text-tertiary hover:text-blue-500 theme-transition"
+                          title={isRTL ? 'تعديل البête' : 'Modifier la bête'}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteLivestock(item.id, item.loopNumber)}
+                          disabled={deletingLivestockId === item.id}
+                          className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50"
+                          title={isRTL ? 'حذف البête' : 'Supprimer la bête'}
+                        >
+                          {deletingLivestockId === item.id ? (
+                            <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </button>
+                        <button className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition">
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -478,14 +531,14 @@ export default function LiveStockTab({ isRTL }: LiveStockProps) {
           </div>
         )}
         
-        {filteredLiveStock.length === 0 && !loading && (
+        {filteredLiveLivestock.length === 0 && !loading && (
           <div className="text-center py-12">
             <Heart className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
             <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">
-              {isRTL ? 'لا يوجد مخزون حي' : 'Aucun stock vif'}
+              {isRTL ? 'لا توجد ماشية حية' : 'Aucune bête vivante'}
             </h3>
             <p className="theme-text-secondary theme-transition">
-              {isRTL ? 'لا توجد حيوانات في المخزون الحي' : 'Aucun animal dans le stock vif'}
+              {isRTL ? 'لا توجد حيوانات حية في المخزون' : 'Aucun animal vivant dans le stock'}
             </p>
           </div>
         )}

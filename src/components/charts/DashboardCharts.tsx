@@ -16,6 +16,8 @@ import {
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { SlaughterChart } from './SlaughterChart';
+import { FeedStockChart } from './FeedStockChart';
 
 // Enregistrer les composants Chart.js
 ChartJS.register(
@@ -102,31 +104,6 @@ export function DashboardCharts({
     ],
   };
 
-  // Données pour le graphique en donut (Users vs Admins) avec dégradés
-  const donutChartData = {
-    labels: [t('dashboard', 'users') as string, t('dashboard', 'admins') as string],
-    datasets: [
-      {
-        data: [usersData, adminsData],
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.9)',   // Rouge vif pour Users
-          'rgba(220, 38, 38, 0.9)',   // Rouge moyen pour Admins
-        ],
-        borderColor: [
-          'rgba(239, 68, 68, 1)',
-          'rgba(220, 38, 38, 1)',
-        ],
-        borderWidth: 4,
-        hoverBackgroundColor: [
-          'rgba(239, 68, 68, 1)',
-          'rgba(220, 38, 38, 1)',
-        ],
-        hoverBorderWidth: 6,
-        cutout: '60%',
-        spacing: 2,
-      },
-    ],
-  };
 
   // Données pour le graphique linéaire (simulation de tendance)
   const lineChartData = {
@@ -234,55 +211,6 @@ export function DashboardCharts({
     },
   };
 
-  const donutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: {
-      duration: 2500,
-      easing: 'easeInOutQuart',
-    },
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: {
-          color: theme === 'dark' ? '#f5f5f5' : '#0f172a',
-          font: {
-            size: 13,
-            weight: '600',
-          },
-          usePointStyle: true,
-          pointStyle: 'circle',
-          padding: 15,
-        },
-      },
-      tooltip: {
-        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.95)',
-        titleColor: theme === 'dark' ? '#f5f5f5' : '#0f172a',
-        bodyColor: theme === 'dark' ? '#d4d4d4' : '#475569',
-        borderColor: '#ef4444',
-        borderWidth: 2,
-        cornerRadius: 12,
-        displayColors: true,
-        titleFont: {
-          size: 14,
-          weight: 'bold',
-        },
-        bodyFont: {
-          size: 13,
-        },
-        padding: 12,
-        callbacks: {
-          label: function(context: any) {
-            const label = context.label || '';
-            const value = context.parsed;
-            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-            const percentage = ((value / total) * 100).toFixed(1);
-            return `${label}: ${value} (${percentage}%)`;
-          }
-        }
-      },
-    },
-  };
 
   if (isLoading || translationLoading) {
     return (
@@ -299,21 +227,11 @@ export function DashboardCharts({
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      {/* Graphique en barres */}
-      <div className="theme-bg-elevated rounded-lg p-6 shadow-sm theme-border-primary border">
-        <h3 className="text-lg font-semibold theme-text-primary mb-4">{t('dashboard', 'data_distribution') as string}</h3>
-        <div className="h-64">
-          <Bar data={barChartData} options={chartOptions} />
-        </div>
-      </div>
+      {/* Graphique des animaux abattus par abattoir */}
+      <SlaughterChart isLoading={isLoading} />
 
-      {/* Graphique en donut */}
-      <div className="theme-bg-elevated rounded-lg p-6 shadow-sm theme-border-primary border">
-        <h3 className="text-lg font-semibold theme-text-primary mb-4">{t('dashboard', 'users_admins') as string}</h3>
-        <div className="h-64">
-          <Doughnut data={donutChartData} options={donutOptions} />
-        </div>
-      </div>
+      {/* Graphique des stocks alimentaires */}
+      <FeedStockChart isLoading={isLoading} />
     </div>
   );
 }
