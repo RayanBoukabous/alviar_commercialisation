@@ -20,7 +20,11 @@ import {
   CreditCard,
   FileText,
   Heart,
-  Package
+  Package,
+  Truck,
+  Warehouse, // Added Warehouse icon for Stabulation
+  Wheat, // Added Wheat icon for Aliment
+  ArrowRightLeft // Added ArrowRightLeft icon for Transfert
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,12 +45,44 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
     href: '/dashboard/clients',
     icon: Building2,
   },
-  {
-    id: 'abattoirs',
-    label: String(t('sidebar', 'abattoirs')),
-    href: '/dashboard/abattoirs',
-    icon: Building2,
-  },
+        {
+          id: 'reception',
+          label: String(t('sidebar', 'reception')),
+          href: '/dashboard/reception',
+          icon: Truck,
+        },
+        {
+          id: 'stabulation',
+          label: String(t('sidebar', 'stabulation')),
+          href: '/dashboard/stabulation',
+          icon: Warehouse,
+        },
+        {
+          id: 'aliment',
+          label: String(t('sidebar', 'aliment')),
+          href: '#',
+          icon: Wheat,
+          children: [
+            {
+              id: 'stock-aliment',
+              label: String(t('sidebar', 'stock_aliment')),
+              href: '/dashboard/aliment/stock',
+              icon: Package,
+            },
+            {
+              id: 'transfert-aliment',
+              label: String(t('sidebar', 'transfert_aliment')),
+              href: '/dashboard/aliment/transfert',
+              icon: ArrowRightLeft,
+            },
+          ],
+        },
+        {
+          id: 'abattoirs',
+          label: String(t('sidebar', 'abattoirs')),
+          href: '/dashboard/abattoirs',
+          icon: Building2,
+        },
   {
     id: 'livestock',
     label: String(t('sidebar', 'livestock')),
@@ -150,6 +186,11 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   // Déterminer l'item actif basé sur l'URL actuelle
   const getActiveItem = () => {
     if (pathname.startsWith('/dashboard/clients')) return 'clients';
+    if (pathname.startsWith('/dashboard/reception')) return 'reception';
+    if (pathname.startsWith('/dashboard/stabulation')) return 'stabulation';
+    if (pathname.startsWith('/dashboard/aliment/stock')) return 'stock-aliment';
+    if (pathname.startsWith('/dashboard/aliment/transfert')) return 'transfert-aliment';
+    if (pathname.startsWith('/dashboard/aliment')) return 'aliment';
     if (pathname.startsWith('/dashboard/abattoirs')) return 'abattoirs';
     if (pathname.startsWith('/dashboard/livestock')) return 'livestock';
     if (pathname.startsWith('/dashboard/stock-management')) return 'stock-management';
