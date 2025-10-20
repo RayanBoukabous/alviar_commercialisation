@@ -1,0 +1,191 @@
+#!/bin/bash
+
+# ===========================================
+# COMMIT-MSG HOOK - ALVIAR DASHBOARD
+# ===========================================
+
+set -e
+
+# Couleurs pour les logs
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Fonctions utilitaires
+log() {
+    echo -e "${BLUE}[COMMIT-MSG]${NC} $1"
+}
+
+success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+    exit 1
+}
+
+# Lire le message de commit
+commit_msg=$(cat "$1")
+
+log "Validating commit message..."
+
+# Vérifier que le message n'est pas vide
+if [ -z "$commit_msg" ]; then
+    error "Commit message cannot be empty"
+fi
+
+# Vérifier la longueur du message
+if [ ${#commit_msg} -lt 10 ]; then
+    warning "Commit message is very short (${#commit_msg} characters) - Consider being more descriptive"
+fi
+
+if [ ${#commit_msg} -gt 100 ]; then
+    warning "Commit message is very long (${#commit_msg} characters) - Consider using a shorter subject line"
+fi
+
+# Vérifier le format du message de commit
+# Format recommandé: type(scope): description
+# Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert
+# Exemples: feat(auth): add login functionality, fix(api): resolve user creation bug
+
+# Vérifier si le message commence par un type valide
+valid_types=("feat" "fix" "docs" "style" "refactor" "test" "chore" "perf" "ci" "build" "revert" "hotfix" "release")
+
+# Extraire le type du message
+first_line=$(echo "$commit_msg" | head -n1)
+type=$(echo "$first_line" | cut -d'(' -f1 | cut -d':' -f1)
+
+# Vérifier si le type est valide
+if [[ " ${valid_types[@]} " =~ " ${type} " ]]; then
+    success "Valid commit type: $type"
+else
+    warning "Commit type '$type' not in recommended list: ${valid_types[*]}"
+    warning "Consider using: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+fi
+
+# Vérifier la présence d'un scope (optionnel)
+if echo "$first_line" | grep -q "("; then
+    scope=$(echo "$first_line" | cut -d'(' -f2 | cut -d')' -f1)
+    if [ -n "$scope" ]; then
+        success "Commit scope: $scope"
+    else
+        warning "Empty scope detected"
+    fi
+fi
+
+# Vérifier la présence d'une description
+if echo "$first_line" | grep -q ":"; then
+    description=$(echo "$first_line" | cut -d':' -f2- | xargs)
+    if [ -n "$description" ]; then
+        success "Commit description: $description"
+    else
+        error "Commit description is empty"
+    fi
+else
+    warning "No colon found in commit message - Consider using format: type(scope): description"
+fi
+
+# Vérifier les mots interdits
+forbidden_words=("WIP" "TODO" "FIXME" "HACK" "TEMP" "DEBUG")
+for word in "${forbidden_words[@]}"; do
+    if echo "$commit_msg" | grep -qi "$word"; then
+        warning "Forbidden word detected: $word - Consider using a more descriptive message"
+    fi
+done
+
+# Vérifier la casse
+if [[ "$first_line" =~ ^[A-Z] ]]; then
+    warning "Commit message starts with uppercase - Consider using lowercase"
+fi
+
+# Vérifier la ponctuation
+if echo "$first_line" | grep -q "\.$"; then
+    warning "Commit message ends with period - Consider removing it"
+fi
+
+# Vérifier les caractères spéciaux
+if echo "$commit_msg" | grep -q "[!@#$%^&*()_+={}|\\:;\"'<>?,./]"; then
+    warning "Special characters detected in commit message - Consider using simple text"
+fi
+
+# Vérifier les emojis (optionnel)
+if echo "$commit_msg" | grep -q "[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]"; then
+    success "Emoji detected in commit message"
+fi
+
+# Vérifier la cohérence avec les fichiers modifiés
+log "Checking commit consistency with modified files..."
+
+# Obtenir les fichiers modifiés
+modified_files=$(git diff --cached --name-only)
+
+# Vérifier la cohérence avec les types de fichiers
+if echo "$modified_files" | grep -q "backend/"; then
+    if [[ "$type" != "feat" && "$type" != "fix" && "$type" != "refactor" && "$type" != "test" ]]; then
+        warning "Backend files modified but commit type is '$type' - Consider using feat, fix, refactor, or test"
+    fi
+fi
+
+if echo "$modified_files" | grep -q "src/"; then
+    if [[ "$type" != "feat" && "$type" != "fix" && "$type" != "style" && "$type" != "refactor" ]]; then
+        warning "Frontend files modified but commit type is '$type' - Consider using feat, fix, style, or refactor"
+    fi
+fi
+
+if echo "$modified_files" | grep -q "README\|docs/"; then
+    if [[ "$type" != "docs" ]]; then
+        warning "Documentation files modified but commit type is '$type' - Consider using 'docs'"
+    fi
+fi
+
+if echo "$modified_files" | grep -q "Dockerfile\|docker-compose\|deploy.sh"; then
+    if [[ "$type" != "ci" && "$type" != "build" && "$type" != "chore" ]]; then
+        warning "Infrastructure files modified but commit type is '$type' - Consider using ci, build, or chore"
+    fi
+fi
+
+# Vérifier la cohérence avec les branches
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ "$current_branch" == "main" ]]; then
+    if [[ "$type" == "feat" || "$type" == "fix" ]]; then
+        warning "Direct commit to main branch with type '$type' - Consider using feature branches"
+    fi
+fi
+
+# Vérifier la longueur de la première ligne
+first_line_length=${#first_line}
+if [ $first_line_length -gt 72 ]; then
+    warning "First line is too long ($first_line_length characters) - Consider keeping it under 72 characters"
+fi
+
+# Vérifier la présence d'un corps de message (optionnel)
+if [ $(echo "$commit_msg" | wc -l) -gt 1 ]; then
+    success "Commit message has body - Good practice!"
+    
+    # Vérifier que le corps est séparé par une ligne vide
+    if ! echo "$commit_msg" | head -n2 | tail -n1 | grep -q "^$"; then
+        warning "Consider adding a blank line between subject and body"
+    fi
+fi
+
+# Résumé final
+echo "=================================="
+echo "📝 Commit Message Analysis:"
+echo "=================================="
+echo "✅ Type: $type"
+echo "✅ Length: ${#commit_msg} characters"
+echo "✅ First line: $first_line_length characters"
+echo "✅ Files modified: $(echo "$modified_files" | wc -l)"
+echo "✅ Branch: $current_branch"
+echo "=================================="
+
+success "Commit message validation completed! ✅"
+echo "🚀 Ready to commit!"

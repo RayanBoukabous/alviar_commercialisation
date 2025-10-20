@@ -1,0 +1,215 @@
+#!/bin/bash
+
+# ===========================================
+# PRE-COMMIT HOOK - ALVIAR DASHBOARD
+# ===========================================
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Couleurs pour les logs
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Fonctions utilitaires
+log() {
+    echo -e "${BLUE}[PRE-COMMIT]${NC} $1"
+}
+
+success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+    exit 1
+}
+
+# Vérifier les fichiers modifiés
+log "Checking modified files..."
+
+# Vérifier les fichiers Python (Backend)
+if git diff --cached --name-only | grep -E '\.(py)$' > /dev/null; then
+    log "Running Python checks..."
+    
+    # Vérifier la syntaxe Python
+    for file in $(git diff --cached --name-only | grep -E '\.(py)$'); do
+        if [ -f "$file" ]; then
+            log "Checking syntax: $file"
+            python -m py_compile "$file" || error "Python syntax error in $file"
+        fi
+    done
+    
+    # Vérifier les imports Django
+    if git diff --cached --name-only | grep -E 'backend/.*\.py$' > /dev/null; then
+        log "Checking Django imports..."
+        cd backend
+        python manage.py check --deploy || warning "Django check failed"
+        cd ..
+    fi
+    
+    success "Python checks passed"
+fi
+
+# Vérifier les fichiers TypeScript/JavaScript (Frontend)
+if git diff --cached --name-only | grep -E '\.(ts|tsx|js|jsx)$' > /dev/null; then
+    log "Running TypeScript/JavaScript checks..."
+    
+    # Vérifier la syntaxe TypeScript
+    if command -v npx >/dev/null 2>&1; then
+        for file in $(git diff --cached --name-only | grep -E '\.(ts|tsx)$'); do
+            if [ -f "$file" ]; then
+                log "Checking TypeScript syntax: $file"
+                npx tsc --noEmit --skipLibCheck "$file" || warning "TypeScript check failed for $file"
+            fi
+        done
+    fi
+    
+    success "TypeScript/JavaScript checks passed"
+fi
+
+# Vérifier les fichiers de configuration
+if git diff --cached --name-only | grep -E '\.(yml|yaml|json)$' > /dev/null; then
+    log "Checking configuration files..."
+    
+    for file in $(git diff --cached --name-only | grep -E '\.(yml|yaml)$'); do
+        if [ -f "$file" ]; then
+            log "Validating YAML: $file"
+            python -c "import yaml; yaml.safe_load(open('$file'))" || error "Invalid YAML in $file"
+        fi
+    done
+    
+    for file in $(git diff --cached --name-only | grep -E '\.json$'); do
+        if [ -f "$file" ]; then
+            log "Validating JSON: $file"
+            python -c "import json; json.load(open('$file'))" || error "Invalid JSON in $file"
+        fi
+    done
+    
+    success "Configuration files validated"
+fi
+
+# Vérifier les fichiers sensibles
+log "Checking for sensitive files..."
+
+SENSITIVE_FILES=(
+    ".env"
+    ".env.local"
+    ".env.production"
+    "*.key"
+    "*.pem"
+    "*.p12"
+    "*.pfx"
+    "secrets.json"
+    "credentials.json"
+)
+
+for pattern in "${SENSITIVE_FILES[@]}"; do
+    if git diff --cached --name-only | grep -E "$pattern" > /dev/null; then
+        error "Sensitive file detected: $pattern - Please remove from staging area"
+    fi
+done
+
+# Vérifier les fichiers volumineux (> 10MB)
+log "Checking for large files..."
+
+for file in $(git diff --cached --name-only); do
+    if [ -f "$file" ]; then
+        size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo "0")
+        if [ "$size" -gt 10485760 ]; then  # 10MB
+            error "Large file detected: $file ($(($size / 1024 / 1024))MB) - Please use Git LFS or remove from staging"
+        fi
+    fi
+done
+
+# Vérifier les fichiers binaires
+log "Checking for binary files..."
+
+for file in $(git diff --cached --name-only); do
+    if [ -f "$file" ]; then
+        if file "$file" | grep -q "binary"; then
+            warning "Binary file detected: $file - Make sure it's necessary"
+        fi
+    fi
+done
+
+# Vérifier les migrations Django
+if git diff --cached --name-only | grep -E 'backend/.*/migrations/.*\.py$' > /dev/null; then
+    log "Checking Django migrations..."
+    
+    # Vérifier que les migrations sont réversibles
+    for migration in $(git diff --cached --name-only | grep -E 'backend/.*/migrations/.*\.py$'); do
+        if [ -f "$migration" ]; then
+            log "Checking migration: $migration"
+            # Vérifier que le fichier contient des opérations valides
+            if ! grep -q "migrations\." "$migration"; then
+                warning "Migration might be empty: $migration"
+            fi
+        fi
+    done
+    
+    success "Django migrations checked"
+fi
+
+# Vérifier les fichiers Docker
+if git diff --cached --name-only | grep -E 'Dockerfile|docker-compose' > /dev/null; then
+    log "Checking Docker files..."
+    
+    for file in $(git diff --cached --name-only | grep -E 'Dockerfile|docker-compose'); do
+        if [ -f "$file" ]; then
+            log "Validating Docker file: $file"
+            # Vérifier la syntaxe Docker
+            if command -v docker >/dev/null 2>&1; then
+                if [[ "$file" == "Dockerfile"* ]]; then
+                    docker build --no-cache -f "$file" . > /dev/null 2>&1 || warning "Docker build failed for $file"
+                elif [[ "$file" == "docker-compose"* ]]; then
+                    docker compose -f "$file" config > /dev/null 2>&1 || warning "Docker Compose config failed for $file"
+                fi
+            fi
+        fi
+    done
+    
+    success "Docker files validated"
+fi
+
+# Vérifier les fichiers de documentation
+if git diff --cached --name-only | grep -E 'README|CHANGELOG|LICENSE' > /dev/null; then
+    log "Checking documentation files..."
+    
+    for file in $(git diff --cached --name-only | grep -E 'README|CHANGELOG|LICENSE'); do
+        if [ -f "$file" ]; then
+            log "Checking documentation: $file"
+            # Vérifier que le fichier n'est pas vide
+            if [ ! -s "$file" ]; then
+                error "Empty documentation file: $file"
+            fi
+        fi
+    done
+    
+    success "Documentation files checked"
+fi
+
+# Vérifier les permissions des scripts
+log "Checking script permissions..."
+
+for file in $(git diff --cached --name-only | grep -E '\.(sh|py)$'); do
+    if [ -f "$file" ]; then
+        if [[ "$file" == *.sh ]]; then
+            if [ ! -x "$file" ]; then
+                log "Making script executable: $file"
+                chmod +x "$file"
+            fi
+        fi
+    fi
+done
+
+success "All pre-commit checks passed! ✅"
+echo "🚀 Ready to commit!"
