@@ -1,6 +1,13 @@
 {
     "dashboard": "Dashboard",
     "clients": "Clients",
+    "reception": "Reception",
+    "stabulation": "Stabulation",
+    "bon_commande": "Purchase Order",
+    "transfert": "Transfer",
+    "aliment": "Feed",
+    "stock_aliment": "Feed Stock",
+    "transfert_aliment": "Feed Transfer",
     "abattoirs": "Slaughterhouses",
     "livestock": "Livestock",
     "stock_management": "Stock Management",

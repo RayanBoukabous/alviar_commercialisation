@@ -16,211 +16,79 @@ import {
   RefreshCw,
   Activity
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { useRequireAuth } from '@/lib/hooks/useAuth';
+import { useRequireAuth } from '@/lib/hooks/useDjangoAuth';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { useAbattoirs, useDeleteAbattoir, abattoirKeys } from '@/lib/hooks/useAbattoirs';
+import { useDebounce } from '@/lib/hooks/useDebounce';
+import { useQueryClient } from '@tanstack/react-query';
+import { Abattoir as ApiAbattoir } from '@/lib/api/abattoirService';
 
-// Interface pour les abattoirs
-interface Abattoir {
-  id: number;
-  name: string;
-  wilaya: string;
-  commune: string;
-  address: string;
-  capacity: number; // Nombre de têtes
-  currentStock: number; // Stock actuel
-  status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
-  manager: string;
-  phone: string;
-  email: string;
-  createdAt: string;
-  lastActivity: string;
-}
-
-// Données mock pour les abattoirs
-const mockAbattoirs: Abattoir[] = [
-  {
-    id: 1,
-    name: "Abattoir Central d'Alger",
-    wilaya: "Alger",
-    commune: "Alger Centre",
-    address: "Route de l'Abattoir, Alger Centre",
-    capacity: 500,
-    currentStock: 320,
-    status: 'ACTIVE',
-    manager: "Ahmed Benali",
-    phone: "+213 21 45 67 89",
-    email: "ahmed.benali@abattoir-alger.dz",
-    createdAt: "2023-01-15T08:30:00Z",
-    lastActivity: "2024-01-15T14:30:00Z"
-  },
-  {
-    id: 2,
-    name: "Abattoir de Blida",
-    wilaya: "Blida",
-    commune: "Blida",
-    address: "Zone Industrielle, Blida",
-    capacity: 300,
-    currentStock: 180,
-    status: 'ACTIVE',
-    manager: "Fatima Zohra",
-    phone: "+213 25 12 34 56",
-    email: "fatima.zohra@abattoir-blida.dz",
-    createdAt: "2023-02-20T10:15:00Z",
-    lastActivity: "2024-01-14T16:45:00Z"
-  },
-  {
-    id: 3,
-    name: "Abattoir de Constantine",
-    wilaya: "Constantine",
-    commune: "Constantine",
-    address: "Avenue de l'Abattoir, Constantine",
-    capacity: 400,
-    currentStock: 0,
-    status: 'MAINTENANCE',
-    manager: "Mohamed Khelil",
-    phone: "+213 31 78 90 12",
-    email: "mohamed.khelil@abattoir-constantine.dz",
-    createdAt: "2023-03-10T09:00:00Z",
-    lastActivity: "2024-01-10T12:00:00Z"
-  },
-  {
-    id: 4,
-    name: "Abattoir d'Oran",
-    wilaya: "Oran",
-    commune: "Oran",
-    address: "Route de l'Abattoir, Oran",
-    capacity: 350,
-    currentStock: 250,
-    status: 'ACTIVE',
-    manager: "Aicha Boudjedra",
-    phone: "+213 41 23 45 67",
-    email: "aicha.boudjedra@abattoir-oran.dz",
-    createdAt: "2023-04-05T11:30:00Z",
-    lastActivity: "2024-01-15T13:20:00Z"
-  },
-  {
-    id: 5,
-    name: "Abattoir de Tizi Ouzou",
-    wilaya: "Tizi Ouzou",
-    commune: "Tizi Ouzou",
-    address: "Zone d'Activité, Tizi Ouzou",
-    capacity: 200,
-    currentStock: 120,
-    status: 'ACTIVE',
-    manager: "Karim Amrani",
-    phone: "+213 26 56 78 90",
-    email: "karim.amrani@abattoir-tizi.dz",
-    createdAt: "2023-05-12T14:45:00Z",
-    lastActivity: "2024-01-14T10:15:00Z"
-  },
-  {
-    id: 6,
-    name: "Abattoir de Annaba",
-    wilaya: "Annaba",
-    commune: "Annaba",
-    address: "Port de Annaba, Annaba",
-    capacity: 280,
-    currentStock: 0,
-    status: 'INACTIVE',
-    manager: "Nadia Cherif",
-    phone: "+213 38 90 12 34",
-    email: "nadia.cherif@abattoir-annaba.dz",
-    createdAt: "2023-06-18T16:20:00Z",
-    lastActivity: "2024-01-05T08:30:00Z"
-  },
-  {
-    id: 7,
-    name: "Abattoir de Sétif",
-    wilaya: "Sétif",
-    commune: "Sétif",
-    address: "Zone Industrielle, Sétif",
-    capacity: 320,
-    currentStock: 200,
-    status: 'ACTIVE',
-    manager: "Omar Boukhelifa",
-    phone: "+213 36 45 67 89",
-    email: "omar.boukhelifa@abattoir-setif.dz",
-    createdAt: "2023-07-22T12:10:00Z",
-    lastActivity: "2024-01-15T15:45:00Z"
-  },
-  {
-    id: 8,
-    name: "Abattoir de Batna",
-    wilaya: "Batna",
-    commune: "Batna",
-    address: "Route Nationale, Batna",
-    capacity: 250,
-    currentStock: 150,
-    status: 'ACTIVE',
-    manager: "Yasmine Kaci",
-    phone: "+213 33 12 34 56",
-    email: "yasmine.kaci@abattoir-batna.dz",
-    createdAt: "2023-08-30T13:25:00Z",
-    lastActivity: "2024-01-14T11:30:00Z"
-  }
-];
+// Fonction pour mapper les données API vers le format de l'interface
+const mapApiAbattoirToTableFormat = (apiAbattoir: ApiAbattoir) => {
+  return {
+    id: apiAbattoir.id,
+    name: apiAbattoir.nom,
+    wilaya: apiAbattoir.wilaya,
+    commune: apiAbattoir.commune,
+    address: apiAbattoir.adresse_complete,
+    capacity: apiAbattoir.capacite_totale_reception,
+    currentStock: apiAbattoir.betes_count, // Utiliser le vrai nombre de bêtes assignées
+    status: apiAbattoir.actif ? 'ACTIVE' : 'INACTIVE',
+    manager: apiAbattoir.responsable_nom || 'Non assigné',
+    phone: apiAbattoir.responsable_email || 'Non disponible',
+    email: apiAbattoir.responsable_email || 'Non disponible',
+    createdAt: apiAbattoir.created_at,
+    lastActivity: apiAbattoir.updated_at
+  };
+};
 
 export default function AbattoirsPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { t, loading: translationLoading, currentLocale } = useLanguage();
   const router = useRouter();
-  const [abattoirs, setAbattoirs] = useState<Abattoir[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const queryClient = useQueryClient();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [wilayaFilter, setWilayaFilter] = useState<string>('ALL');
-  const [refreshing, setRefreshing] = useState(false);
-  const [deletingAbattoirId, setDeletingAbattoirId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
+
+  // Debounce pour la recherche
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   // Détection RTL
   const isRTL = currentLocale === 'ar';
 
-  useEffect(() => {
-    const fetchAbattoirs = async () => {
-      try {
-        setLoading(true);
-        // Simulation d'un appel API
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setAbattoirs(mockAbattoirs);
-        console.log('Abattoirs récupérés:', mockAbattoirs);
-      } catch (err) {
-        setError('Erreur lors du chargement des abattoirs');
-        console.error('Erreur:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (isAuthenticated) {
-      fetchAbattoirs();
-    }
-  }, [isAuthenticated]);
-
-  const handleRefresh = async () => {
-    try {
-      setRefreshing(true);
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setAbattoirs(mockAbattoirs);
-      console.log('Abattoirs rafraîchis:', mockAbattoirs);
-    } catch (err) {
-      setError('Erreur lors du rafraîchissement');
-      console.error('Erreur:', err);
-    } finally {
-      setRefreshing(false);
-    }
+  // Préparer les filtres pour l'API
+  const filters: any = {
+    page_size: 100
   };
 
-  const handleViewAbattoir = (abattoir: Abattoir) => {
+  if (debouncedSearchTerm) {
+    filters.search = debouncedSearchTerm;
+  }
+  if (statusFilter !== 'ALL') {
+    filters.actif = statusFilter === 'ACTIVE';
+  }
+  if (wilayaFilter !== 'ALL') {
+    filters.wilaya = wilayaFilter;
+  }
+
+  // Hooks pour les données
+  const { data: abattoirsData, isLoading: loading, error, refetch } = useAbattoirs(filters);
+  const deleteAbattoirMutation = useDeleteAbattoir();
+
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: abattoirKeys.all });
+  };
+
+  const handleViewAbattoir = (abattoir: any) => {
     router.push(`/dashboard/abattoirs/${abattoir.id}`);
   };
 
-  const handleEditAbattoir = (abattoir: Abattoir) => {
+  const handleEditAbattoir = (abattoir: any) => {
     // TODO: Implémenter la modification
     console.log('Modifier abattoir:', abattoir);
   };
@@ -235,31 +103,19 @@ export default function AbattoirsPage() {
     }
 
     try {
-      setDeletingAbattoirId(abattoirId);
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setAbattoirs(prevAbattoirs => prevAbattoirs.filter(abattoir => abattoir.id !== abattoirId));
+      await deleteAbattoirMutation.mutateAsync(abattoirId);
       setSuccessMessage(`Abattoir "${abattoirName}" supprimé avec succès`);
       setTimeout(() => setSuccessMessage(''), 3000);
-      
-      console.log(`Abattoir ${abattoirName} supprimé avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression de l\'abattoir:', err);
-      setError('Erreur lors de la suppression');
-    } finally {
-      setDeletingAbattoirId(null);
     }
   };
 
-  const filteredAbattoirs = abattoirs.filter(abattoir => {
-    const matchesSearch = abattoir.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         abattoir.wilaya.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         abattoir.commune.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || abattoir.status === statusFilter;
-    const matchesWilaya = wilayaFilter === 'ALL' || abattoir.wilaya === wilayaFilter;
-    return matchesSearch && matchesStatus && matchesWilaya;
-  });
+  // Mapper les données API vers le format de l'interface
+  const abattoirs = abattoirsData?.abattoirs?.map(mapApiAbattoirToTableFormat) || [];
+  
+  // Les filtres sont maintenant gérés côté serveur, donc pas besoin de filtrage côté client
+  const filteredAbattoirs = abattoirs;
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -317,14 +173,28 @@ export default function AbattoirsPage() {
                 <p className="mt-1 theme-text-secondary theme-transition">
                   {isRTL ? 'إدارة المجازر والمواشي' : 'Gestion des abattoirs et du bétail'}
                 </p>
+                {abattoirsData && (
+                  <div className="mt-2 flex items-center text-sm">
+                    <span className="theme-text-tertiary">
+                      {abattoirsData.user_type === 'superuser' 
+                        ? (isRTL ? 'عرض جميع المجازر' : 'Vue globale - Tous les abattoirs')
+                        : (isRTL ? `عرض مجزر: ${abattoirsData.abattoir_name}` : `Vue abattoir: ${abattoirsData.abattoir_name}`)
+                      }
+                    </span>
+                    <span className="mx-2 theme-text-tertiary">•</span>
+                    <span className="theme-text-tertiary">
+                      {abattoirsData.statistics?.total_count || 0} {isRTL ? 'مجزر' : 'abattoir(s)'}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
                 <button 
                   onClick={handleRefresh}
-                  disabled={refreshing}
+                  disabled={loading}
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                 >
-                  <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} ${refreshing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} ${loading ? 'animate-spin' : ''}`} />
                   {isRTL ? 'تحديث' : 'Actualiser'}
                 </button>
                 <button 
@@ -406,7 +276,7 @@ export default function AbattoirsPage() {
               </div>
             ) : error ? (
               <div className="text-center py-12">
-                <p className="text-red-600">{error}</p>
+                <p className="text-red-600">{error.message || 'Erreur lors du chargement des abattoirs'}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -462,7 +332,7 @@ export default function AbattoirsPage() {
                               {abattoir.currentStock} / {abattoir.capacity}
                             </div>
                             <div className="text-sm theme-text-secondary theme-transition">
-                              {isRTL ? 'رؤوس' : 'têtes'}
+                              {isRTL ? 'بقر / سعة' : 'bêtes / capacité'}
                             </div>
                           </div>
                         </td>
@@ -496,11 +366,11 @@ export default function AbattoirsPage() {
                             </button>
                             <button 
                               onClick={() => handleDeleteAbattoir(abattoir.id, abattoir.name)}
-                              disabled={deletingAbattoirId === abattoir.id}
+                              disabled={deleteAbattoirMutation.isPending}
                               className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50"
                               title={isRTL ? 'حذف المجزر' : 'Supprimer l\'abattoir'}
                             >
-                              {deletingAbattoirId === abattoir.id ? (
+                              {deleteAbattoirMutation.isPending ? (
                                 <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
                               ) : (
                                 <Trash2 className="h-4 w-4" />

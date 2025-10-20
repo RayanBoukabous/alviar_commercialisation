@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles, Shield, Zap, Sun, Moon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAuth, useRequireGuest } from "@/lib/hooks/useAuth";
+import { useLogin, useRequireGuest } from "@/lib/hooks/useDjangoAuth";
+import { useClientSide } from "@/lib/hooks/useClientSide";
 import { ThemeProvider, useTheme } from "@/lib/theme/ThemeProvider";
 
 function LoginForm() {
@@ -14,7 +15,7 @@ function LoginForm() {
     const [loading, setLoading] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
 
-    const { login } = useAuth();
+    const loginMutation = useLogin();
     const { theme, toggleTheme } = useTheme();
     const router = useRouter();
     const isDark = theme === 'dark';
@@ -26,20 +27,19 @@ function LoginForm() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
-        setLoading(true);
 
-        try {
-            const result = await login({ email, password });
-            if (result.success) {
-                router.push("/dashboard");
-            } else {
-                setError(result.error || "Invalid credentials");
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Invalid credentials");
-        } finally {
-            setLoading(false);
+        // Éviter les soumissions multiples
+        if (loginMutation.isPending) {
+            return;
         }
+
+        // Django accepte maintenant l'email comme identifiant de connexion
+        const username = email;
+        
+        loginMutation.mutate({
+            username,
+            password,
+        });
     };
 
     return (
@@ -195,7 +195,7 @@ function LoginForm() {
                                 <p className={isDark ? 'text-slate-300' : 'text-gray-600'}>Sign in to your account to continue</p>
                             </div>
 
-                            {error && (
+                            {(error || loginMutation.error) && (
                                 <div className={`mb-6 p-4 border rounded-xl backdrop-blur-sm animate-shake ${
                                     isDark 
                                         ? 'bg-red-900/50 border-red-700 text-red-300' 
@@ -203,7 +203,7 @@ function LoginForm() {
                                 }`}>
                                     <div className="flex items-center">
                                         <div className="w-2 h-2 bg-red-500 rounded-full mr-3 animate-pulse"></div>
-                                        {error}
+                                        {error || loginMutation.error?.message || "Erreur de connexion"}
                                     </div>
                                 </div>
                             )}
@@ -212,7 +212,7 @@ function LoginForm() {
                                 {/* Email Field */}
                                 <div className="space-y-2">
                                     <label htmlFor="email" className={`block text-sm font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
-                                        Email Address
+                                        Email ou Nom d'utilisateur
                                     </label>
                                     <div className="relative group">
                                         <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
@@ -228,7 +228,7 @@ function LoginForm() {
                                                         ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' 
                                                         : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'
                                                 }`}
-                                                placeholder="Enter your email"
+                                                placeholder="admin@admin.com ou admin_test_backend"
                                                 required
                                             />
                                         </div>
@@ -238,7 +238,7 @@ function LoginForm() {
                                 {/* Password Field */}
                                 <div className="space-y-2">
                                     <label htmlFor="password" className={`block text-sm font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
-                                        Password
+                                        Mot de passe
                                     </label>
                                     <div className="relative group">
                                         <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
@@ -254,7 +254,7 @@ function LoginForm() {
                                                         ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' 
                                                         : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400'
                                                 }`}
-                                                placeholder="Enter your password"
+                                                placeholder="Entrez votre mot de passe"
                                                 required
                                             />
                                             <button
@@ -273,23 +273,23 @@ function LoginForm() {
                                 {/* Login Button */}
                                 <button
                                     type="submit"
-                                    disabled={loading}
+                                    disabled={loginMutation.isPending}
                                     className={`w-full relative group overflow-hidden rounded-xl py-4 px-6 font-semibold text-white transition-all duration-300 ${
-                                        loading 
+                                        loginMutation.isPending 
                                             ? 'bg-gray-300 cursor-not-allowed' 
                                             : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 hover:shadow-lg hover:shadow-red-500/25 hover:scale-[1.02] active:scale-[0.98]'
                                     }`}
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                     <div className="relative flex items-center justify-center">
-                                        {loading ? (
+                                        {loginMutation.isPending ? (
                                             <>
                                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3"></div>
-                                                Signing in...
+                                                Connexion en cours...
                                             </>
                                         ) : (
                                             <>
-                                                Sign In
+                                                Se connecter
                                                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                                             </>
                                         )}
@@ -430,14 +430,32 @@ function LoginForm() {
 }
 
 export default function Login() {
-    const { isAuthenticated } = useRequireGuest();
+    const { isAuthenticated, isLoading } = useRequireGuest();
+    const isClient = useClientSide();
 
-    // Afficher un loader pendant la vérification de l'authentification
-    if (isAuthenticated === undefined) {
+    // Afficher un loader pendant l'hydratation et la vérification de l'authentification
+    if (!isClient || isLoading) {
         return (
             <ThemeProvider>
                 <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Chargement...</p>
+                    </div>
+                </div>
+            </ThemeProvider>
+        );
+    }
+
+    // Si déjà connecté, ne pas afficher le formulaire (redirection en cours)
+    if (isAuthenticated) {
+        return (
+            <ThemeProvider>
+                <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Redirection vers le dashboard...</p>
+                    </div>
                 </div>
             </ThemeProvider>
         );

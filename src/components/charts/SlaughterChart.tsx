@@ -13,6 +13,8 @@ import {
 import { Bar } from 'react-chartjs-2';
 import { useTheme } from '@/lib/theme/ThemeProvider';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { useProfile } from '@/lib/hooks/useDjangoAuth';
+import { useAbattoirsForCharts } from '@/lib/hooks/useAbattoirStats';
 
 // Enregistrer les composants Chart.js
 ChartJS.register(
@@ -40,18 +42,26 @@ export function SlaughterChart({ isLoading = false }: SlaughterChartProps) {
   const { t, loading: translationLoading, currentLocale } = useLanguage();
   const isRTL = currentLocale === 'ar';
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month'>('today');
+  const { data: userProfile } = useProfile();
+  const { data: abattoirsData, isLoading: abattoirsLoading } = useAbattoirsForCharts();
 
-  // Données mock pour les abattoirs (cohérentes avec la page abattoirs)
-  const mockSlaughterData: SlaughterData[] = [
-    { abattoir: "Abattoir Central d'Alger", today: 45, week: 320, month: 1280 },
-    { abattoir: "Abattoir de Blida", today: 38, week: 280, month: 1120 },
-    { abattoir: "Abattoir de Constantine", today: 52, week: 365, month: 1460 },
-    { abattoir: "Abattoir d'Oran", today: 41, week: 290, month: 1160 },
-    { abattoir: "Abattoir de Tizi Ouzou", today: 33, week: 235, month: 940 },
-    { abattoir: "Abattoir de Annaba", today: 29, week: 205, month: 820 },
-    { abattoir: "Abattoir de Sétif", today: 47, week: 330, month: 1320 },
-    { abattoir: "Abattoir de Batna", today: 35, week: 245, month: 980 },
-  ];
+  // Fonction pour générer des données mock d'abattage (mémorisée)
+  const generateMockSlaughterData = React.useMemo(() => {
+    if (!abattoirsData?.abattoirs) return [];
+    
+    return abattoirsData.abattoirs.map((abattoir, index) => {
+      // Utiliser l'index pour avoir des données cohérentes
+      const seed = abattoir.id || index;
+      return {
+        abattoir: abattoir.nom,
+        today: (seed * 7) % 50 + 20, // 20-70 animaux (cohérent)
+        week: (seed * 11) % 200 + 150, // 150-350 animaux (cohérent)
+        month: (seed * 13) % 800 + 600, // 600-1400 animaux (cohérent)
+      };
+    });
+  }, [abattoirsData?.abattoirs]);
+
+  const mockSlaughterData = generateMockSlaughterData;
 
   const timeFilters = [
     { key: 'today', label: 'Aujourd\'hui' },
@@ -59,16 +69,14 @@ export function SlaughterChart({ isLoading = false }: SlaughterChartProps) {
     { key: 'month', label: 'Ce mois' },
   ];
 
-  const getCurrentData = () => {
+  const currentData = React.useMemo(() => {
     return mockSlaughterData.map(item => ({
       abattoir: item.abattoir,
       value: item[timeFilter]
     }));
-  };
+  }, [mockSlaughterData, timeFilter]);
 
-  const currentData = getCurrentData();
-
-  const chartData = {
+  const chartData = React.useMemo(() => ({
     labels: currentData.map(item => item.abattoir),
     datasets: [
       {
@@ -110,14 +118,18 @@ export function SlaughterChart({ isLoading = false }: SlaughterChartProps) {
         hoverBorderWidth: 4,
       },
     ],
-  };
+  }), [currentData, timeFilter, timeFilters]);
 
-  const chartOptions = {
+  const chartOptions = React.useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 2000,
+      duration: 1500,
       easing: 'easeInOutQuart',
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index' as const,
     },
     plugins: {
       legend: {
@@ -203,9 +215,9 @@ export function SlaughterChart({ isLoading = false }: SlaughterChartProps) {
         },
       },
     },
-  };
+  }), [theme, isRTL, timeFilter, timeFilters]);
 
-  if (isLoading || translationLoading) {
+  if (isLoading || translationLoading || abattoirsLoading) {
     return (
       <div className="theme-bg-elevated rounded-lg p-6 shadow-sm theme-border-primary border">
         <div className="h-64 theme-bg-tertiary rounded-lg animate-pulse flex items-center justify-center">
@@ -220,7 +232,10 @@ export function SlaughterChart({ isLoading = false }: SlaughterChartProps) {
       {/* Header avec filtres */}
       <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-4`}>
         <h3 className={`text-lg font-semibold theme-text-primary ${isRTL ? 'text-right' : 'text-left'}`}>
-          Répartition des animaux abattus par abattoir
+          {abattoirsData?.user_type === 'superuser' 
+            ? "Répartition des animaux abattus par abattoir" 
+            : `Animaux abattus - ${abattoirsData?.abattoirs[0]?.nom || "Votre Abattoir"}`
+          }
         </h3>
         
         {/* Filtres de temps */}
@@ -252,19 +267,31 @@ export function SlaughterChart({ isLoading = false }: SlaughterChartProps) {
           <div className="text-2xl font-bold theme-text-primary">
             {currentData.reduce((sum, item) => sum + item.value, 0)}
           </div>
-          <div className="text-sm theme-text-secondary">Total abattu</div>
+          <div className="text-sm theme-text-secondary">
+            {abattoirsData?.user_type === 'superuser' ? "Total abattu" : "Total abattu"}
+          </div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold theme-text-primary">
-            {Math.round(currentData.reduce((sum, item) => sum + item.value, 0) / currentData.length)}
+            {abattoirsData?.user_type === 'superuser' 
+              ? Math.round(currentData.reduce((sum, item) => sum + item.value, 0) / currentData.length)
+              : currentData[0]?.value || 0
+            }
           </div>
-          <div className="text-sm theme-text-secondary">Moyenne/abattoir</div>
+          <div className="text-sm theme-text-secondary">
+            {abattoirsData?.user_type === 'superuser' ? "Moyenne/abattoir" : "Animaux abattus"}
+          </div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold theme-text-primary">
-            {currentData.find(item => item.value === Math.max(...currentData.map(d => d.value)))?.abattoir.split(' ')[1] || 'N/A'}
+            {abattoirsData?.user_type === 'superuser' 
+              ? (currentData.find(item => item.value === Math.max(...currentData.map(d => d.value)))?.abattoir.split(' ')[1] || 'N/A')
+              : (timeFilters.find(f => f.key === timeFilter)?.label || 'N/A')
+            }
           </div>
-          <div className="text-sm theme-text-secondary">Plus actif</div>
+          <div className="text-sm theme-text-secondary">
+            {abattoirsData?.user_type === 'superuser' ? "Plus actif" : "Période"}
+          </div>
         </div>
       </div>
     </div>

@@ -127,7 +127,7 @@ export default function AbattoirInfo({ abattoir, isRTL }: AbattoirInfoProps) {
               {isRTL ? 'معدل الاستخدام' : 'Taux d\'utilisation'}
             </p>
             <p className="text-2xl font-bold theme-text-primary theme-transition">
-              {Math.round((abattoir.currentStock / abattoir.capacity) * 100)}%
+              {((abattoir.currentStock / abattoir.capacity) * 100).toFixed(2)}%
             </p>
             <p className="text-sm theme-text-secondary theme-transition">{isRTL ? 'من السعة' : 'de la capacité'}</p>
           </div>
@@ -205,7 +205,7 @@ export default function AbattoirInfo({ abattoir, isRTL }: AbattoirInfoProps) {
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <p className="font-medium theme-text-primary theme-transition">{abattoir.manager}</p>
                 <p className="text-sm theme-text-secondary theme-transition">
-                  {isRTL ? 'مدير' : 'Directeur'}
+                  {isRTL ? 'مسؤول المجزر' : 'Responsable de l\'abattoir'}
                 </p>
               </div>
             </div>
@@ -233,15 +233,24 @@ export default function AbattoirInfo({ abattoir, isRTL }: AbattoirInfoProps) {
           </h3>
           
           <div className={isRTL ? 'text-right' : 'text-left'}>
-            <p className="text-sm theme-text-secondary theme-transition mb-2">
-              {isRTL ? 'من' : 'De'} {abattoir.workingHours.start} {isRTL ? 'إلى' : 'à'} {abattoir.workingHours.end}
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {abattoir.workingHours.days.map((day: string, index: number) => (
-                <span key={index} className="px-2 py-1 bg-primary-100 text-primary-800 text-xs rounded-full">
-                  {day}
-                </span>
-              ))}
+            <div className="flex items-center mb-3">
+              <Clock className={`h-5 w-5 text-primary-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              <span className="font-medium theme-text-primary theme-transition">
+                {isRTL ? 'من' : 'De'} {abattoir.workingHours.start} {isRTL ? 'إلى' : 'à'} {abattoir.workingHours.end}
+              </span>
+            </div>
+            
+            <div className="mb-3">
+              <p className="text-sm theme-text-secondary theme-transition mb-2">
+                {isRTL ? 'أيام العمل' : 'Jours de travail'} :
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {abattoir.workingHours.days.map((day: string, index: number) => (
+                  <span key={index} className="px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 text-sm font-medium rounded-full border border-primary-200 dark:border-primary-700">
+                    {day}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>

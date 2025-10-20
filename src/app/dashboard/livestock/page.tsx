@@ -7,9 +7,11 @@ import {
   Activity,
   Skull
 } from 'lucide-react';
-import { useRequireAuth } from '@/lib/hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRequireAuth } from '@/lib/hooks/useDjangoAuth';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { useLivestockStats, livestockKeys } from '@/lib/hooks/useLivestock';
 import Tabs from '@/components/ui/Tabs';
 import LiveLivestockTab from '@/components/livestock/LiveLivestockTab';
 import CarcassLivestockTab from '@/components/livestock/CarcassLivestockTab';
@@ -19,6 +21,10 @@ export default function LivestockPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { t, loading: translationLoading, currentLocale } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+  
+  // Récupérer les statistiques des bêtes
+  const { data: livestockStats, isLoading: statsLoading, error: statsError, refetch: refreshStats } = useLivestockStats();
 
   // Détection RTL
   const isRTL = currentLocale === 'ar';
@@ -26,8 +32,8 @@ export default function LivestockPage() {
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Invalider toutes les requêtes de livestock pour forcer le refetch
+      await queryClient.invalidateQueries({ queryKey: livestockKeys.all });
       console.log('Données livestock rafraîchies');
     } catch (err) {
       console.error('Erreur lors du rafraîchissement:', err);
@@ -61,6 +67,22 @@ export default function LivestockPage() {
                 <p className="mt-1 theme-text-secondary theme-transition">
                   {isRTL ? 'إدارة الماشية الحية والذبائح' : 'Gestion des bêtes vivantes et carcasses'}
                 </p>
+                {livestockStats && (
+                  <div className="mt-2 flex items-center space-x-4 text-sm">
+                    <span className="theme-text-tertiary">
+                      {isRTL ? 'المجموع:' : 'Total:'} <strong className="theme-text-primary">{livestockStats.statistics.total_count}</strong>
+                    </span>
+                    <span className="theme-text-tertiary">
+                      {isRTL ? 'حي:' : 'Vivantes:'} <strong className="text-green-600 dark:text-green-400">{livestockStats.statistics.live_count}</strong>
+                    </span>
+                    <span className="theme-text-tertiary">
+                      {isRTL ? 'ذبيحة:' : 'Carcasses:'} <strong className="text-red-600 dark:text-red-400">{livestockStats.statistics.carcass_count}</strong>
+                    </span>
+                    <span className="theme-text-tertiary">
+                      {isRTL ? 'من:' : 'De:'} <strong className="theme-text-primary">{livestockStats.abattoir_name}</strong>
+                    </span>
+                  </div>
+                )}
               </div>
               <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
                 <button 

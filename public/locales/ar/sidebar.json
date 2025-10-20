@@ -1,6 +1,13 @@
 {
     "dashboard": "لوحة التحكم",
     "clients": "العملاء",
+    "reception": "الاستقبال",
+    "stabulation": "الحظيرة",
+    "bon_commande": "طلب شراء",
+    "transfert": "النقل",
+    "aliment": "العلف",
+    "stock_aliment": "مخزون العلف",
+    "transfert_aliment": "نقل العلف",
     "abattoirs": "المجازر",
     "livestock": "الماشية",
     "stock_management": "إدارة المخزون",

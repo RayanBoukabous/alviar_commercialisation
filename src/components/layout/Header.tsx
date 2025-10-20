@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useLogout } from '@/lib/hooks/useDjangoAuth';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { useSearch } from '@/lib/contexts/SearchContext';
 import { Bell, Search, User, Settings, LogOut, X } from 'lucide-react';
@@ -12,7 +12,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ className }) => {
-  const { logout } = useAuth();
+  const logoutMutation = useLogout();
   const { t, loading, currentLocale } = useLanguage();
   const { searchQuery, setSearchQuery, clearSearch } = useSearch();
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
@@ -90,13 +90,24 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
                       <hr className="my-1 theme-border-primary" />
                       <button
                         onClick={() => {
+                          if (logoutMutation.isPending) return; // Éviter les clics multiples
                           setIsUserMenuOpen(false);
-                          logout();
+                          logoutMutation.mutate();
                         }}
-                        className="flex items-center w-full px-4 py-2 text-sm theme-text-primary hover:theme-bg-secondary theme-transition"
+                        disabled={logoutMutation.isPending}
+                        className="flex items-center w-full px-4 py-2 text-sm theme-text-primary hover:theme-bg-secondary theme-transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <LogOut className="h-4 w-4 mr-3" />
-                        {t('header', 'logout')}
+                        {logoutMutation.isPending ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-3"></div>
+                            Déconnexion...
+                          </>
+                        ) : (
+                          <>
+                            <LogOut className="h-4 w-4 mr-3" />
+                            {t('header', 'logout')}
+                          </>
+                        )}
                       </button>
                     </div>
                   )}
@@ -220,13 +231,24 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
                       <hr className="my-1 theme-border-primary" />
                       <button
                         onClick={() => {
+                          if (logoutMutation.isPending) return; // Éviter les clics multiples
                           setIsUserMenuOpen(false);
-                          logout();
+                          logoutMutation.mutate();
                         }}
-                        className="flex items-center w-full px-4 py-2 text-sm theme-text-primary hover:theme-bg-secondary theme-transition"
+                        disabled={logoutMutation.isPending}
+                        className="flex items-center w-full px-4 py-2 text-sm theme-text-primary hover:theme-bg-secondary theme-transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <LogOut className="h-4 w-4 mr-3" />
-                        {t('header', 'logout')}
+                        {logoutMutation.isPending ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-3"></div>
+                            Déconnexion...
+                          </>
+                        ) : (
+                          <>
+                            <LogOut className="h-4 w-4 mr-3" />
+                            {t('header', 'logout')}
+                          </>
+                        )}
                       </button>
                     </div>
                   )}

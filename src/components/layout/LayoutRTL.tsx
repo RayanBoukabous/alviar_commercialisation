@@ -22,9 +22,9 @@ const LayoutRTL: React.FC<LayoutRTLProps> = ({
       <div className="min-h-screen theme-bg-primary theme-transition" dir="rtl">
         <div className="flex relative">
           {/* Main content */}
-          <div className="flex-1 flex flex-col min-w-0" style={{ marginRight: showSidebar ? '16rem' : '0' }}>
-            <Header />
-            <main className={cn('flex-1 p-6 theme-bg-primary', className)}>
+          <div className="flex-1 flex flex-col min-w-0 print:mr-0" style={{ marginRight: showSidebar ? '16rem' : '0' }}>
+            <Header className="print:hidden" />
+            <main className={cn('flex-1 p-6 theme-bg-primary print:p-0', className)}>
               {children}
             </main>
           </div>
@@ -32,7 +32,7 @@ const LayoutRTL: React.FC<LayoutRTLProps> = ({
           {/* Sidebar à DROITE - Position absolue */}
           {showSidebar && (
             <div 
-              className="hidden md:flex md:w-64 md:flex-col"
+              className="hidden md:flex md:w-64 md:flex-col print:hidden"
               style={{ 
                 position: 'absolute',
                 top: 0,

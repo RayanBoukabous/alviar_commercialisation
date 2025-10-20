@@ -23,15 +23,15 @@ const LayoutLTR: React.FC<LayoutLTRProps> = ({
         <div className="flex">
           {/* Sidebar à GAUCHE */}
           {showSidebar && (
-            <div className="hidden md:flex md:w-64 md:flex-col">
+            <div className="hidden md:flex md:w-64 md:flex-col print:hidden">
               <Sidebar />
             </div>
           )}
 
           {/* Main content */}
           <div className="flex-1 flex flex-col min-w-0">
-            <Header />
-            <main className={cn('flex-1 p-6 theme-bg-primary', className)}>
+            <Header className="print:hidden" />
+            <main className={cn('flex-1 p-6 theme-bg-primary print:p-0', className)}>
               {children}
             </main>
           </div>

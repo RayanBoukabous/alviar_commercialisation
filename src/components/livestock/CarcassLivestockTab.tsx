@@ -21,183 +21,83 @@ import {
   MoreVertical,
   Skull
 } from 'lucide-react';
+import { useLivestock, useCarcassStatistics } from '@/lib/hooks/useLivestock';
+import { useAbattoirs } from '@/lib/hooks/useAbattoirs';
+import { useAuth } from '@/lib/hooks/useDjangoAuth';
+import { Bete } from '@/lib/api/livestockService';
+import { useRouter } from 'next/navigation';
 
 interface CarcassLivestockProps {
   isRTL: boolean;
 }
 
-interface CarcassLivestockItem {
-  id: string;
-  loopNumber: string;
-  type: 'BOVIN' | 'OVIN' | 'CAPRIN';
-  breed: string;
-  age: number;
-  liveWeight: number; // Poids avant abattage
-  carcassWeight: number; // Poids de la carcasse
-  gender: 'MALE' | 'FEMALE';
-  slaughterDate: string;
-  slaughterTime: string;
-  origin: string;
-  abattoirId: number;
-  abattoirName: string;
-  slaughterMethod: 'HALAL' | 'TRADITIONAL';
-  quality: 'EXCELLENT' | 'BON' | 'MOYEN' | 'MAUVAIS';
-  status: 'FRESH' | 'CHILLED' | 'FROZEN' | 'PROCESSED' | 'SOLD';
-  storageLocation: string;
-  expiryDate: string;
-  pricePerKg: number;
-  totalValue: number;
-  notes?: string;
-}
+// Utiliser l'interface Bete existante pour les carcasses
 
-// Données mock pour les carcasses
-const mockCarcassLivestock: CarcassLivestockItem[] = [
-  {
-    id: 'CAR001',
-    loopNumber: 'DZ-BLI-2024-001236',
-    type: 'OVIN',
-    breed: 'Ouled Djellal',
-    age: 18,
-    liveWeight: 65,
-    carcassWeight: 35,
-    gender: 'FEMALE',
-    slaughterDate: '2024-01-12T00:00:00Z',
-    slaughterTime: '16:45',
-    origin: 'Ferme de Médéa',
-    abattoirId: 2,
-    abattoirName: 'Abattoir de Blida',
-    slaughterMethod: 'HALAL',
-    quality: 'EXCELLENT',
-    status: 'CHILLED',
-    storageLocation: 'Chambre froide A-1',
-    expiryDate: '2024-01-19T00:00:00Z',
-    pricePerKg: 1200,
-    totalValue: 42000,
-    notes: 'Carcasse de qualité excellente, bien conditionnée'
-  },
-  {
-    id: 'CAR002',
-    loopNumber: 'DZ-ALG-2024-001242',
-    type: 'BOVIN',
-    breed: 'Holstein',
-    age: 26,
-    liveWeight: 480,
-    carcassWeight: 280,
-    gender: 'MALE',
-    slaughterDate: '2024-01-13T00:00:00Z',
-    slaughterTime: '14:30',
-    origin: 'Ferme de Blida',
-    abattoirId: 1,
-    abattoirName: "Abattoir Central d'Alger",
-    slaughterMethod: 'HALAL',
-    quality: 'BON',
-    status: 'FRESH',
-    storageLocation: 'Hangar principal',
-    expiryDate: '2024-01-16T00:00:00Z',
-    pricePerKg: 1800,
-    totalValue: 504000,
-    notes: 'Carcasse fraîche, prête pour la vente'
-  },
-  {
-    id: 'CAR003',
-    loopNumber: 'DZ-ORAN-2024-001243',
-    type: 'BOVIN',
-    breed: 'Charolais',
-    age: 28,
-    liveWeight: 520,
-    carcassWeight: 310,
-    gender: 'MALE',
-    slaughterDate: '2024-01-11T00:00:00Z',
-    slaughterTime: '11:15',
-    origin: 'Ferme de Mostaganem',
-    abattoirId: 4,
-    abattoirName: 'Abattoir d\'Oran',
-    slaughterMethod: 'HALAL',
-    quality: 'EXCELLENT',
-    status: 'FROZEN',
-    storageLocation: 'Congélateur B-2',
-    expiryDate: '2024-02-11T00:00:00Z',
-    pricePerKg: 1900,
-    totalValue: 589000,
-    notes: 'Carcasse congelée, qualité excellente'
-  },
-  {
-    id: 'CAR004',
-    loopNumber: 'DZ-SETIF-2024-001244',
-    type: 'CAPRIN',
-    breed: 'Kabyle',
-    age: 14,
-    liveWeight: 40,
-    carcassWeight: 22,
-    gender: 'MALE',
-    slaughterDate: '2024-01-14T00:00:00Z',
-    slaughterTime: '09:30',
-    origin: 'Ferme de Bordj Bou Arreridj',
-    abattoirId: 7,
-    abattoirName: 'Abattoir de Sétif',
-    slaughterMethod: 'HALAL',
-    quality: 'BON',
-    status: 'PROCESSED',
-    storageLocation: 'Zone de transformation',
-    expiryDate: '2024-01-21T00:00:00Z',
-    pricePerKg: 1500,
-    totalValue: 33000,
-    notes: 'Carcasse transformée en morceaux'
-  },
-  {
-    id: 'CAR005',
-    loopNumber: 'DZ-BATNA-2024-001245',
-    type: 'OVIN',
-    breed: 'Rambouillet',
-    age: 16,
-    liveWeight: 55,
-    carcassWeight: 30,
-    gender: 'FEMALE',
-    slaughterDate: '2024-01-10T00:00:00Z',
-    slaughterTime: '13:20',
-    origin: 'Ferme de Khenchela',
-    abattoirId: 8,
-    abattoirName: 'Abattoir de Batna',
-    slaughterMethod: 'HALAL',
-    quality: 'MOYEN',
-    status: 'SOLD',
-    storageLocation: 'Vendu',
-    expiryDate: '2024-01-17T00:00:00Z',
-    pricePerKg: 1100,
-    totalValue: 33000,
-    notes: 'Carcasse vendue à un client local'
+// Fonction pour mapper les données Bete vers le format carcasse
+const mapBeteToCarcass = (bete: Bete) => {
+  // Déterminer le statut selon la date d'abattage
+  const slaughterDate = new Date(bete.updated_at);
+  const now = new Date();
+  const daysDiff = Math.floor((now.getTime() - slaughterDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  let status = 'FRESH';
+  if (daysDiff > 7) {
+    status = 'CHILLED';
+  } else if (daysDiff > 30) {
+    status = 'FROZEN';
   }
-];
+
+  return {
+    id: bete.id,
+    loopNumber: bete.numero_identification,
+    type: bete.espece_nom || bete.espece?.nom || 'INCONNU',
+    breed: bete.race?.nom || 'Non spécifié',
+    liveWeight: bete.poids_vif || 0,
+    carcassWeight: bete.poids_a_chaud || 0,
+    gender: bete.sexe === 'M' ? 'MALE' : 'FEMALE',
+    slaughterDate: bete.updated_at,
+    abattoirName: bete.abattoir?.nom || bete.abattoir_nom || 'Inconnu',
+    quality: bete.etat_sante === 'BON' ? 'BON' : 'MAUVAIS',
+    status: status,
+    etatSante: bete.etat_sante, // Ajouter l'état de santé original
+    notes: bete.nom || undefined
+  };
+};
 
 export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
-  const [carcassLivestock, setCarcassLivestock] = useState<CarcassLivestockItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [qualityFilter, setQualityFilter] = useState<string>('ALL');
-  const [deletingCarcassId, setDeletingCarcassId] = useState<string | null>(null);
+  const [abattoirFilter, setAbattoirFilter] = useState<string>('ALL');
+  const [deletingCarcassId, setDeletingCarcassId] = useState<number | null>(null);
 
-  useEffect(() => {
-    const fetchCarcassLivestock = async () => {
-      try {
-        setLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setCarcassLivestock(mockCarcassLivestock);
-      } catch (err) {
-        console.error('Erreur lors du chargement des carcasses:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Récupérer les données utilisateur et abattoirs
+  const { user } = useAuth();
+  const { data: abattoirsList } = useAbattoirs();
+  const isSuperuser = user?.is_superuser || false;
 
-    fetchCarcassLivestock();
-  }, []);
+  // Récupérer les bêtes avec le statut ABATTU
+  const { data: livestockData, isLoading: loading, error } = useLivestock({
+    statut: 'ABATTU',
+    page_size: 100 // Récupérer plus de données pour les carcasses
+  });
+
+  // Récupérer les statistiques des carcasses depuis le backend
+  const { data: carcassStats, isLoading: statsLoading } = useCarcassStatistics({
+    espece_nom: typeFilter !== 'ALL' ? typeFilter : undefined,
+    etat_sante: qualityFilter !== 'ALL' ? (qualityFilter as 'BON' | 'MALADE') : undefined,
+    abattoir_id: abattoirFilter !== 'ALL' ? parseInt(abattoirFilter) : undefined,
+    search: searchTerm || undefined
+  });
+
+  // Mapper les données vers le format carcasse
+  const carcassLivestock = livestockData?.betes?.map(mapBeteToCarcass) || [];
 
   const filteredCarcassLivestock = carcassLivestock.filter(item => {
     const matchesSearch = item.loopNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.abattoirName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
     const matchesType = typeFilter === 'ALL' || item.type === typeFilter;
@@ -311,7 +211,7 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
     }).format(amount);
   };
 
-  const handleDeleteCarcass = async (carcassId: string, loopNumber: string) => {
+  const handleDeleteCarcass = async (carcassId: number, loopNumber: string) => {
     const confirmed = window.confirm(
       `Êtes-vous sûr de vouloir supprimer la carcasse "${loopNumber}" ?`
     );
@@ -322,9 +222,9 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
 
     try {
       setDeletingCarcassId(carcassId);
+      // TODO: Implémenter l'appel API pour supprimer la carcasse
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      setCarcassLivestock(prevCarcass => prevCarcass.filter(item => item.id !== carcassId));
       console.log(`Carcasse ${loopNumber} supprimée avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression de la carcasse:', err);
@@ -333,11 +233,11 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
     }
   };
 
-  // Statistiques
-  const totalCarcassWeight = filteredCarcassLivestock.reduce((sum, item) => sum + item.carcassWeight, 0);
-  const totalCount = filteredCarcassLivestock.length;
-  const totalValue = filteredCarcassLivestock.reduce((sum, item) => sum + item.totalValue, 0);
-  const averageWeight = totalCount > 0 ? Math.round(totalCarcassWeight / totalCount) : 0;
+  // Statistiques depuis le backend
+  const totalCount = carcassStats?.statistics?.total_count || 0;
+  const totalCarcassWeight = carcassStats?.statistics?.total_carcass_weight || 0;
+  const totalLiveWeight = carcassStats?.statistics?.total_live_weight || 0;
+  const averageWeight = carcassStats?.statistics?.average_carcass_weight || 0;
 
   return (
     <div className="space-y-6">
@@ -363,7 +263,7 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
               <p className="text-sm font-medium theme-text-secondary theme-transition">
                 {isRTL ? 'الوزن الإجمالي' : 'Poids total'}
               </p>
-              <p className="text-2xl font-bold theme-text-primary theme-transition">{totalCarcassWeight} kg</p>
+              <p className="text-2xl font-bold theme-text-primary theme-transition">{totalCarcassWeight.toFixed(2)} kg</p>
             </div>
             <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
               <Scale className="h-6 w-6 text-green-600" />
@@ -375,9 +275,9 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
           <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
             <div className={isRTL ? 'text-right' : 'text-left'}>
               <p className="text-sm font-medium theme-text-secondary theme-transition">
-                {isRTL ? 'القيمة الإجمالية' : 'Valeur totale'}
+                {isRTL ? 'الوزن الحي الإجمالي' : 'Poids vif total'}
               </p>
-              <p className="text-2xl font-bold theme-text-primary theme-transition">{formatCurrency(totalValue)}</p>
+              <p className="text-2xl font-bold theme-text-primary theme-transition">{totalLiveWeight.toFixed(2)} kg</p>
             </div>
             <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <Package className="h-6 w-6 text-purple-600" />
@@ -391,7 +291,7 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
               <p className="text-sm font-medium theme-text-secondary theme-transition">
                 {isRTL ? 'متوسط الوزن' : 'Poids moyen'}
               </p>
-              <p className="text-2xl font-bold theme-text-primary theme-transition">{averageWeight} kg</p>
+              <p className="text-2xl font-bold theme-text-primary theme-transition">{averageWeight.toFixed(2)} kg</p>
             </div>
             <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
               <Activity className="h-6 w-6 text-yellow-600" />
@@ -446,6 +346,20 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
             <option value="MOYEN">{isRTL ? 'متوسط' : 'Moyen'}</option>
             <option value="MAUVAIS">{isRTL ? 'سيء' : 'Mauvais'}</option>
           </select>
+          {isSuperuser && (
+            <select
+              value={abattoirFilter}
+              onChange={(e) => setAbattoirFilter(e.target.value)}
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
+            >
+              <option value="ALL">{isRTL ? 'جميع المسالخ' : 'Tous les abattoirs'}</option>
+              {abattoirsList?.abattoirs?.map((abattoir: any) => (
+                <option key={abattoir.id} value={abattoir.id.toString()}>
+                  {abattoir.nom}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
@@ -467,6 +381,9 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
                     {isRTL ? 'النوع والعرق' : 'Type & Race'}
                   </th>
                   <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
+                    {isRTL ? 'المسلخ' : 'Abattoir'}
+                  </th>
+                  <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
                     {isRTL ? 'الأوزان' : 'Poids'}
                   </th>
                   <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
@@ -477,9 +394,6 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
                   </th>
                   <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
                     {isRTL ? 'الحالة' : 'Statut'}
-                  </th>
-                  <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                    {isRTL ? 'القيمة' : 'Valeur'}
                   </th>
                   <th className={`px-6 py-3 ${isRTL ? 'text-left' : 'text-right'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
                     {isRTL ? 'الإجراءات' : 'Actions'}
@@ -508,6 +422,14 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={isRTL ? 'text-right' : 'text-left'}>
+                        <div className="text-sm font-medium theme-text-primary theme-transition">{item.abattoirName}</div>
+                        <div className="text-sm theme-text-secondary theme-transition">
+                          {isRTL ? 'مكان الذبح' : 'Lieu d\'abattage'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={isRTL ? 'text-right' : 'text-left'}>
                         <div className="text-sm font-medium theme-text-primary theme-transition">
                           {item.carcassWeight} kg
                         </div>
@@ -522,29 +444,32 @@ export default function CarcassLivestockTab({ isRTL }: CarcassLivestockProps) {
                           {formatDate(item.slaughterDate)}
                         </div>
                         <div className="text-sm theme-text-secondary theme-transition">
-                          {item.slaughterTime}
+                          {isRTL ? 'تاريخ الذبح' : 'Date abattage'}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getQualityBadge(item.quality)}
+                      <div className="space-y-1">
+                        {getQualityBadge(item.quality)}
+                        <div className="text-xs theme-text-tertiary">
+                          {isRTL ? 'الحالة الصحية:' : 'État santé:'} 
+                          <span className={`ml-1 font-medium ${
+                            item.etatSante === 'BON' 
+                              ? 'text-green-600 dark:text-green-400' 
+                              : 'text-red-600 dark:text-red-400'
+                          }`}>
+                            {item.etatSante === 'BON' ? (isRTL ? 'سليم' : 'Sain') : (isRTL ? 'مريض' : 'Malade')}
+                          </span>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(item.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={isRTL ? 'text-right' : 'text-left'}>
-                        <div className="text-sm font-medium theme-text-primary theme-transition">
-                          {formatCurrency(item.totalValue)}
-                        </div>
-                        <div className="text-sm theme-text-secondary theme-transition">
-                          {formatCurrency(item.pricePerKg)}/kg
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`flex items-center ${isRTL ? 'justify-start space-x-reverse space-x-2' : 'justify-end space-x-2'}`}>
                         <button 
+                          onClick={() => router.push(`/dashboard/livestock/carcass/${item.id}`)}
                           className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
                           title={isRTL ? 'عرض التفاصيل' : 'Voir les détails'}
                         >

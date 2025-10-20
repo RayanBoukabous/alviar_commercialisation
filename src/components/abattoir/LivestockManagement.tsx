@@ -2,6 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLiveLivestock } from '@/lib/hooks/useLivestock';
+import { useEspeces } from '@/lib/hooks/useEspeces';
+import { useDebounce } from '@/lib/hooks/useDebounce';
+import { Bete } from '@/lib/api/livestockService';
+import Pagination from '@/components/ui/Pagination';
 import { 
   Plus, 
   Search, 
@@ -21,7 +26,13 @@ import {
   Clock,
   X,
   Download,
-  Printer
+  Printer,
+  Heart,
+  Skull,
+  TrendingUp,
+  Users,
+  Tag,
+  Scale
 } from 'lucide-react';
 
 // Interface pour le bétail
@@ -37,10 +48,30 @@ interface Livestock {
   arrivalDate: string;
   lastActivity: string;
   origin: string;
-  healthStatus: 'BON' | 'MOYEN' | 'MAUVAIS';
+  healthStatus: 'BON' | 'MALADE';
   notes?: string;
   transferHistory?: TransferRecord[];
 }
+
+// Fonction pour mapper les données API vers le format de l'interface
+const mapBeteToLivestock = (bete: Bete): Livestock => {
+  return {
+    id: bete.id.toString(),
+    loopNumber: bete.numero_identification || 'N/A',
+    type: (bete.espece_nom || bete.espece?.nom || 'BOVIN').toUpperCase() as 'BOVIN' | 'OVIN' | 'CAPRIN',
+    breed: bete.espece_nom || bete.espece?.nom || 'Non spécifié',
+    age: 0, // Pas disponible dans l'API actuelle
+    weight: bete.poids_vif || 0,
+    gender: bete.sexe === 'M' ? 'MALE' : 'FEMALE',
+    status: bete.statut as 'EN_ATTENTE' | 'EN_TRAITEMENT' | 'ABATTU' | 'TRANSFERE' | 'REJETE' || 'EN_ATTENTE',
+    arrivalDate: bete.created_at,
+    lastActivity: bete.updated_at,
+    origin: bete.abattoir_nom || bete.abattoir?.nom || 'Non spécifié',
+    healthStatus: bete.etat_sante as 'BON' | 'MALADE' || 'BON',
+    notes: '',
+    transferHistory: []
+  };
+};
 
 // Interface pour les transferts
 interface TransferRecord {
@@ -145,7 +176,7 @@ const mockLivestock: Livestock[] = [
     arrivalDate: '2024-01-12T11:30:00Z',
     lastActivity: '2024-01-13T10:20:00Z',
     origin: 'Ferme de Boumerdès',
-    healthStatus: 'MOYEN',
+    healthStatus: 'BON',
     notes: 'Transféré vers Abattoir de Blida',
     transferHistory: [
       {
@@ -173,7 +204,7 @@ const mockLivestock: Livestock[] = [
     arrivalDate: '2024-01-11T14:45:00Z',
     lastActivity: '2024-01-12T09:15:00Z',
     origin: 'Ferme de Chéraga',
-    healthStatus: 'MAUVAIS',
+    healthStatus: 'MALADE',
     notes: 'Rejeté pour problèmes de santé'
   }
 ];
@@ -185,8 +216,6 @@ interface LivestockManagementProps {
 
 export default function LivestockManagement({ abattoirId, isRTL }: LivestockManagementProps) {
   const router = useRouter();
-  const [livestock, setLivestock] = useState<Livestock[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
@@ -194,72 +223,120 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showSlaughterModal, setShowSlaughterModal] = useState(false);
   const [transferDocuments, setTransferDocuments] = useState<TransferDocument[]>([]);
+  
+  // États pour la pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  useEffect(() => {
-    const fetchLivestock = async () => {
-      try {
-        setLoading(true);
-        // Simulation d'un appel API
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setLivestock(mockLivestock);
-      } catch (err) {
-        console.error('Erreur:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Debounce pour la recherche
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-    fetchLivestock();
-  }, [abattoirId]);
+  // Récupérer la liste des espèces depuis le backend
+  const { data: especesList } = useEspeces();
 
-  const filteredLivestock = livestock.filter(animal => {
-    const matchesSearch = animal.loopNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         animal.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         animal.origin.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || animal.status === statusFilter;
-    const matchesType = typeFilter === 'ALL' || animal.type === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
-  });
+  // Préparer les filtres pour l'API
+  const filters: any = {
+    abattoir_id: abattoirId,
+    page: currentPage,
+    page_size: pageSize
+  };
+
+  if (debouncedSearchTerm) {
+    filters.search = debouncedSearchTerm;
+  }
+  if (statusFilter !== 'ALL') {
+    filters.statut = statusFilter;
+  }
+  if (typeFilter !== 'ALL') {
+    filters.espece_nom = typeFilter;
+  }
+
+  // Hook pour récupérer les bêtes de cet abattoir (pour la liste paginée et les statistiques)
+  const { data: livestockData, isLoading: loading, error, refetch } = useLiveLivestock(filters);
+  
+  // Mapper les données API vers le format de l'interface
+  const livestock = livestockData?.betes?.map(mapBeteToLivestock) || [];
+
+  // Debug: afficher les données reçues
+  console.log('Debug - Filtres appliqués:', filters);
+  console.log('Debug - Données API reçues:', livestockData?.betes?.length, 'bêtes');
+  console.log('Debug - Première bête (structure):', livestockData?.betes?.[0]);
+  console.log('Debug - Types d\'espèces dans les données:', livestockData?.betes?.map(b => b.espece?.nom).filter((v, i, a) => a.indexOf(v) === i));
+
+  // Les filtres sont maintenant gérés côté serveur
+  const filteredLivestock = livestock;
+
+  // Utiliser les statistiques filtrées (cohérentes avec le tableau)
+  const stats = livestockData ? {
+    total: livestockData.statistics.total_count,
+    healthy: livestockData.statistics.live_count, // Les bêtes vivantes
+    sick: 0, // Pas de données spécifiques pour les malades dans l'API actuelle
+    slaughteredToday: 0, // Toujours 0 comme demandé
+    carcasses: livestockData.statistics.carcass_count, // Les carcasses
+    speciesCount: livestockData.statistics.especes_stats.reduce((acc, espece) => {
+      acc[espece.espece__nom.toUpperCase()] = { total: espece.count, healthy: espece.count, sick: 0 };
+      return acc;
+    }, {} as Record<string, { total: number; healthy: number; sick: number }>)
+  } : {
+    total: 0,
+    healthy: 0,
+    sick: 0,
+    slaughteredToday: 0,
+    carcasses: 0,
+    speciesCount: {}
+  };
+
+
+  // Statistiques de poids (basées sur les données filtrées)
+  const weightStats = livestockData ? {
+    totalWeight: Math.round(livestockData.statistics.total_weight || 0),
+    averageWeight: Math.round(livestockData.statistics.average_weight || 0)
+  } : {
+    totalWeight: 0,
+    averageWeight: 0
+  };
+
+  const handleRefresh = async () => {
+    await refetch();
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      EN_ATTENTE: { 
-        bg: 'bg-blue-100 dark:bg-blue-900/30', 
-        text: 'text-blue-800 dark:text-blue-300', 
-        label: isRTL ? 'في الانتظار' : 'En attente',
-        icon: Clock
-      },
-      EN_TRAITEMENT: { 
-        bg: 'bg-yellow-100 dark:bg-yellow-900/30', 
-        text: 'text-yellow-800 dark:text-yellow-300', 
-        label: isRTL ? 'قيد المعالجة' : 'En traitement',
-        icon: Activity
+      VIVANT: { 
+        bg: 'bg-green-200 dark:bg-green-900/50', 
+        text: 'text-green-900 dark:text-green-100', 
+        border: 'border-green-300 dark:border-green-700',
+        label: isRTL ? 'حي' : 'Vivant',
+        icon: Heart
       },
       ABATTU: { 
-        bg: 'bg-green-100 dark:bg-green-900/30', 
-        text: 'text-green-800 dark:text-green-300', 
+        bg: 'bg-blue-200 dark:bg-blue-900/50', 
+        text: 'text-blue-900 dark:text-blue-100', 
+        border: 'border-blue-300 dark:border-blue-700',
         label: isRTL ? 'مذبوح' : 'Abattu',
-        icon: CheckCircle
+        icon: Activity
       },
-      TRANSFERE: { 
-        bg: 'bg-purple-100 dark:bg-purple-900/30', 
-        text: 'text-purple-800 dark:text-purple-300', 
-        label: isRTL ? 'منقول' : 'Transféré',
-        icon: ArrowRight
-      },
-      REJETE: { 
-        bg: 'bg-red-100 dark:bg-red-900/30', 
-        text: 'text-red-800 dark:text-red-300', 
-        label: isRTL ? 'مرفوض' : 'Rejeté',
+      MORT: { 
+        bg: 'bg-gray-200 dark:bg-gray-900/50', 
+        text: 'text-gray-900 dark:text-gray-100', 
+        border: 'border-gray-300 dark:border-gray-700',
+        label: isRTL ? 'ميت' : 'Mort',
         icon: X
+      },
+      MALADE: { 
+        bg: 'bg-red-200 dark:bg-red-900/50', 
+        text: 'text-red-900 dark:text-red-100', 
+        border: 'border-red-300 dark:border-red-700',
+        label: isRTL ? 'مريض' : 'Malade',
+        icon: AlertTriangle
       }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.EN_ATTENTE;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.VIVANT;
     const IconComponent = config.icon;
     
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.bg} ${config.text} ${config.border}`}>
         <IconComponent className={`h-3 w-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
         {config.label}
       </span>
@@ -268,15 +345,36 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
 
   const getHealthBadge = (health: string) => {
     const healthConfig = {
-      BON: { bg: 'bg-green-100', text: 'text-green-800', label: isRTL ? 'جيد' : 'Bon' },
-      MOYEN: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: isRTL ? 'متوسط' : 'Moyen' },
-      MAUVAIS: { bg: 'bg-red-100', text: 'text-red-800', label: isRTL ? 'سيء' : 'Mauvais' }
+      BON: { 
+        bg: 'bg-green-200 dark:bg-green-900/50', 
+        text: 'text-green-900 dark:text-green-100', 
+        border: 'border-green-300 dark:border-green-700',
+        label: isRTL ? 'جيد' : 'Bon'
+      },
+      MALADE: { 
+        bg: 'bg-red-200 dark:bg-red-900/50', 
+        text: 'text-red-900 dark:text-red-100', 
+        border: 'border-red-300 dark:border-red-700',
+        label: isRTL ? 'مريض' : 'Malade'
+      },
+      MOYEN: { 
+        bg: 'bg-yellow-200 dark:bg-yellow-900/50', 
+        text: 'text-yellow-900 dark:text-yellow-100', 
+        border: 'border-yellow-300 dark:border-yellow-700',
+        label: isRTL ? 'متوسط' : 'Moyen'
+      },
+      MAUVAIS: { 
+        bg: 'bg-red-200 dark:bg-red-900/50', 
+        text: 'text-red-900 dark:text-red-100', 
+        border: 'border-red-300 dark:border-red-700',
+        label: isRTL ? 'سيء' : 'Mauvais'
+      }
     };
     
     const config = healthConfig[health as keyof typeof healthConfig] || healthConfig.BON;
     
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.bg} ${config.text} ${config.border}`}>
         {config.label}
       </span>
     );
@@ -306,18 +404,14 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
     if (!selectedLivestock) return;
 
     try {
-      // Simulation de l'abattage
-      setLivestock(prev => prev.map(animal => 
-        animal.id === selectedLivestock.id 
-          ? { ...animal, status: 'ABATTU' as const, lastActivity: new Date().toISOString() }
-          : animal
-      ));
+      // TODO: Implémenter l'appel API pour l'abattage
+      console.log(`Animal ${selectedLivestock.loopNumber} abattu avec succès`);
       
       setShowSlaughterModal(false);
       setSelectedLivestock(null);
       
-      // Afficher un message de succès
-      console.log(`Animal ${selectedLivestock.loopNumber} abattu avec succès`);
+      // Rafraîchir les données
+      await refetch();
     } catch (err) {
       console.error('Erreur lors de l\'abattage:', err);
     }
@@ -359,31 +453,12 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
       };
 
       setTransferDocuments(prev => [...prev, transferDoc]);
-
-      // Mettre à jour le statut de l'animal
-      setLivestock(prev => prev.map(animal => 
-        animal.id === selectedLivestock.id 
-          ? { 
-              ...animal, 
-              status: 'TRANSFERE' as const, 
-              lastActivity: new Date().toISOString(),
-              transferHistory: [...(animal.transferHistory || []), {
-                id: transferDoc.id,
-                livestockId: animal.id,
-                fromAbattoir: transferDoc.fromAbattoir.name,
-                toAbattoir: transferDoc.toAbattoir.name,
-                transferDate: transferDoc.transferDate,
-                reason: transferDoc.reason,
-                authorizedBy: transferDoc.authorizedBy,
-                transferDocument: transferDoc.documentNumber,
-                status: 'COMPLETE'
-              }]
-            }
-          : animal
-      ));
       
       setShowTransferModal(false);
       setSelectedLivestock(null);
+      
+      // Rafraîchir les données
+      await refetch();
       
       console.log(`Animal ${selectedLivestock.loopNumber} transféré avec succès`);
     } catch (err) {
@@ -405,6 +480,186 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
 
   return (
     <div className="space-y-6">
+      {/* Statistiques Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {loading ? (
+          // Skeleton loading pour les statistiques
+          Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
+              <div className="animate-pulse">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                  </div>
+                  <div className="p-3 bg-gray-200 dark:bg-gray-700 rounded-full">
+                    <div className="h-6 w-6"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : error ? (
+          // Erreur dans le chargement des statistiques
+          <div className="col-span-full theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
+            <div className="text-center">
+              <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-red-500" />
+              <p className="text-sm theme-text-secondary theme-transition">
+                {isRTL ? 'خطأ في تحميل الإحصائيات' : 'Erreur lors du chargement des statistiques'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Total */}
+            <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
+              <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+                <div className={isRTL ? 'text-right' : 'text-left'}>
+                  <p className="text-sm font-medium theme-text-secondary theme-transition">
+                    {isRTL ? 'المجموع' : 'Total'}
+                  </p>
+                  <p className="text-2xl font-bold theme-text-primary theme-transition">
+                    {stats.total}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {Object.entries(stats.speciesCount).slice(0, 3).map(([species, speciesData]) => (
+                      <span 
+                        key={species} 
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white shadow-sm"
+                      >
+                        {species}: {typeof speciesData === 'number' ? speciesData : speciesData.total}
+                      </span>
+                    ))}
+                    {Object.keys(stats.speciesCount).length > 3 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500 text-white shadow-sm">
+                        +{Object.keys(stats.speciesCount).length - 3}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                  <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+            </div>
+
+        {/* Bonne santé */}
+        <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
+          <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+            <div className={isRTL ? 'text-right' : 'text-left'}>
+              <p className="text-sm font-medium theme-text-secondary theme-transition">
+                {isRTL ? 'بصحة جيدة' : 'Bonne santé'}
+              </p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {stats.healthy}
+              </p>
+            </div>
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+              <Heart className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Carcasses */}
+        <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
+          <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+            <div className={isRTL ? 'text-right' : 'text-left'}>
+              <p className="text-sm font-medium theme-text-secondary theme-transition">
+                {isRTL ? 'الذبائح' : 'Carcasses'}
+              </p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                {stats.carcasses}
+              </p>
+            </div>
+            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+              <Skull className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Abattage aujourd'hui */}
+        <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
+          <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+            <div className={isRTL ? 'text-right' : 'text-left'}>
+              <p className="text-sm font-medium theme-text-secondary theme-transition">
+                {isRTL ? 'ذبح اليوم' : 'Abattage aujourd\'hui'}
+              </p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {stats.slaughteredToday}
+              </p>
+            </div>
+            <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+              <Skull className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+            </div>
+          </div>
+        </div>
+
+          </>
+        )}
+      </div>
+
+      {/* Statistiques de poids - Deuxième ligne */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {loading ? (
+          // Skeleton loading pour les cartes de poids
+          Array.from({ length: 2 }).map((_, index) => (
+            <div key={index} className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
+              <div className="animate-pulse">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                  </div>
+                  <div className="p-3 bg-gray-200 dark:bg-gray-700 rounded-full">
+                    <div className="h-6 w-6"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : error ? (
+          <div className="col-span-full text-center py-8">
+            <p className="text-red-600">{error.message || 'Erreur lors du chargement des statistiques'}</p>
+          </div>
+        ) : (
+          <>
+            {/* Poids total */}
+            <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
+              <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+                <div className={isRTL ? 'text-right' : 'text-left'}>
+                  <p className="text-sm font-medium theme-text-secondary theme-transition">
+                    {isRTL ? 'الوزن الإجمالي' : 'Poids total'}
+                  </p>
+                  <p className="text-2xl font-bold theme-text-primary theme-transition">
+                    {weightStats.totalWeight} kg
+                  </p>
+                </div>
+                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                  <Scale className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* Poids moyen */}
+            <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
+              <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+                <div className={isRTL ? 'text-right' : 'text-left'}>
+                  <p className="text-sm font-medium theme-text-secondary theme-transition">
+                    {isRTL ? 'متوسط الوزن' : 'Poids moyen'}
+                  </p>
+                  <p className="text-2xl font-bold theme-text-primary theme-transition">
+                    {weightStats.averageWeight} kg
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                  <Activity className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Header */}
       <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
         <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-4`}>
@@ -412,8 +667,12 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
             {isRTL ? 'إدارة الماشية' : 'Gestion du bétail'}
           </h2>
           <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
-            <button className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-              <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            <button 
+              onClick={handleRefresh}
+              disabled={loading}
+              className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} ${loading ? 'animate-spin' : ''}`} />
               {isRTL ? 'تحديث' : 'Actualiser'}
             </button>
             <button className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
@@ -453,9 +712,11 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
             className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
           >
             <option value="ALL">{isRTL ? 'جميع الأنواع' : 'Tous les types'}</option>
-            <option value="BOVIN">{isRTL ? 'بقر' : 'Bovin'}</option>
-            <option value="OVIN">{isRTL ? 'غنم' : 'Ovin'}</option>
-            <option value="CAPRIN">{isRTL ? 'ماعز' : 'Caprin'}</option>
+            {especesList?.map((espece) => (
+              <option key={espece.id} value={espece.nom}>
+                {espece.nom}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -466,6 +727,10 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
           </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600">{error.message || 'Erreur lors du chargement des bêtes'}</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y theme-border-secondary theme-transition">
@@ -475,16 +740,19 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
                     {isRTL ? 'رقم البوق' : 'Numéro de boucle'}
                   </th>
                   <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                    {isRTL ? 'النوع' : 'Type/Race'}
+                    {isRTL ? 'النوع والعرق' : 'Type & Race'}
                   </th>
                   <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                    {isRTL ? 'العمر/الوزن' : 'Âge/Poids'}
+                    {isRTL ? 'الوزن والعمر' : 'Poids & Âge'}
                   </th>
                   <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                    {isRTL ? 'الحالة الصحية' : 'Santé'}
+                    {isRTL ? 'المجزر' : 'Abattoir'}
                   </th>
                   <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
                     {isRTL ? 'الحالة' : 'Statut'}
+                  </th>
+                  <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
+                    {isRTL ? 'الحالة الصحية' : 'État de santé'}
                   </th>
                   <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
                     {isRTL ? 'تاريخ الوصول' : 'Date d\'arrivée'}
@@ -498,40 +766,45 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
                 {filteredLivestock.map((animal) => (
                   <tr key={animal.id} className="transition-colors hover:theme-bg-secondary">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={isRTL ? 'text-right' : 'text-left'}>
-                        <div className="text-sm font-medium theme-text-primary theme-transition">
-                          {animal.loopNumber}
+                      <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                          <Tag className="h-5 w-5 text-primary-600" />
                         </div>
-                        <div className="text-sm theme-text-secondary theme-transition">
-                          {isRTL ? 'من' : 'De'} {animal.origin}
+                        <div className={isRTL ? 'mr-4 text-right' : 'ml-4'}>
+                          <div className="text-sm font-medium theme-text-primary theme-transition">{animal.loopNumber}</div>
+                          <div className="text-sm theme-text-secondary theme-transition">ID: {animal.id}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={isRTL ? 'text-right' : 'text-left'}>
+                        <div className="text-sm font-medium theme-text-primary theme-transition">{animal.type}</div>
+                        <div className="text-sm theme-text-secondary theme-transition">{animal.breed}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={isRTL ? 'text-right' : 'text-left'}>
                         <div className="text-sm font-medium theme-text-primary theme-transition">
-                          {animal.type} - {animal.breed}
+                          {animal.weight} kg
                         </div>
+                        <div className="text-sm theme-text-secondary theme-transition">
+                          {animal.age} {isRTL ? 'شهر' : 'mois'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={isRTL ? 'text-right' : 'text-left'}>
+                        <div className="text-sm font-medium theme-text-primary theme-transition">{animal.origin}</div>
                         <div className="text-sm theme-text-secondary theme-transition">
                           {animal.gender === 'MALE' ? (isRTL ? 'ذكر' : 'Mâle') : (isRTL ? 'أنثى' : 'Femelle')}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={isRTL ? 'text-right' : 'text-left'}>
-                        <div className="text-sm font-medium theme-text-primary theme-transition">
-                          {animal.age} {isRTL ? 'شهر' : 'mois'}
-                        </div>
-                        <div className="text-sm theme-text-secondary theme-transition">
-                          {animal.weight} kg
-                        </div>
-                      </div>
+                      {getStatusBadge(animal.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getHealthBadge(animal.healthStatus)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(animal.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm theme-text-secondary theme-transition">
                       {formatDate(animal.arrivalDate)}
@@ -557,7 +830,7 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
                           </>
                         )}
                         <button 
-                          onClick={() => router.push(`/dashboard/abattoirs/${abattoirId}/livestock/${animal.id}`)}
+                          onClick={() => router.push(`/dashboard/livestock/${animal.id}`)}
                           className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
                           title={isRTL ? 'عرض التفاصيل' : 'Voir les détails'}
                         >
@@ -584,6 +857,21 @@ export default function LivestockManagement({ abattoirId, isRTL }: LivestockMana
             <p className="theme-text-secondary theme-transition">
               {isRTL ? 'ابدأ بإضافة ماشية جديدة' : 'Commencez par ajouter de nouveaux animaux'}
             </p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {livestockData && livestockData.pagination.total_count > pageSize && (
+          <div className="px-6 py-4 border-t theme-border-primary theme-transition">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={livestockData.pagination.total_pages}
+              onPageChange={setCurrentPage}
+              pageSize={pageSize}
+              onPageSizeChange={setPageSize}
+              totalItems={livestockData.pagination.total_count}
+              isRTL={isRTL}
+            />
           </div>
         )}
       </div>

@@ -1,31 +1,43 @@
-import { apiClient } from './client';
-import { Client } from '@/types';
+import { djangoApi } from './djangoAuthService';
 
-export type { Client };
-
-export interface PaymentPlan {
+// Interface Client basée sur le modèle Django backend
+export interface Client {
     id: number;
-    name: string;
-    price: string;
-    currency: string;
-    billingCycle: string;
-    requestLimit: number;
-    isDefault: boolean;
-    trialDays: number;
-    features: string[];
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-    createdBy: string;
-    updatedBy: string | null;
+    nom: string;
+    type_client: 'PARTICULIER' | 'SUPERGROSSISTE' | 'GROSSISTE';
+    type_client_display: string;
+    telephone: string;
+    email?: string;
+    adresse: string;
+    nif?: string;
+    nis?: string;
+    wilaya?: string;
+    commune?: string;
+    contact_principal?: string;
+    telephone_contact?: string;
+    commercial?: number;
+    commercial_nom?: string;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+    created_by?: number;
+    created_by_nom?: string;
 }
 
 export interface CreateClientRequest {
-    name: string;
-    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
-    paymentPlanId: number;
-    distributorId: number;
-    createdBy: string;
+    nom: string;
+    type_client: 'PARTICULIER' | 'SUPERGROSSISTE' | 'GROSSISTE';
+    telephone: string;
+    email?: string;
+    adresse: string;
+    nif?: string;
+    nis?: string;
+    wilaya?: string;
+    commune?: string;
+    contact_principal?: string;
+    telephone_contact?: string;
+    commercial?: number;
+    notes?: string;
 }
 
 export interface ClientsResponse {
@@ -33,48 +45,82 @@ export interface ClientsResponse {
     total: number;
     page: number;
     limit: number;
+    count: number;
+    next: string | null;
+    previous: string | null;
+}
+
+export interface ClientStats {
+    total_clients: number;
+    par_type: Record<string, number>;
+    par_wilaya: Record<string, number>;
+    par_commune: Record<string, number>;
 }
 
 class ClientsService {
     /**
-     * Récupère tous les clients
+     * Récupère tous les clients avec pagination et filtres
      */
-    async getAllClients(forceRefresh: boolean = false): Promise<ClientsResponse> {
+    async getAllClients(params: {
+        page?: number;
+        limit?: number;
+        search?: string;
+        type_client?: string;
+        wilaya?: string;
+        commune?: string;
+        commercial_id?: number;
+    } = {}): Promise<ClientsResponse> {
         try {
-            const config = forceRefresh ? {
-                params: {
-                    _t: Date.now() // Cache busting parameter
-                }
-            } : {};
+            const queryParams = new URLSearchParams();
 
-            const response = await apiClient.get('/clients', config);
+            if (params.page) queryParams.append('page', params.page.toString());
+            if (params.limit) queryParams.append('limit', params.limit.toString());
+            if (params.search) queryParams.append('search', params.search);
+            if (params.type_client) queryParams.append('type_client', params.type_client);
+            if (params.wilaya) queryParams.append('wilaya', params.wilaya);
+            if (params.commune) queryParams.append('commune', params.commune);
+            if (params.commercial_id) queryParams.append('commercial_id', params.commercial_id.toString());
 
-            console.log('🔍 Debug response structure:');
-            console.log('response:', response);
-            console.log('typeof response:', typeof response);
-            console.log('Array.isArray(response):', Array.isArray(response));
+            const url = `/clients/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+            const response = await djangoApi.get(url);
 
-            // L'API retourne directement un tableau de clients
+            console.log('🔍 Debug clients response:', response);
+
+            // L'API Django retourne un objet avec count, next, previous, results
             let clients = [];
-
-            if (Array.isArray(response)) {
-                clients = response;
-            } else if (response && Array.isArray(response.clients)) {
-                clients = response.clients;
-            } else if (response && response.data && Array.isArray(response.data)) {
-                clients = response.data;
+            let total = 0;
+            let count = 0;
+            let next = null;
+            let previous = null;
+            
+            const data = response.data as any;
+            
+            if (data && data.results && Array.isArray(data.results)) {
+                clients = data.results;
+                total = data.count || clients.length;
+                count = data.count || 0;
+                next = data.next || null;
+                previous = data.previous || null;
+            } else if (Array.isArray(data)) {
+                // Fallback pour les anciennes versions
+                clients = data;
+                total = clients.length;
+                count = clients.length;
             } else {
                 console.warn('Structure de réponse inattendue:', response);
                 clients = [];
+                total = 0;
+                count = 0;
             }
-
-            console.log('✅ Clients extraits:', clients);
 
             return {
                 clients,
-                total: clients.length,
-                page: 1,
-                limit: clients.length
+                total,
+                page: params.page || 1,
+                limit: params.limit || 10,
+                count,
+                next,
+                previous
             };
         } catch (error) {
             console.error('Erreur lors de la récupération des clients:', error);
@@ -87,9 +133,9 @@ class ClientsService {
      */
     async createClient(clientData: CreateClientRequest): Promise<Client> {
         try {
-            const response = await apiClient.post('/clients', clientData);
-            console.log('Response from POST /api/v1/clients:', response.data);
-            return response.data;
+            const response = await djangoApi.post('/clients', clientData);
+            console.log('Response from POST /clients:', response);
+            return response.data as Client;
         } catch (error) {
             console.error('Error creating client:', error);
             throw error;
@@ -101,18 +147,9 @@ class ClientsService {
      */
     async getClientById(id: number): Promise<Client> {
         try {
-            const response = await apiClient.get(`/clients/${id}`);
+            const response = await djangoApi.get(`/clients/${id}`);
             console.log('🔍 Debug getClientById response:', response);
-
-            // L'API retourne directement l'objet client
-            if (response && typeof response === 'object' && (response as any).id) {
-                return response as unknown as Client;
-            } else if (response && (response as any).data && typeof (response as any).data === 'object' && (response as any).data.id) {
-                return (response as any).data as Client;
-            } else {
-                console.warn('Structure de réponse inattendue pour getClientById:', response);
-                throw new Error('Invalid response structure');
-            }
+            return response.data as Client;
         } catch (error) {
             console.error(`Error fetching client ${id}:`, error);
             throw error;
@@ -124,8 +161,8 @@ class ClientsService {
      */
     async updateClient(id: number, clientData: Partial<CreateClientRequest>): Promise<Client> {
         try {
-            const response = await apiClient.patch(`/clients/${id}`, clientData);
-            return response.data;
+            const response = await djangoApi.patch(`/clients/${id}`, clientData);
+            return response.data as Client;
         } catch (error) {
             console.error(`Error updating client ${id}:`, error);
             throw error;
@@ -137,7 +174,7 @@ class ClientsService {
      */
     async deleteClient(id: number): Promise<void> {
         try {
-            await apiClient.delete(`/clients/${id}`);
+            await djangoApi.delete(`/clients/${id}`);
         } catch (error) {
             console.error(`Error deleting client ${id}:`, error);
             throw error;
@@ -145,41 +182,15 @@ class ClientsService {
     }
 
     /**
-     * Supprime la configuration d'un client
+     * Récupère les statistiques des clients
      */
-    async deleteClientConfig(clientId: number): Promise<void> {
+    async getClientStats(): Promise<ClientStats> {
         try {
-            await apiClient.delete(`/clients/${clientId}/config`);
+            const response = await djangoApi.get('/clients/stats');
+            console.log('🔍 Debug client stats response:', response);
+            return response.data as ClientStats;
         } catch (error) {
-            console.error(`Error deleting config for client ${clientId}:`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * Récupère tous les plans de paiement
-     */
-    async getPaymentPlans(): Promise<PaymentPlan[]> {
-        try {
-            const response = await apiClient.get('/payment-plans');
-
-            // L'API retourne directement un tableau de plans de paiement
-            let plans = [];
-
-            if (Array.isArray(response)) {
-                plans = response;
-            } else if (response && Array.isArray(response.plans)) {
-                plans = response.plans;
-            } else if (response && response.data && Array.isArray(response.data)) {
-                plans = response.data;
-            } else {
-                console.warn('Structure de réponse inattendue pour les plans de paiement:', response);
-                plans = [];
-            }
-
-            return plans;
-        } catch (error) {
-            console.error('Erreur lors de la récupération des plans de paiement:', error);
+            console.error('Error fetching client stats:', error);
             throw error;
         }
     }

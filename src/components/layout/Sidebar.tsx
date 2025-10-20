@@ -15,7 +15,8 @@ import {
   Truck,
   Warehouse, // Added Warehouse icon for Stabulation
   Wheat, // Added Wheat icon for Aliment
-  ArrowRightLeft // Added ArrowRightLeft icon for Transfert
+  ArrowRightLeft, // Added ArrowRightLeft icon for Transfert
+  FileText // Added FileText icon for Bon de commande
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -47,6 +48,18 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
     label: String(t('sidebar', 'stabulation')),
     href: '/dashboard/stabulation',
     icon: Warehouse,
+  },
+  {
+    id: 'bon-commande',
+    label: String(t('sidebar', 'bon_commande')),
+    href: '/dashboard/bon-commande',
+    icon: FileText,
+  },
+  {
+    id: 'transfert',
+    label: String(t('sidebar', 'transfert')),
+    href: '/dashboard/transfert',
+    icon: ArrowRightLeft,
   },
   {
     id: 'aliment',

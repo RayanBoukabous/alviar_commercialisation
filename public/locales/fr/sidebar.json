@@ -1,6 +1,13 @@
 {
     "dashboard": "Dashboard",
     "clients": "Clients",
+    "reception": "Réception",
+    "stabulation": "Stabulation",
+    "bon_commande": "Bon de commande",
+    "transfert": "Transfert",
+    "aliment": "Aliment",
+    "stock_aliment": "Stock Aliment",
+    "transfert_aliment": "Transfert Aliment",
     "abattoirs": "Abattoirs",
     "livestock": "Bêtes",
     "stock_management": "Gestion de Stocks",
