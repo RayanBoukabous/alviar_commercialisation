@@ -4,19 +4,23 @@ import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft,
   Warehouse,
-  Edit,
   RefreshCw,
   AlertCircle,
   Activity,
   Users,
   FileText,
-  X
+  X,
+  History,
+  Hash,
+  User,
+  Clock
 } from 'lucide-react';
 import { useRequireAuth } from '@/lib/hooks/useDjangoAuth';
 import { useRouter, useParams } from 'next/navigation';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 import { stabulationService, Stabulation } from '@/lib/api/stabulationService';
+import { useHistoriqueStabulation } from '@/lib/hooks/useStabulations';
 import Tabs from '@/components/ui/Tabs';
 
 // Interface pour les stabulations avec données détaillées
@@ -40,6 +44,13 @@ interface StabulationDetail {
   createdAt: string;
   lastActivity: string;
   description: string;
+  
+  // Suivi des actions
+  annule_par_nom?: string;
+  date_annulation?: string;
+  raison_annulation?: string;
+  finalise_par_nom?: string;
+  date_finalisation?: string;
   facilities: string[];
   certifications: string[];
   workingHours: {
@@ -67,7 +78,7 @@ interface StabulationDetail {
   }[];
   betes: {
     id: number;
-    numero_identification: string;
+    num_boucle: string;
     nom?: string;
     espece?: string;
     race?: string;
@@ -98,7 +109,14 @@ const mapApiDataToStabulationDetail = (apiData: Stabulation): StabulationDetail 
     email: 'Non disponible',
     createdAt: apiData.created_at,
     lastActivity: apiData.updated_at,
-    description: `Stabulation ${apiData.numero_stabulation} pour ${apiData.type_bete.toLowerCase()}s. Capacité maximale: ${apiData.capacite_maximale} têtes.`,
+    description: apiData.raison_annulation || `Stabulation ${apiData.numero_stabulation} pour ${apiData.type_bete.toLowerCase()}s. Capacité maximale: ${apiData.capacite_maximale} têtes.`,
+    
+    // Suivi des actions
+    annule_par_nom: apiData.annule_par_nom,
+    date_annulation: apiData.date_annulation,
+    raison_annulation: apiData.raison_annulation,
+    finalise_par_nom: apiData.finalise_par_nom,
+    date_finalisation: apiData.date_finalisation,
     facilities: [
       `Type: ${apiData.type_bete}`,
       `Capacité: ${apiData.capacite_maximale} têtes`,
@@ -156,6 +174,9 @@ export default function StabulationDetailPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelReasonError, setCancelReasonError] = useState('');
+  
+  // États pour l'historique
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [animalWeights, setAnimalWeights] = useState<{[key: number]: number}>({});
   const [animalPostNumbers, setAnimalPostNumbers] = useState<{[key: number]: string}>({});
@@ -166,6 +187,9 @@ export default function StabulationDetailPage() {
   
   // Récupérer l'ID de la stabulation depuis les paramètres
   const stabulationId = params.id ? parseInt(params.id as string) : 0;
+
+  // Hooks pour l'historique
+  const { data: historique, isLoading: historiqueLoading } = useHistoriqueStabulation(stabulationId);
 
   useEffect(() => {
     const fetchStabulationDetail = async () => {
@@ -178,6 +202,12 @@ export default function StabulationDetailPage() {
         
         setStabulation(mappedData);
         console.log('Détails de la stabulation récupérés:', mappedData);
+        console.log('Données API brutes:', apiData);
+        console.log('Champs d\'annulation:', {
+          annule_par_nom: apiData.annule_par_nom,
+          date_annulation: apiData.date_annulation,
+          raison_annulation: apiData.raison_annulation
+        });
       } catch (err: any) {
         setError(err.message || 'Erreur lors du chargement des détails de la stabulation');
         console.error('Erreur:', err);
@@ -219,28 +249,43 @@ export default function StabulationDetailPage() {
     );
   };
 
+  // Fonction de validation du motif d'annulation
+  const validateCancelReason = (reason: string) => {
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) {
+      return isRTL ? 'يرجى كتابة سبب الإلغاء' : 'Veuillez saisir la raison de l\'annulation';
+    }
+    if (trimmedReason.length < 10) {
+      return isRTL ? 'يجب أن يكون السبب 10 أحرف على الأقل' : 'La raison doit contenir au moins 10 caractères';
+    }
+    if (trimmedReason.length > 500) {
+      return isRTL ? 'يجب أن يكون السبب أقل من 500 حرف' : 'La raison doit contenir moins de 500 caractères';
+    }
+    return '';
+  };
+
   const handleCancelStabulation = async () => {
-    if (!cancelReason.trim()) {
-      alert(isRTL ? 'يرجى كتابة سبب الإلغاء' : 'Veuillez saisir la raison de l\'annulation');
+    // Valider le motif
+    const validationError = validateCancelReason(cancelReason);
+    if (validationError) {
+      setCancelReasonError(validationError);
       return;
     }
+    
+    setCancelReasonError('');
 
     setIsCancelling(true);
     try {
       // Appel API pour annuler la stabulation
       const result = await stabulationService.annulerStabulation(stabulationId, cancelReason);
       
-      // Mettre à jour le statut local
-      if (stabulation) {
-        setStabulation({
-          ...stabulation,
-          status: 'ANNULE',
-          betes: stabulation.betes.map(bete => ({
-            ...bete,
-            statut: 'VIVANT'
-          }))
-        });
-      }
+      // Rafraîchir les données depuis le serveur
+      const updatedData = await stabulationService.getStabulation(stabulationId);
+      const mappedData = mapApiDataToStabulationDetail(updatedData);
+      setStabulation(mappedData);
+      
+      console.log('Données après annulation:', mappedData);
+      console.log('Résultat API:', result);
       
       setShowCancelModal(false);
       setCancelReason('');
@@ -257,6 +302,40 @@ export default function StabulationDetailPage() {
       alert(isRTL ? `خطأ في إلغاء الاسطبل: ${errorMessage}` : `Erreur lors de l'annulation: ${errorMessage}`);
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  // Fonction pour vérifier l'unicité des numéros de poste
+  const checkPostNumberUniqueness = async () => {
+    if (!stabulation || !stabulation.betes) return true;
+    
+    try {
+      // Vérifier chaque numéro de poste avec l'API
+      for (const bete of stabulation.betes) {
+        const postNumber = animalPostNumbers[bete.id];
+        if (postNumber && postNumber.trim()) {
+          // Faire une requête pour vérifier l'unicité
+          const response = await fetch(`/api/betes/check-post-number/?num_boucle_post_abattage=${encodeURIComponent(postNumber)}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('django_token')}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.exists) {
+              alert(isRTL ? `رقم البوست "${postNumber}" موجود بالفعل` : `Le numéro de poste "${postNumber}" existe déjà`);
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la vérification des numéros de poste:', error);
+      return false; // Arrêter en cas d'erreur de vérification
     }
   };
 
@@ -290,6 +369,12 @@ export default function StabulationDetailPage() {
         : 'Le poids à chaud ne peut pas être supérieur au poids vif'
       );
       return;
+    }
+
+    // Vérifier l'unicité des numéros de poste AVANT d'appeler l'API
+    const isUnique = await checkPostNumberUniqueness();
+    if (!isUnique) {
+      return; // Arrêter ici si les numéros ne sont pas uniques
     }
 
     setIsFinishing(true);
@@ -328,12 +413,24 @@ export default function StabulationDetailPage() {
       alert(message);
     } catch (error: any) {
       console.error('Erreur lors de la finalisation:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Erreur inconnue';
-      alert(isRTL ? `خطأ في إنهاء الاسطبل: ${errorMessage}` : `Erreur lors de la finalisation: ${errorMessage}`);
+      
+      // Gestion spécifique des erreurs de validation du backend
+      if (error.response?.data?.details && Array.isArray(error.response.data.details)) {
+        const errorDetails = error.response.data.details;
+        const errorMessage = errorDetails.join('\n');
+        alert(isRTL ? `خطأ في التحقق من صحة البيانات:\n${errorMessage}` : `Erreurs de validation:\n${errorMessage}`);
+      } else {
+        const errorMessage = error.response?.data?.error || error.message || 'Erreur inconnue';
+        alert(isRTL ? `خطأ في إنهاء الاسطبل: ${errorMessage}` : `Erreur lors de la finalisation: ${errorMessage}`);
+      }
+      
+      // Le modal reste ouvert, la stabulation reste "EN_COURS"
+      return;
     } finally {
       setIsFinishing(false);
     }
   };
+
 
   if (isLoading || translationLoading) {
     return (
@@ -412,7 +509,11 @@ export default function StabulationDetailPage() {
                       {isRTL ? 'إنهاء' : 'Terminer'}
                     </button>
                     <button 
-                      onClick={() => setShowCancelModal(true)}
+                      onClick={() => {
+                        setShowCancelModal(true);
+                        setCancelReason('');
+                        setCancelReasonError('');
+                      }}
                       className="px-4 py-2 rounded-lg flex items-center bg-red-600 hover:bg-red-700 text-white theme-transition focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                     >
                       <AlertCircle className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
@@ -420,10 +521,6 @@ export default function StabulationDetailPage() {
                     </button>
                   </>
                 )}
-                <button className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-                  <Edit className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                  {isRTL ? 'تعديل' : 'Modifier'}
-                </button>
               </div>
             </div>
           </div>
@@ -476,31 +573,110 @@ export default function StabulationDetailPage() {
                               minute: '2-digit'
                             })}</span>
                           </div>
-    <div className="flex justify-between">
-      <span className="theme-text-secondary">{isRTL ? 'آخر تحديث:' : 'Dernière mise à jour:'}</span>
-      <span className="font-medium theme-text-primary">{new Date(stabulation.lastActivity).toLocaleDateString('fr-FR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })}</span>
-    </div>
-    {stabulation.status === 'ANNULE' && stabulation.description && (
-      <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-        <div className="flex items-start">
-          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 mr-2" />
-          <div>
-            <h4 className="text-sm font-medium text-red-800 dark:text-red-300 mb-1">
-              {isRTL ? 'سبب الإلغاء:' : 'Raison de l\'annulation:'}
-            </h4>
-            <p className="text-sm text-red-700 dark:text-red-400">
-              {stabulation.description}
-            </p>
-          </div>
-        </div>
-      </div>
-    )}
+                          <div className="flex justify-between">
+                            <span className="theme-text-secondary">{isRTL ? 'آخر تحديث:' : 'Dernière mise à jour:'}</span>
+                            <span className="font-medium theme-text-primary">{new Date(stabulation.lastActivity).toLocaleDateString('fr-FR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}</span>
+                          </div>
+                          
+                          {/* Informations de suivi des actions */}
+                          {stabulation.status === 'ANNULE' && stabulation.raison_annulation && (
+                            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                              <div className="flex items-start">
+                                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 mr-2" />
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-medium text-red-800 dark:text-red-300 mb-2">
+                                    {isRTL ? 'معلومات الإلغاء' : 'Informations d\'annulation'}
+                                  </h4>
+                                  <div className="space-y-2">
+                                    <div>
+                                      <span className="text-xs font-medium text-red-700 dark:text-red-400">
+                                        {isRTL ? 'السبب:' : 'Raison:'}
+                                      </span>
+                                      <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                                        {stabulation.raison_annulation}
+                                      </p>
+                                    </div>
+                                    {stabulation.annule_par_nom && (
+                                      <div>
+                                        <span className="text-xs font-medium text-red-700 dark:text-red-400">
+                                          {isRTL ? 'ألغاه:' : 'Annulé par:'}
+                                        </span>
+                                        <p className="text-sm text-red-700 dark:text-red-400">
+                                          {stabulation.annule_par_nom}
+                                        </p>
+                                      </div>
+                                    )}
+                                    {stabulation.date_annulation && (
+                                      <div>
+                                        <span className="text-xs font-medium text-red-700 dark:text-red-400">
+                                          {isRTL ? 'تاريخ الإلغاء:' : 'Date d\'annulation:'}
+                                        </span>
+                                        <p className="text-sm text-red-700 dark:text-red-400">
+                                          {new Date(stabulation.date_annulation).toLocaleDateString('fr-FR', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {stabulation.status === 'TERMINE' && (
+                            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                              <div className="flex items-start">
+                                <Activity className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 mr-2" />
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-medium text-green-800 dark:text-green-300 mb-2">
+                                    {isRTL ? 'معلومات الإنهاء' : 'Informations de finalisation'}
+                                  </h4>
+                                  <div className="space-y-2">
+                                    <p className="text-sm text-green-700 dark:text-green-400">
+                                      {isRTL ? 'تم إنهاء هذه الاسطبل وذبح جميع الحيوانات' : 'Cette stabulation a été finalisée et tous les animaux ont été abattus'}
+                                    </p>
+                                    {stabulation.finalise_par_nom && (
+                                      <div>
+                                        <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                                          {isRTL ? 'أنهاه:' : 'Finalisé par:'}
+                                        </span>
+                                        <p className="text-sm text-green-700 dark:text-green-400">
+                                          {stabulation.finalise_par_nom}
+                                        </p>
+                                      </div>
+                                    )}
+                                    {stabulation.date_finalisation && (
+                                      <div>
+                                        <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                                          {isRTL ? 'تاريخ الإنهاء:' : 'Date de finalisation:'}
+                                        </span>
+                                        <p className="text-sm text-green-700 dark:text-green-400">
+                                          {new Date(stabulation.date_finalisation).toLocaleDateString('fr-FR', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -642,7 +818,7 @@ export default function StabulationDetailPage() {
                                 <Activity className={`h-5 w-5 text-primary-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                                 <div>
                                   <h3 className="text-lg font-semibold theme-text-primary theme-transition">
-                                    {bete.numero_identification} - {bete.espece || 'Non spécifié'}
+                                    {bete.num_boucle} - {bete.espece || 'Non spécifié'}
                                   </h3>
                                   <p className="text-sm theme-text-secondary theme-transition">{bete.race || 'Race non spécifiée'}</p>
                                 </div>
@@ -677,6 +853,136 @@ export default function StabulationDetailPage() {
                     </div>
                   </div>
                 )
+              },
+              {
+                id: 'historique',
+                label: isRTL ? 'التاريخ' : 'Historique',
+                icon: <History className="h-4 w-4" />,
+                content: (
+                  <div className="space-y-6">
+                    {/* Historique des modifications */}
+                    <div className="theme-bg-elevated theme-transition p-6 rounded-lg border theme-border-primary theme-transition">
+                      <h3 className="text-lg font-semibold theme-text-primary theme-transition mb-4 flex items-center">
+                        <History className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                        {isRTL ? 'تاريخ التعديلات' : 'Historique des Modifications'}
+                      </h3>
+                      
+                      {historiqueLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                          <span className="ml-2 theme-text-secondary">{isRTL ? 'جاري التحميل...' : 'Chargement...'}</span>
+                        </div>
+                      ) : (historique && historique.historique.length > 0) || (stabulation && stabulation.status === 'ANNULE') ? (
+                        <div className="space-y-4">
+                          {/* Informations d'annulation */}
+                          {stabulation && stabulation.status === 'ANNULE' && (
+                            <div className="border-l-4 border-red-500 pl-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-r-lg">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                    <span className="font-medium theme-text-primary text-red-800 dark:text-red-200">
+                                      {isRTL ? 'تم الإلغاء' : 'Stabulation annulée'}
+                                    </span>
+                                    <Clock className="h-4 w-4 text-gray-400" />
+                                    <span className="text-sm theme-text-secondary">
+                                      {stabulation.annule_par_nom && stabulation.date_annulation ? 
+                                        new Date(stabulation.date_annulation).toLocaleString('fr-FR', {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        }) : 'Date inconnue'
+                                      }
+                                    </span>
+                                  </div>
+                                  <div className="theme-bg-secondary theme-transition p-3 rounded-lg">
+                                    <div className="space-y-2">
+                                      <div>
+                                        <span className="text-sm font-medium theme-text-secondary">
+                                          {isRTL ? 'ألغاه:' : 'Annulé par:'}
+                                        </span>
+                                        <p className="text-sm theme-text-primary font-medium">
+                                          {stabulation.annule_par_nom || (isRTL ? 'غير محدد' : 'Non spécifié')}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <span className="text-sm font-medium theme-text-secondary">
+                                          {isRTL ? 'سبب الإلغاء:' : 'Motif d\'annulation:'}
+                                        </span>
+                                        <p className="text-sm theme-text-primary bg-red-50 dark:bg-red-900/20 p-2 rounded border-l-2 border-red-500">
+                                          {stabulation.raison_annulation || (isRTL ? 'لم يتم تحديد سبب' : 'Aucun motif spécifié')}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Historique des modifications */}
+                          {historique && historique.historique.map((entry, index) => (
+                            <div key={entry.id} className="border-l-4 border-primary-500 pl-4 py-2">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <User className="h-4 w-4 text-primary-500" />
+                                    <span className="font-medium theme-text-primary">{entry.utilisateur_nom}</span>
+                                    <Clock className="h-4 w-4 text-gray-400" />
+                                    <span className="text-sm theme-text-secondary">
+                                      {new Date(entry.date_modification).toLocaleString('fr-FR', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  </div>
+                                  <div className="theme-bg-secondary theme-transition p-3 rounded-lg">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                      <Hash className="h-4 w-4 text-blue-500" />
+                                      <span className="font-medium theme-text-primary">
+                                        {isRTL ? 'الحقل المعدل:' : 'Champ modifié:'} {entry.champ_modifie}
+                                      </span>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <div>
+                                        <span className="text-sm font-medium theme-text-secondary">
+                                          {isRTL ? 'القيمة السابقة:' : 'Valeur précédente:'}
+                                        </span>
+                                        <p className="text-sm theme-text-primary bg-red-50 dark:bg-red-900/20 p-2 rounded border-l-2 border-red-500">
+                                          {entry.ancienne_valeur || (isRTL ? 'فارغ' : 'Vide')}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <span className="text-sm font-medium theme-text-secondary">
+                                          {isRTL ? 'القيمة الجديدة:' : 'Nouvelle valeur:'}
+                                        </span>
+                                        <p className="text-sm theme-text-primary bg-green-50 dark:bg-green-900/20 p-2 rounded border-l-2 border-green-500">
+                                          {entry.nouvelle_valeur || (isRTL ? 'فارغ' : 'Vide')}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <History className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                          <p className="theme-text-secondary">
+                            {isRTL ? 'لا توجد تعديلات أو إلغاءات مسجلة' : 'Aucune modification ou annulation enregistrée'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
               }
             ]}
             defaultTab="info"
@@ -701,19 +1007,69 @@ export default function StabulationDetailPage() {
               </div>
               
               <div className="mb-4">
+                {/* Message d'avertissement */}
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                        {isRTL ? 'تحذير: هذا الإجراء لا يمكن التراجع عنه' : 'Attention: Cette action est irréversible'}
+                      </p>
+                      <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                        {isRTL 
+                          ? 'سيتم إرجاع جميع الحيوانات إلى حالة "حي" وإلغاء الاسطبل نهائياً.'
+                          : 'Tous les animaux seront remis en statut "vivant" et la stabulation sera définitivement annulée.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
                 <p className="theme-text-secondary theme-transition mb-3">
                   {isRTL 
-                    ? 'يرجى كتابة سبب إلغاء هذه الاسطبل. سيتم إرجاع جميع الحيوانات إلى حالة "حي" بعد الإلغاء.'
-                    : 'Veuillez saisir la raison de l\'annulation de cette stabulation. Tous les animaux seront remis en statut "vivant" après l\'annulation.'
+                    ? 'يرجى كتابة سبب إلغاء هذه الاسطبل (10 أحرف على الأقل):'
+                    : 'Veuillez saisir la raison de l\'annulation de cette stabulation (minimum 10 caractères):'
                   }
                 </p>
                 <textarea
                   value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder={isRTL ? 'اكتب سبب الإلغاء هنا...' : 'Saisissez la raison de l\'annulation ici...'}
-                  className="w-full p-3 border theme-border-primary rounded-lg theme-bg-secondary theme-text-primary theme-transition focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 resize-none"
+                  onChange={(e) => {
+                    setCancelReason(e.target.value);
+                    // Valider en temps réel
+                    const error = validateCancelReason(e.target.value);
+                    setCancelReasonError(error);
+                  }}
+                  placeholder={isRTL ? 'اكتب سبب الإلغاء هنا (10 أحرف على الأقل)...' : 'Saisissez la raison de l\'annulation ici (minimum 10 caractères)...'}
+                  className={`w-full p-3 border rounded-lg theme-bg-secondary theme-text-primary theme-transition focus:outline-none focus:ring-2 focus:ring-offset-2 resize-none ${
+                    cancelReasonError 
+                      ? 'border-red-500 focus:ring-red-500' 
+                      : cancelReason.trim() && !cancelReasonError 
+                        ? 'border-green-500 focus:ring-green-500' 
+                        : 'theme-border-primary focus:ring-red-500'
+                  }`}
                   rows={4}
                 />
+                
+                {/* Affichage des erreurs et du compteur */}
+                <div className="mt-2 flex justify-between items-center">
+                  <div className="flex-1">
+                    {cancelReasonError && (
+                      <p className="text-sm text-red-600 dark:text-red-400 flex items-center">
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        {cancelReasonError}
+                      </p>
+                    )}
+                    {!cancelReasonError && cancelReason.trim() && (
+                      <p className="text-sm text-green-600 dark:text-green-400 flex items-center">
+                        <Activity className="h-4 w-4 mr-1" />
+                        {isRTL ? 'السبب صحيح' : 'Raison valide'}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-xs theme-text-secondary">
+                    {cancelReason.length}/500
+                  </div>
+                </div>
               </div>
               
               <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -725,8 +1081,12 @@ export default function StabulationDetailPage() {
                 </button>
                 <button
                   onClick={handleCancelStabulation}
-                  disabled={isCancelling || !cancelReason.trim()}
-                  className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white theme-transition focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isCancelling || !cancelReason.trim() || !!cancelReasonError}
+                  className={`flex-1 px-4 py-2 rounded-lg text-white theme-transition focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    !cancelReason.trim() || cancelReasonError
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                  }`}
                 >
                   {isCancelling ? (
                     <div className="flex items-center justify-center">
@@ -734,7 +1094,14 @@ export default function StabulationDetailPage() {
                       {isRTL ? 'جاري الإلغاء...' : 'Annulation...'}
                     </div>
                   ) : (
-                    isRTL ? 'تأكيد الإلغاء' : 'Confirmer l\'annulation'
+                    <div className="flex items-center justify-center">
+                      {!cancelReason.trim() || cancelReasonError ? (
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Activity className="h-4 w-4 mr-2" />
+                      )}
+                      {isRTL ? 'تأكيد الإلغاء' : 'Confirmer l\'annulation'}
+                    </div>
                   )}
                 </button>
               </div>
@@ -790,12 +1157,12 @@ export default function StabulationDetailPage() {
                             <div className="flex items-center gap-3 mb-2">
                               <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
                                 <span className="text-sm font-semibold text-primary-600 dark:text-primary-400">
-                                  {bete.numero_identification.slice(-2)}
+                                  {bete.num_boucle.slice(-2)}
                                 </span>
                               </div>
                               <div>
                                 <div className="font-medium theme-text-primary">
-                                  {bete.nom || `Animal #${bete.numero_identification}`}
+                                  {bete.nom || `Animal #${bete.num_boucle}`}
                                 </div>
                                 <div className="text-sm theme-text-secondary">
                                   {bete.espece} • {bete.race}
@@ -909,6 +1276,7 @@ export default function StabulationDetailPage() {
             </div>
           </div>
         )}
+
       </div>
     </Layout>
   );

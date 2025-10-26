@@ -15,8 +15,11 @@ import {
   Truck,
   Warehouse, // Added Warehouse icon for Stabulation
   Wheat, // Added Wheat icon for Aliment
-  ArrowRightLeft, // Added ArrowRightLeft icon for Transfert
-  FileText // Added FileText icon for Bon de commande
+  FileText, // Added FileText icon for Bon de commande
+  Activity, // Added Activity icon for Live Livestock
+  Skull, // Added Skull icon for Carcass
+  ArrowRightLeft, // Added for Transfert
+  CheckCircle // Added for Réception
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -38,10 +41,16 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
     icon: Building2,
   },
   {
+    id: 'transfert',
+    label: String(t('sidebar', 'transfert')),
+    href: '/dashboard/transfert',
+    icon: ArrowRightLeft,
+  },
+  {
     id: 'reception',
     label: String(t('sidebar', 'reception')),
     href: '/dashboard/reception',
-    icon: Truck,
+    icon: CheckCircle,
   },
   {
     id: 'stabulation',
@@ -56,12 +65,6 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
     icon: FileText,
   },
   {
-    id: 'transfert',
-    label: String(t('sidebar', 'transfert')),
-    href: '/dashboard/transfert',
-    icon: ArrowRightLeft,
-  },
-  {
     id: 'aliment',
     label: String(t('sidebar', 'aliment')),
     href: '#',
@@ -72,12 +75,6 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
         label: String(t('sidebar', 'stock_aliment')),
         href: '/dashboard/aliment/stock',
         icon: Package,
-      },
-      {
-        id: 'transfert-aliment',
-        label: String(t('sidebar', 'transfert_aliment')),
-        href: '/dashboard/aliment/transfert',
-        icon: ArrowRightLeft,
       },
     ],
   },
@@ -90,8 +87,22 @@ const createNavigationItems = (t: (namespace: 'sidebar' | 'common', key: string)
   {
     id: 'livestock',
     label: String(t('sidebar', 'livestock')),
-    href: '/dashboard/livestock',
+    href: '#',
     icon: Heart,
+    children: [
+      {
+        id: 'live-livestock',
+        label: String(t('sidebar', 'live_livestock')),
+        href: '/dashboard/livestock',
+        icon: Activity,
+      },
+      {
+        id: 'carcass-livestock',
+        label: String(t('sidebar', 'carcass_livestock')),
+        href: '/dashboard/livestock/carcass',
+        icon: Skull,
+      },
+    ],
   },
   {
     id: 'stock-management',
@@ -112,13 +123,14 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   // Déterminer l'item actif basé sur l'URL actuelle
   const getActiveItem = () => {
     if (pathname.startsWith('/dashboard/clients')) return 'clients';
+    if (pathname.startsWith('/dashboard/transfert')) return 'transfert';
     if (pathname.startsWith('/dashboard/reception')) return 'reception';
     if (pathname.startsWith('/dashboard/stabulation')) return 'stabulation';
     if (pathname.startsWith('/dashboard/aliment/stock')) return 'stock-aliment';
-    if (pathname.startsWith('/dashboard/aliment/transfert')) return 'transfert-aliment';
     if (pathname.startsWith('/dashboard/aliment')) return 'aliment';
     if (pathname.startsWith('/dashboard/abattoirs')) return 'abattoirs';
-    if (pathname.startsWith('/dashboard/livestock')) return 'livestock';
+    if (pathname.startsWith('/dashboard/livestock/carcass')) return 'carcass-livestock';
+    if (pathname.startsWith('/dashboard/livestock')) return 'live-livestock';
     if (pathname.startsWith('/dashboard/stock-management')) return 'stock-management';
     return 'dashboard';
   };

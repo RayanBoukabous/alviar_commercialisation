@@ -68,6 +68,11 @@ class PersonnelDetailSerializer(serializers.ModelSerializer):
 class PersonnelCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer pour la création et mise à jour du personnel"""
     
+    # Définir explicitement les champs de fichiers
+    photo = serializers.ImageField(required=False, allow_null=True)
+    carte_identite_recto = serializers.ImageField(required=False, allow_null=True)
+    carte_identite_verso = serializers.ImageField(required=False, allow_null=True)
+    
     class Meta:
         model = Personnel
         fields = [
@@ -102,6 +107,27 @@ class PersonnelCreateUpdateSerializer(serializers.ModelSerializer):
                 "Ce numéro de carte d'identité existe déjà."
             )
         return value
+    
+    def create(self, validated_data):
+        """Créer un nouveau personnel avec gestion des fichiers"""
+        # Extraire les fichiers
+        photo = validated_data.pop('photo', None)
+        carte_identite_recto = validated_data.pop('carte_identite_recto', None)
+        carte_identite_verso = validated_data.pop('carte_identite_verso', None)
+        
+        # Créer l'instance
+        personnel = Personnel.objects.create(**validated_data)
+        
+        # Assigner les fichiers si présents
+        if photo:
+            personnel.photo = photo
+        if carte_identite_recto:
+            personnel.carte_identite_recto = carte_identite_recto
+        if carte_identite_verso:
+            personnel.carte_identite_verso = carte_identite_verso
+            
+        personnel.save()
+        return personnel
 
 
 

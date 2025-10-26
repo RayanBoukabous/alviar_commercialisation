@@ -252,7 +252,12 @@ export default function AbattoirDetailPage() {
                 id: 'chambres-froides',
                 label: isRTL ? 'الغرف الباردة' : 'Chambres froides',
                 icon: <Thermometer className="h-4 w-4" />,
-                content: <ChambresFroidesManagement abattoirId={abattoir.id} isRTL={isRTL} />
+                content: <ChambresFroidesManagement 
+                  abattoirId={abattoir.id} 
+                  isRTL={isRTL} 
+                  abattoirName={abattoir.name}
+                  abattoirLocation={`${abattoir.commune}, ${abattoir.wilaya}`}
+                />
               },
               {
                 id: 'staff',

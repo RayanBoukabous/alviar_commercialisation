@@ -43,8 +43,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=False
-      - DJANGO_SETTINGS_MODULE=backend.settings_production
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=backend.settings
       - DB_NAME=${DB_NAME:-alviar_db}
       - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-password}

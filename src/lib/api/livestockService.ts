@@ -152,9 +152,38 @@ export const livestockService = {
     }
   },
 
-  // Obtenir les bêtes vivantes
-  async getLiveLivestock(filters: Omit<LivestockFilters, 'statut'> = {}): Promise<LivestockResponse> {
-    return this.getLivestock({ ...filters, statut: 'VIVANT' });
+  // Obtenir les bêtes vivantes (inclut VIVANT et EN_STABULATION par défaut)
+  async getLiveLivestock(filters: LivestockFilters = {}): Promise<LivestockResponse> {
+    try {
+      const params = new URLSearchParams();
+
+      // Gérer le filtre statut : par défaut VIVANT et EN_STABULATION, sinon utiliser le filtre fourni
+      if (filters.statut) {
+        // Si un statut spécifique est demandé, l'utiliser
+        params.append('statut', filters.statut);
+      } else {
+        // Par défaut, inclure les bêtes VIVANT et EN_STABULATION
+        params.append('statut', 'VIVANT');
+        params.append('statut', 'EN_STABULATION');
+      }
+
+      if (filters.espece_id) params.append('espece_id', filters.espece_id.toString());
+      if (filters.espece_nom) params.append('espece_nom', filters.espece_nom);
+      if (filters.etat_sante) params.append('etat_sante', filters.etat_sante);
+      if (filters.abattoir_id) params.append('abattoir_id', filters.abattoir_id.toString());
+      if (filters.search) params.append('search', filters.search);
+      if (filters.page) params.append('page', filters.page.toString());
+      if (filters.page_size) params.append('page_size', filters.page_size.toString());
+
+      const url = `/betes/livestock/?${params.toString()}`;
+      console.log('API Call URL (getLiveLivestock):', url);
+      console.log('Filters passed:', filters);
+
+      const response = await djangoApi.get(url);
+      return response.data as LivestockResponse;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Erreur lors de la récupération des bêtes vivantes');
+    }
   },
 
   // Obtenir les carcasses

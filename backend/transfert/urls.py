@@ -1,16 +1,19 @@
-from django.urls import path
-from . import views
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    TransfertViewSet, ReceptionViewSet, TransfertAutomatiqueView
+)
+
+# Router pour les ViewSets
+router = DefaultRouter()
+router.register(r'transferts', TransfertViewSet, basename='transfert')
+router.register(r'receptions', ReceptionViewSet, basename='reception')
 
 urlpatterns = [
-    # Transferts
-    path('', views.TransfertListCreateView.as_view(), name='transfert-list-create'),
-    path('<int:pk>/', views.TransfertDetailView.as_view(), name='transfert-detail'),
-    path('<int:pk>/annuler/', views.annuler_transfert, name='transfert-annuler'),
-    path('<int:pk>/livrer/', views.livrer_transfert, name='transfert-livrer'),
-    path('<int:transfert_id>/confirmer-reception/', views.confirmer_reception_detaillee, name='transfert-confirmer-reception'),
+    # URLs des ViewSets
+    path('', include(router.urls)),
     
-    # Statistiques et utilitaires
-    path('stats/', views.transfert_stats, name='transfert-stats'),
-    path('betes-disponibles/', views.betes_disponibles, name='betes-disponibles'),
+    # URL pour la création automatique de transfert + réception
+    path('transfert-automatique/', TransfertAutomatiqueView.as_view(), name='transfert-automatique'),
 ]
 

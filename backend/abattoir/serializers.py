@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Abattoir, ChambreFroide, HistoriqueChambreFroide, Stabulation
+from .models import Abattoir, ChambreFroide, HistoriqueChambreFroide, Stabulation, HistoriqueStabulation
 
 
 class AbattoirSerializer(serializers.ModelSerializer):
@@ -88,6 +88,10 @@ class StabulationSerializer(serializers.ModelSerializer):
     abattoir_commune = serializers.CharField(source='abattoir.commune', read_only=True)
     created_by_nom = serializers.SerializerMethodField()
     
+    # Suivi des actions
+    annule_par_nom = serializers.SerializerMethodField()
+    finalise_par_nom = serializers.SerializerMethodField()
+    
     # Propriétés calculées
     nombre_betes_actuelles = serializers.ReadOnlyField()
     capacite_maximale = serializers.ReadOnlyField()
@@ -108,12 +112,15 @@ class StabulationSerializer(serializers.ModelSerializer):
             'nombre_betes_actuelles', 'capacite_maximale', 'taux_occupation', 
             'duree_stabulation_heures', 'duree_stabulation_formatee', 'est_pleine', 'places_disponibles',
             'betes', 'betes_info', 'created_by', 'created_by_nom',
+            'annule_par', 'annule_par_nom', 'date_annulation', 'raison_annulation',
+            'finalise_par', 'finalise_par_nom', 'date_finalisation',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'created_at', 'updated_at', 'nombre_betes_actuelles', 
             'capacite_maximale', 'taux_occupation', 'duree_stabulation_heures', 'duree_stabulation_formatee',
-            'est_pleine', 'places_disponibles', 'betes_info', 'created_by_nom'
+            'est_pleine', 'places_disponibles', 'betes_info', 'created_by_nom',
+            'annule_par_nom', 'finalise_par_nom'
         ]
     
     def get_created_by_nom(self, obj):
@@ -122,13 +129,25 @@ class StabulationSerializer(serializers.ModelSerializer):
             return obj.created_by.get_full_name() or obj.created_by.username
         return None
     
+    def get_annule_par_nom(self, obj):
+        """Retourne le nom complet de l'utilisateur qui a annulé"""
+        if obj.annule_par:
+            return obj.annule_par.get_full_name() or obj.annule_par.username
+        return None
+    
+    def get_finalise_par_nom(self, obj):
+        """Retourne le nom complet de l'utilisateur qui a finalisé"""
+        if obj.finalise_par:
+            return obj.finalise_par.get_full_name() or obj.finalise_par.username
+        return None
+    
     def get_betes_info(self, obj):
         """Retourne des informations sur les bêtes en stabulation"""
         betes = obj.betes.all()
         return [
             {
                 'id': bete.id,
-                'numero_identification': bete.num_boucle,
+                'num_boucle': bete.num_boucle,
                 'nom': f"{bete.num_boucle} - {bete.espece.nom if bete.espece else 'N/A'}",
                 'espece': bete.espece.nom if bete.espece else None,
                 'race': None,  # Pas de champ race dans le modèle Bete
@@ -182,6 +201,7 @@ class StabulationCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création de stabulations"""
     
     automatic_count = serializers.IntegerField(required=False, min_value=1, allow_null=True, write_only=True)
+    type_bete = serializers.CharField()  # Override pour gérer la conversion
     
     class Meta:
         model = Stabulation
@@ -246,13 +266,43 @@ class StabulationCreateSerializer(serializers.ModelSerializer):
             return value
         
         for bete in value:
-            if bete.espece.nom.upper() != type_bete:
+            if bete.espece.nom.upper() != type_bete.upper():
                 raise serializers.ValidationError(
-                    f"La bête {bete.numero_identification} n'est pas de type {type_bete}."
+                    f"La bête {bete.num_boucle} n'est pas de type {type_bete}."
                 )
         
         return value
     
+    def validate_type_bete(self, value):
+        """Normaliser le type de bête en majuscules"""
+        if not value:
+            return value
+            
+        # Mapping des noms formatés vers les codes
+        mapping = {
+            'Bovin': 'BOVIN',
+            'Ovin': 'OVIN', 
+            'Caprin': 'CAPRIN',
+            'Autre': 'AUTRE',
+            # Ajouter aussi les variantes possibles
+            'bovin': 'BOVIN',
+            'ovin': 'OVIN',
+            'caprin': 'CAPRIN',
+            'autre': 'AUTRE',
+            'BOVIN': 'BOVIN',
+            'OVIN': 'OVIN',
+            'CAPRIN': 'CAPRIN',
+            'AUTRE': 'AUTRE'
+        }
+        
+        # Essayer le mapping d'abord
+        normalized_value = mapping.get(value)
+        if normalized_value:
+            return normalized_value
+            
+        # Si pas trouvé, convertir en majuscules
+        return value.upper()
+
     def validate(self, data):
         """Validation globale pour s'assurer qu'on a soit des bêtes, soit un nombre automatique"""
         betes = data.get('betes', [])
@@ -271,6 +321,23 @@ class StabulationCreateSerializer(serializers.ModelSerializer):
         
         return data
     
+    def validate_abattoir(self, value):
+        """Validation des permissions pour l'abattoir"""
+        user = self.context['request'].user
+        
+        # Si l'utilisateur n'est pas superuser, forcer son abattoir
+        if not user.is_superuser:
+            if not user.abattoir:
+                raise serializers.ValidationError(
+                    "Vous n'êtes pas assigné à un abattoir. Contactez l'administrateur."
+                )
+            
+            # Forcer l'abattoir de l'utilisateur
+            return user.abattoir
+        
+        # Superuser peut choisir n'importe quel abattoir
+        return value
+    
     def create(self, validated_data):
         """Override create pour gérer automatic_count"""
         # Extraire automatic_count des données validées
@@ -286,35 +353,69 @@ class StabulationCreateSerializer(serializers.ModelSerializer):
 
 
 class StabulationUpdateSerializer(serializers.ModelSerializer):
-    """Serializer pour la mise à jour de stabulations"""
+    """Serializer pour la mise à jour de stabulations avec historique"""
     
     class Meta:
         model = Stabulation
-        fields = [
-            'statut', 'date_fin', 'notes', 'betes'
-        ]
+        fields = ['date_debut', 'notes', 'betes']
     
-    def validate_betes(self, value):
-        """Valide que les bêtes sont du bon type"""
-        if not value:
-            return value
+    def validate(self, data):
+        """Validation pour s'assurer que la stabulation peut être modifiée"""
+        instance = self.instance
         
-        # Récupérer le type de bête de l'instance existante
-        if self.instance:
-            type_bete = self.instance.type_bete
-        else:
-            type_bete = self.initial_data.get('type_bete')
+        if instance.statut not in ['EN_COURS']:
+            raise serializers.ValidationError(
+                f"Impossible de modifier une stabulation {instance.get_statut_display().lower()}"
+            )
         
-        if not type_bete:
-            return value
+        return data
+    
+    def update(self, instance, validated_data):
+        """Mise à jour avec enregistrement de l'historique"""
+        user = self.context['request'].user
         
-        for bete in value:
-            if bete.espece.nom.upper() != type_bete:
-                raise serializers.ValidationError(
-                    f"La bête {bete.numero_identification} n'est pas de type {type_bete}."
-                )
+        # Enregistrer les modifications dans l'historique
+        for field, new_value in validated_data.items():
+            old_value = getattr(instance, field)
+            
+            # Pour les bêtes, comparer les listes d'IDs
+            if field == 'betes':
+                old_betes_ids = set(instance.betes.values_list('id', flat=True))
+                new_betes_ids = set([b.id for b in new_value] if new_value else [])
+                
+                if old_betes_ids != new_betes_ids:
+                    instance.enregistrer_modification(
+                        user, 
+                        'betes', 
+                        list(old_betes_ids), 
+                        list(new_betes_ids)
+                    )
+            else:
+                # Pour les autres champs
+                if old_value != new_value:
+                    instance.enregistrer_modification(
+                        user, 
+                        field, 
+                        old_value, 
+                        new_value
+                    )
         
-        return value
+        # Effectuer la mise à jour
+        return super().update(instance, validated_data)
+
+
+class HistoriqueStabulationSerializer(serializers.ModelSerializer):
+    """Serializer pour l'historique des modifications"""
+    
+    utilisateur_nom = serializers.CharField(source='utilisateur.get_full_name', read_only=True)
+    utilisateur_username = serializers.CharField(source='utilisateur.username', read_only=True)
+    
+    class Meta:
+        model = HistoriqueStabulation
+        fields = [
+            'id', 'champ_modifie', 'ancienne_valeur', 'nouvelle_valeur',
+            'date_modification', 'utilisateur_nom', 'utilisateur_username'
+        ]
 
 
 class StabulationStatsSerializer(serializers.Serializer):

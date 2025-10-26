@@ -107,16 +107,16 @@ def betes_for_livestock(request):
             # Si pas d'abattoir assigné, retourner une liste vide
             queryset = Bete.objects.none()
     
-    # Filtrage par statut (par défaut, ne montrer que les bêtes vivantes)
-    statut = request.query_params.get('statut', 'VIVANT')
-    if statut:
-        # Normaliser la casse pour le statut
-        statut_normalized = statut.strip().upper()
-        if statut_normalized == 'VIVANT':
-            # Pour les bêtes vivantes, inclure aussi celles en stabulation
-            queryset = queryset.filter(statut__in=['VIVANT', 'EN_STABULATION'])
-        else:
-            queryset = queryset.filter(statut=statut_normalized)
+    # Filtrage par statut (support de plusieurs statuts)
+    statuts = request.query_params.getlist('statut')
+    
+    if statuts:
+        # Normaliser la casse pour tous les statuts
+        statuts_normalized = [statut.strip().upper() for statut in statuts]
+        queryset = queryset.filter(statut__in=statuts_normalized)
+    else:
+        # Par défaut, montrer les bêtes vivantes et en stabulation
+        queryset = queryset.filter(statut__in=['VIVANT', 'EN_STABULATION'])
     
     # Filtrage par espèce
     espece_id = request.query_params.get('espece_id', None)

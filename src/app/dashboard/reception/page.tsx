@@ -9,241 +9,82 @@ import {
   Edit, 
   Trash2, 
   Eye,
-  Truck,
+  CheckCircle,
   Calendar,
   MapPin,
   User,
   Package,
-  CheckCircle,
   Clock,
   AlertCircle,
   XCircle,
   RefreshCw,
-  Activity
+  Activity,
+  Truck
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { useRequireAuth } from '@/lib/hooks/useAuth';
+import { useRequireAuth } from '@/lib/hooks/useDjangoAuth';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
-
-// Interface pour les réceptions
-interface Reception {
-  id: string;
-  date: string;
-  time: string;
-  supplier: string;
-  abattoir: string;
-  abattoirId: number;
-  livestockCount: number;
-  livestockType: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  weight: number;
-  transport: string;
-  driver: string;
-  phone: string;
-  notes: string;
-  createdAt: string;
-  lastActivity: string;
-}
-
-// Données mock pour les réceptions
-const mockReceptions: Reception[] = [
-  {
-    id: 'REC001',
-    date: '2024-01-15',
-    time: '08:30',
-    supplier: 'Ferme Benali',
-    abattoir: 'Abattoir Central Alger',
-    abattoirId: 1,
-    livestockCount: 25,
-    livestockType: 'Bovins',
-    status: 'COMPLETED',
-    weight: 1250,
-    transport: 'Camion-001',
-    driver: 'Ahmed Benali',
-    phone: '+213 555 123 456',
-    notes: 'Livraison en bon état, tous les documents conformes',
-    createdAt: '2024-01-15T08:30:00Z',
-    lastActivity: '2024-01-15T10:00:00Z'
-  },
-  {
-    id: 'REC002',
-    date: '2024-01-15',
-    time: '10:15',
-    supplier: 'Élevage Oran',
-    abattoir: 'Abattoir Oran',
-    abattoirId: 4,
-    livestockCount: 18,
-    livestockType: 'Ovins',
-    status: 'IN_PROGRESS',
-    weight: 450,
-    transport: 'Camion-002',
-    driver: 'Mohamed Khelil',
-    phone: '+213 555 789 012',
-    notes: 'En cours de déchargement',
-    createdAt: '2024-01-15T10:15:00Z',
-    lastActivity: '2024-01-15T11:30:00Z'
-  },
-  {
-    id: 'REC003',
-    date: '2024-01-15',
-    time: '14:20',
-    supplier: 'Ferme Constantine',
-    abattoir: 'Abattoir Constantine',
-    abattoirId: 3,
-    livestockCount: 32,
-    livestockType: 'Bovins',
-    status: 'PENDING',
-    weight: 0,
-    transport: 'Camion-003',
-    driver: 'Ali Mansouri',
-    phone: '+213 555 345 678',
-    notes: 'En attente d\'arrivée',
-    createdAt: '2024-01-15T14:20:00Z',
-    lastActivity: '2024-01-15T14:20:00Z'
-  },
-  {
-    id: 'REC004',
-    date: '2024-01-14',
-    time: '16:45',
-    supplier: 'Coopérative Tlemcen',
-    abattoir: 'Abattoir Tlemcen',
-    abattoirId: 6,
-    livestockCount: 12,
-    livestockType: 'Caprins',
-    status: 'COMPLETED',
-    weight: 180,
-    transport: 'Camion-004',
-    driver: 'Omar Boudjema',
-    phone: '+213 555 901 234',
-    notes: 'Livraison terminée avec succès',
-    createdAt: '2024-01-14T16:45:00Z',
-    lastActivity: '2024-01-14T18:00:00Z'
-  },
-  {
-    id: 'REC005',
-    date: '2024-01-14',
-    time: '11:30',
-    supplier: 'Ferme Blida',
-    abattoir: 'Abattoir Blida',
-    abattoirId: 2,
-    livestockCount: 28,
-    livestockType: 'Bovins',
-    status: 'CANCELLED',
-    weight: 0,
-    transport: 'Camion-005',
-    driver: 'Karim Belkacem',
-    phone: '+213 555 567 890',
-    notes: 'Annulé - Problème de transport',
-    createdAt: '2024-01-14T11:30:00Z',
-    lastActivity: '2024-01-14T12:00:00Z'
-  },
-  {
-    id: 'REC006',
-    date: '2024-01-16',
-    time: '09:00',
-    supplier: 'Ferme Sétif',
-    abattoir: 'Abattoir Sétif',
-    abattoirId: 7,
-    livestockCount: 15,
-    livestockType: 'Ovins',
-    status: 'IN_PROGRESS',
-    weight: 375,
-    transport: 'Camion-006',
-    driver: 'Fatima Zohra',
-    phone: '+213 555 234 567',
-    notes: 'Contrôle sanitaire en cours',
-    createdAt: '2024-01-16T09:00:00Z',
-    lastActivity: '2024-01-16T10:15:00Z'
-  },
-  {
-    id: 'REC007',
-    date: '2024-01-16',
-    time: '13:45',
-    supplier: 'Élevage Batna',
-    abattoir: 'Abattoir Batna',
-    abattoirId: 8,
-    livestockCount: 22,
-    livestockType: 'Bovins',
-    status: 'PENDING',
-    weight: 0,
-    transport: 'Camion-007',
-    driver: 'Youssef Amrani',
-    phone: '+213 555 678 901',
-    notes: 'Programmé pour cet après-midi',
-    createdAt: '2024-01-16T13:45:00Z',
-    lastActivity: '2024-01-16T13:45:00Z'
-  },
-  {
-    id: 'REC008',
-    date: '2024-01-13',
-    time: '07:30',
-    supplier: 'Ferme Tizi Ouzou',
-    abattoir: 'Abattoir Tizi Ouzou',
-    abattoirId: 5,
-    livestockCount: 8,
-    livestockType: 'Caprins',
-    status: 'COMPLETED',
-    weight: 120,
-    transport: 'Camion-008',
-    driver: 'Nadia Kaci',
-    phone: '+213 555 123 789',
-    notes: 'Livraison matinale terminée',
-    createdAt: '2024-01-13T07:30:00Z',
-    lastActivity: '2024-01-13T09:00:00Z'
-  }
-];
+import { useReceptions } from '@/lib/hooks/useReceptions';
+import { Reception } from '@/lib/api/receptionService';
 
 export default function ReceptionPage() {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { t, loading: translationLoading, currentLocale } = useLanguage();
   const router = useRouter();
-  const [receptions, setReceptions] = useState<Reception[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [typeFilter, setTypeFilter] = useState<string>('ALL');
-  const [abattoirFilter, setAbattoirFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [abattoirFilter, setAbattoirFilter] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
-  const [deletingReceptionId, setDeletingReceptionId] = useState<string | null>(null);
+  const [deletingReceptionId, setDeletingReceptionId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
 
   // Détection RTL
   const isRTL = currentLocale === 'ar';
 
-  useEffect(() => {
-    const fetchReceptions = async () => {
-      try {
-        setLoading(true);
-        // Simulation d'un appel API
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setReceptions(mockReceptions);
-        console.log('Réceptions récupérées:', mockReceptions);
-      } catch (err) {
-        setError('Erreur lors du chargement des réceptions');
-        console.error('Erreur:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Hooks pour les réceptions
+  const { data: receptionsData, isLoading: loading, error, refetch } = useReceptions({
+    search: searchTerm || undefined,
+    statut: statusFilter || undefined,
+  });
 
-    if (isAuthenticated) {
-      fetchReceptions();
-    }
-  }, [isAuthenticated]);
+  // Rafraîchissement automatique toutes les 30 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetch();
+    }, 30000); // 30 secondes
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
+  // Rafraîchissement forcé au focus de la page
+  useEffect(() => {
+    const handleFocus = () => {
+      refetch();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [refetch]);
+
+  // Indicateur de rafraîchissement automatique
+  const [autoRefreshCount, setAutoRefreshCount] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAutoRefreshCount(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const receptions = receptionsData?.results || [];
 
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setReceptions(mockReceptions);
-      console.log('Réceptions rafraîchies:', mockReceptions);
+      await refetch();
     } catch (err) {
-      setError('Erreur lors du rafraîchissement');
-      console.error('Erreur:', err);
+      console.error('Erreur lors du rafraîchissement:', err);
     } finally {
       setRefreshing(false);
     }
@@ -258,7 +99,7 @@ export default function ReceptionPage() {
     console.log('Modifier réception:', reception);
   };
 
-  const handleDeleteReception = async (receptionId: string, receptionName: string) => {
+  const handleDeleteReception = async (receptionId: number, receptionName: string) => {
     const confirmed = window.confirm(
       `Êtes-vous sûr de vouloir supprimer la réception "${receptionName}" ?`
     );
@@ -269,57 +110,58 @@ export default function ReceptionPage() {
 
     try {
       setDeletingReceptionId(receptionId);
-      // Simulation d'un appel API
+      // TODO: Implémenter la suppression via l'API
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      setReceptions(prevReceptions => prevReceptions.filter(reception => reception.id !== receptionId));
       setSuccessMessage(`Réception "${receptionName}" supprimée avec succès`);
       setTimeout(() => setSuccessMessage(''), 3000);
       
       console.log(`Réception ${receptionName} supprimée avec succès`);
     } catch (err) {
       console.error('Erreur lors de la suppression de la réception:', err);
-      setError('Erreur lors de la suppression');
     } finally {
       setDeletingReceptionId(null);
     }
   };
 
-  const filteredReceptions = receptions.filter(reception => {
-    const matchesSearch = reception.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         reception.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         reception.abattoir.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         reception.driver.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || reception.status === statusFilter;
-    const matchesType = typeFilter === 'ALL' || reception.livestockType === typeFilter;
-    const matchesAbattoir = abattoirFilter === 'ALL' || reception.abattoirId.toString() === abattoirFilter;
-    return matchesSearch && matchesStatus && matchesType && matchesAbattoir;
-  });
-
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (statut: string) => {
     const statusConfig = {
-      PENDING: { 
+      'EN_ATTENTE': { 
         bg: 'bg-orange-200 dark:bg-orange-900/50', 
         text: 'text-orange-900 dark:text-orange-100', 
         border: 'border-orange-300 dark:border-orange-700',
         label: isRTL ? 'في الانتظار' : 'En attente',
         icon: Clock
       },
-      IN_PROGRESS: { 
+      'EN_ROUTE': { 
+        bg: 'bg-blue-200 dark:bg-blue-900/50', 
+        text: 'text-blue-900 dark:text-blue-100', 
+        border: 'border-blue-300 dark:border-blue-700',
+        label: isRTL ? 'في الطريق' : 'En route',
+        icon: Truck
+      },
+      'EN_COURS': { 
         bg: 'bg-blue-200 dark:bg-blue-900/50', 
         text: 'text-blue-900 dark:text-blue-100', 
         border: 'border-blue-300 dark:border-blue-700',
         label: isRTL ? 'قيد المعالجة' : 'En cours',
         icon: Activity
       },
-      COMPLETED: { 
+      'RECU': { 
         bg: 'bg-green-200 dark:bg-green-900/50', 
         text: 'text-green-900 dark:text-green-100', 
         border: 'border-green-300 dark:border-green-700',
-        label: isRTL ? 'مكتمل' : 'Terminé',
+        label: isRTL ? 'مكتمل' : 'Reçu',
         icon: CheckCircle
       },
-      CANCELLED: { 
+      'PARTIEL': { 
+        bg: 'bg-yellow-200 dark:bg-yellow-900/50', 
+        text: 'text-yellow-900 dark:text-yellow-100', 
+        border: 'border-yellow-300 dark:border-yellow-700',
+        label: isRTL ? 'جزئي' : 'Partiel',
+        icon: AlertCircle
+      },
+      'ANNULE': { 
         bg: 'bg-red-200 dark:bg-red-900/50', 
         text: 'text-red-900 dark:text-red-100', 
         border: 'border-red-300 dark:border-red-700',
@@ -328,7 +170,7 @@ export default function ReceptionPage() {
       }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
+    const config = statusConfig[statut as keyof typeof statusConfig] || statusConfig['EN_ATTENTE'];
     const IconComponent = config.icon;
     
     return (
@@ -353,8 +195,21 @@ export default function ReceptionPage() {
   };
 
   const getAbattoirs = () => {
-    const abattoirs = [...new Set(receptions.map(reception => ({ id: reception.abattoirId, name: reception.abattoir })))];
-    return abattoirs.sort((a, b) => a.name.localeCompare(b.name));
+    const abattoirs = new Set();
+    receptions.forEach(reception => {
+      // Vérification de sécurité pour abattoir_expediteur (priorité aux données directes, puis transfert)
+      const expediteur = reception.abattoir_expediteur || reception.transfert?.abattoir_expediteur;
+      if (expediteur && expediteur.id && expediteur.nom) {
+        abattoirs.add(JSON.stringify({ id: expediteur.id, name: expediteur.nom }));
+      }
+      
+      // Vérification de sécurité pour abattoir_destinataire (priorité aux données directes, puis transfert)
+      const destinataire = reception.abattoir_destinataire || reception.transfert?.abattoir_destinataire;
+      if (destinataire && destinataire.id && destinataire.nom) {
+        abattoirs.add(JSON.stringify({ id: destinataire.id, name: destinataire.nom }));
+      }
+    });
+    return Array.from(abattoirs).map(item => JSON.parse(item as string)).sort((a, b) => a.name.localeCompare(b.name));
   };
 
   if (isLoading || translationLoading) {
@@ -376,7 +231,7 @@ export default function ReceptionPage() {
             <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <h1 className={`text-2xl font-bold flex items-center theme-text-primary theme-transition ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <Truck className={`h-7 w-7 text-primary-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
+                  <CheckCircle className={`h-7 w-7 text-primary-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
                   {isRTL ? 'الاستقبال' : 'Réception'}
                 </h1>
                 <p className="mt-1 theme-text-secondary theme-transition">
@@ -393,7 +248,20 @@ export default function ReceptionPage() {
                   {isRTL ? 'تحديث' : 'Actualiser'}
                 </button>
                 <button 
-                  onClick={() => console.log('Nouvelle réception')}
+                  onClick={() => {
+                    window.location.reload();
+                  }}
+                  className="px-3 py-2 rounded-lg flex items-center bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                  {isRTL ? 'إعادة تحميل' : 'Recharger'}
+                </button>
+                <div className="text-xs theme-text-secondary flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
+                  {isRTL ? 'تحديث تلقائي' : 'Auto-refresh'} ({30 - (autoRefreshCount % 30)}s)
+                </div>
+                <button 
+                  onClick={() => router.push('/dashboard/reception/new')}
                   className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                 >
                   <Plus className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
@@ -423,28 +291,19 @@ export default function ReceptionPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
               >
-                <option value="ALL">{isRTL ? 'جميع الحالات' : 'Tous les statuts'}</option>
-                <option value="PENDING">{isRTL ? 'في الانتظار' : 'En attente'}</option>
-                <option value="IN_PROGRESS">{isRTL ? 'قيد المعالجة' : 'En cours'}</option>
-                <option value="COMPLETED">{isRTL ? 'مكتمل' : 'Terminé'}</option>
-                <option value="CANCELLED">{isRTL ? 'ملغي' : 'Annulé'}</option>
-              </select>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
-              >
-                <option value="ALL">{isRTL ? 'جميع الأنواع' : 'Tous les types'}</option>
-                <option value="Bovins">{isRTL ? 'بقر' : 'Bovins'}</option>
-                <option value="Ovins">{isRTL ? 'غنم' : 'Ovins'}</option>
-                <option value="Caprins">{isRTL ? 'ماعز' : 'Caprins'}</option>
+                <option value="">{isRTL ? 'جميع الحالات' : 'Tous les statuts'}</option>
+                <option value="EN_ATTENTE">{isRTL ? 'في الانتظار' : 'En attente'}</option>
+                <option value="EN_COURS">{isRTL ? 'قيد المعالجة' : 'En cours'}</option>
+                <option value="RECU">{isRTL ? 'مكتمل' : 'Reçu'}</option>
+                <option value="PARTIEL">{isRTL ? 'جزئي' : 'Partiel'}</option>
+                <option value="ANNULE">{isRTL ? 'ملغي' : 'Annulé'}</option>
               </select>
               <select
                 value={abattoirFilter}
                 onChange={(e) => setAbattoirFilter(e.target.value)}
                 className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-border-primary theme-text-primary theme-transition"
               >
-                <option value="ALL">{isRTL ? 'جميع المجازر' : 'Tous les abattoirs'}</option>
+                <option value="">{isRTL ? 'جميع المجازر' : 'Tous les abattoirs'}</option>
                 {getAbattoirs().map(abattoir => (
                   <option key={abattoir.id} value={abattoir.id.toString()}>{abattoir.name}</option>
                 ))}
@@ -482,7 +341,7 @@ export default function ReceptionPage() {
               </div>
             ) : error ? (
               <div className="text-center py-12">
-                <p className="text-red-600">{error}</p>
+                <p className="text-red-600">{error.message || 'Erreur lors du chargement des réceptions'}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -493,25 +352,22 @@ export default function ReceptionPage() {
                         {isRTL ? 'الاستقبال' : 'Réception'}
                       </th>
                       <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                        {isRTL ? 'التاريخ والوقت' : 'Date & Heure'}
+                        {isRTL ? 'النقل' : 'Transfert'}
                       </th>
                       <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                        {isRTL ? 'المورد' : 'Fournisseur'}
+                        {isRTL ? 'من' : 'De'}
                       </th>
                       <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                        {isRTL ? 'المجزر' : 'Abattoir'}
+                        {isRTL ? 'إلى' : 'Vers'}
                       </th>
                       <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
                         {isRTL ? 'الماشية' : 'Bétail'}
                       </th>
                       <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                        {isRTL ? 'الوزن' : 'Poids'}
-                      </th>
-                      <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
                         {isRTL ? 'الحالة' : 'Statut'}
                       </th>
                       <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                        {isRTL ? 'آخر نشاط' : 'Dernière activité'}
+                        {isRTL ? 'التاريخ' : 'Date'}
                       </th>
                       <th className={`px-6 py-3 ${isRTL ? 'text-left' : 'text-right'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
                         {isRTL ? 'الإجراءات' : 'Actions'}
@@ -519,64 +375,75 @@ export default function ReceptionPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y theme-bg-elevated theme-border-secondary theme-transition">
-                    {filteredReceptions.map((reception) => (
+                    {receptions.map((reception) => (
                       <tr key={reception.id} className="transition-colors hover:theme-bg-secondary">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                              <Truck className="h-5 w-5 text-primary-600" />
+                              <CheckCircle className="h-5 w-5 text-primary-600" />
                             </div>
                             <div className={isRTL ? 'mr-4 text-right' : 'ml-4'}>
-                              <div className="text-sm font-medium theme-text-primary theme-transition">{reception.id}</div>
-                              <div className="text-sm theme-text-secondary theme-transition">{reception.transport}</div>
+                              <div className="text-sm font-medium theme-text-primary theme-transition">{reception.numero_reception}</div>
+                              <div className="text-sm theme-text-secondary theme-transition">
+                                {reception.taux_reception}% {isRTL ? 'مكتمل' : 'complété'}
+                              </div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={isRTL ? 'text-right' : 'text-left'}>
-                            <div className="text-sm font-medium theme-text-primary theme-transition">{reception.date}</div>
-                            <div className="text-sm theme-text-secondary theme-transition">{reception.time}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={isRTL ? 'text-right' : 'text-left'}>
-                            <div className="text-sm font-medium theme-text-primary theme-transition">{reception.supplier}</div>
-                            <div className="text-sm theme-text-secondary theme-transition">{reception.driver}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={isRTL ? 'text-right' : 'text-left'}>
-                            <div className="text-sm font-medium theme-text-primary theme-transition">{reception.abattoir}</div>
-                            <div className="text-sm theme-text-secondary theme-transition">{reception.phone}</div>
+                            <div className="text-sm font-medium theme-text-primary theme-transition">{reception.transfert.numero_transfert}</div>
+                            <div className="text-sm theme-text-secondary theme-transition">
+                              {formatDate(reception.transfert.date_creation)}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={isRTL ? 'text-right' : 'text-left'}>
                             <div className="text-sm font-medium theme-text-primary theme-transition">
-                              {reception.livestockCount} {isRTL ? 'رأس' : 'têtes'}
+                              {reception.abattoir_expediteur?.nom || reception.transfert?.abattoir_expediteur?.nom || 'N/A'}
                             </div>
-                            <div className="text-sm theme-text-secondary theme-transition">{reception.livestockType}</div>
+                            <div className="text-sm theme-text-secondary theme-transition">
+                              {reception.abattoir_expediteur?.wilaya || reception.transfert?.abattoir_expediteur?.wilaya || 'N/A'}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={isRTL ? 'text-right' : 'text-left'}>
                             <div className="text-sm font-medium theme-text-primary theme-transition">
-                              {reception.weight > 0 ? `${reception.weight} kg` : '-'}
+                              {reception.abattoir_destinataire?.nom || reception.transfert?.abattoir_destinataire?.nom || 'N/A'}
+                            </div>
+                            <div className="text-sm theme-text-secondary theme-transition">
+                              {reception.abattoir_destinataire?.wilaya || reception.transfert?.abattoir_destinataire?.wilaya || 'N/A'}
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(reception.status)}
+                          <div className={isRTL ? 'text-right' : 'text-left'}>
+                            <div className="text-sm font-medium theme-text-primary theme-transition">
+                              {reception.nombre_betes_recues} / {reception.nombre_betes_attendues} {isRTL ? 'رأس' : 'têtes'}
+                            </div>
+                            <div className="text-sm theme-text-secondary theme-transition">
+                              {reception.nombre_betes_manquantes > 0 && (
+                                <span className="text-red-600">
+                                  {reception.nombre_betes_manquantes} {isRTL ? 'مفقود' : 'manquant'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(reception.statut)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm theme-text-secondary theme-transition">
-                          {formatDate(reception.lastActivity)}
+                          {formatDate(reception.date_creation)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`flex items-center ${isRTL ? 'justify-start space-x-reverse space-x-2' : 'justify-end space-x-2'}`}>
                             <button 
-                              onClick={() => handleViewReception(reception)}
-                              className="p-1 theme-text-tertiary hover:theme-text-primary theme-transition"
-                              title={isRTL ? 'عرض التفاصيل' : 'Voir les détails'}
+                              onClick={() => router.push(`/dashboard/reception/${reception.id}`)}
+                              className="p-1 theme-text-tertiary hover:text-green-500 theme-transition"
+                              title={isRTL ? 'عرض الاستقبال' : 'Voir la réception'}
                             >
                               <Eye className="h-4 w-4" />
                             </button>
@@ -588,7 +455,7 @@ export default function ReceptionPage() {
                               <Edit className="h-4 w-4" />
                             </button>
                             <button 
-                              onClick={() => handleDeleteReception(reception.id, reception.id)}
+                              onClick={() => handleDeleteReception(reception.id, reception.numero_reception)}
                               disabled={deletingReceptionId === reception.id}
                               className="p-1 theme-text-tertiary hover:text-red-500 theme-transition disabled:opacity-50"
                               title={isRTL ? 'حذف الاستقبال' : 'Supprimer la réception'}
@@ -611,9 +478,9 @@ export default function ReceptionPage() {
               </div>
             )}
             
-            {filteredReceptions.length === 0 && !loading && (
+            {receptions.length === 0 && !loading && (
               <div className="text-center py-12">
-                <Truck className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 theme-text-tertiary theme-transition" />
                 <h3 className="text-lg font-medium mb-2 theme-text-primary theme-transition">
                   {isRTL ? 'لم يتم العثور على استقبالات' : 'Aucune réception trouvée'}
                 </h3>

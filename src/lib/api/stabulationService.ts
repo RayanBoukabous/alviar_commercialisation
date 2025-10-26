@@ -27,7 +27,7 @@ export interface Stabulation {
     betes: number[];
     betes_info: {
         id: number;
-        numero_identification: string;
+        num_boucle: string;
         nom?: string;
         espece?: string;
         race?: string;
@@ -41,6 +41,15 @@ export interface Stabulation {
     created_by_nom?: string;
     created_at: string;
     updated_at: string;
+
+    // Suivi des actions
+    annule_par?: number;
+    annule_par_nom?: string;
+    date_annulation?: string;
+    raison_annulation?: string;
+    finalise_par?: number;
+    finalise_par_nom?: string;
+    date_finalisation?: string;
 }
 
 export interface CreateStabulationRequest {
@@ -58,6 +67,25 @@ export interface UpdateStabulationRequest {
     date_fin?: string;
     notes?: string;
     betes?: number[];
+}
+
+// Interface pour l'historique des modifications
+export interface HistoriqueStabulation {
+    id: number;
+    champ_modifie: string;
+    ancienne_valeur: string;
+    nouvelle_valeur: string;
+    date_modification: string;
+    utilisateur_nom: string;
+    utilisateur_username: string;
+}
+
+// Interface pour la réponse de l'historique
+export interface HistoriqueResponse {
+    stabulation_id: number;
+    numero_stabulation: string;
+    historique: HistoriqueStabulation[];
+    count: number;
 }
 
 export interface StabulationStats {
@@ -147,6 +175,13 @@ export const stabulationService = {
         return response.data as StabulationsResponse;
     },
 
+    // Récupérer l'historique des modifications d'une stabulation
+    async getHistoriqueStabulation(id: number): Promise<HistoriqueResponse> {
+        const response = await djangoApi.get(`/abattoirs/stabulations/${id}/historique/`);
+        return response.data as HistoriqueResponse;
+    },
+
+
     // Récupérer les statistiques des stabulations
     async getStabulationStats(params?: {
         abattoir_id?: number;
@@ -207,7 +242,7 @@ export const stabulationService = {
         betes_affectees: number;
     }> {
         const response = await djangoApi.post(`/abattoirs/stabulations/${id}/annuler/`, {
-            raison_annulation: raisonAnnulation
+            raison: raisonAnnulation
         });
         return response.data as {
             message: string;

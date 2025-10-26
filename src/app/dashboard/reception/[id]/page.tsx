@@ -1,613 +1,215 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { 
-  ArrowLeft,
-  Truck,
-  Edit,
-  RefreshCw,
+  ArrowLeft, 
+  Edit, 
+  Trash2, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Truck, 
+  MapPin, 
+  User, 
+  Calendar, 
+  Package, 
   AlertCircle,
+  Eye,
+  RefreshCw,
   Activity,
-  Users,
   FileText,
-  Calendar,
-  MapPin,
-  Package,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Play,
-  Pause,
-  RotateCcw,
-  Shield
+  Hash,
+  Building2,
+  Users,
+  Plus,
+  Minus,
+  AlertTriangle,
+  Info
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { useRequireAuth } from '@/lib/hooks/useAuth';
-import { useRouter, useParams } from 'next/navigation';
+import { useRequireAuth } from '@/lib/hooks/useDjangoAuth';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { useReception, useConfirmerReception, useAnnulerReception } from '@/lib/hooks/useReceptions';
+import { Reception } from '@/lib/api/receptionService';
 import Tabs from '@/components/ui/Tabs';
 
-// Interface pour les réceptions avec données détaillées
-interface ReceptionDetail {
-  id: string;
-  date: string;
-  time: string;
-  supplier: {
-    name: string;
-    contact: string;
-    phone: string;
-    address: string;
-    license: string;
-  };
-  abattoir: {
-    name: string;
-    address: string;
-    contact: string;
-    phone: string;
-  };
-  transport: {
-    vehicle: string;
-    driver: string;
-    license: string;
-    phone: string;
-  };
-  livestock: {
-    count: number;
-    type: string;
-    averageWeight: number;
-    totalWeight: number;
-    breed: string;
-    age: string;
-    healthStatus: string;
-  };
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  notes: string;
-  documents: {
-    id: number;
-    name: string;
-    type: string;
-    status: string;
-  }[];
-  timeline: {
-    id: number;
-    action: string;
-    timestamp: string;
-    status: string;
-    user: string;
-  }[];
-  statistics: {
-    totalWeight: number;
-    averageWeight: number;
-    processingTime: number;
-    qualityScore: number;
-  };
-  recentActivity: {
-    date: string;
-    action: string;
-    details: string;
-    user: string;
-  }[];
-}
-
-// Données mock détaillées pour les réceptions
-const mockReceptionDetails: { [key: string]: ReceptionDetail } = {
-  'REC001': {
-    id: 'REC001',
-    date: '2024-01-15',
-    time: '08:30',
-    supplier: {
-      name: 'Ferme Benali',
-      contact: 'Ahmed Benali',
-      phone: '+213 555 123 456',
-      address: 'Route de Blida, Alger',
-      license: 'LIC-2024-001'
-    },
-    abattoir: {
-      name: 'Abattoir Central Alger',
-      address: 'Zone Industrielle, Alger',
-      contact: 'Directeur: Mohamed Khelil',
-      phone: '+213 555 789 012'
-    },
-    transport: {
-      vehicle: 'Camion-001',
-      driver: 'Ahmed Benali',
-      license: 'DL-123456',
-      phone: '+213 555 123 456'
-    },
-    livestock: {
-      count: 25,
-      type: 'Bovins',
-      averageWeight: 50,
-      totalWeight: 1250,
-      breed: 'Holstein',
-      age: '18-24 mois',
-      healthStatus: 'Bon état'
-    },
-    status: 'COMPLETED',
-    notes: 'Livraison en bon état, tous les documents conformes. Animaux en bonne santé.',
-    documents: [
-      { id: 1, name: 'Certificat sanitaire', type: 'pdf', status: 'valid' },
-      { id: 2, name: 'Document de transport', type: 'pdf', status: 'valid' },
-      { id: 3, name: 'Facture fournisseur', type: 'pdf', status: 'valid' },
-      { id: 4, name: 'Photos de réception', type: 'image', status: 'valid' }
-    ],
-    timeline: [
-      {
-        id: 1,
-        action: 'Réception programmée',
-        timestamp: '2024-01-14 16:00',
-        status: 'completed',
-        user: 'Système'
-      },
-      {
-        id: 2,
-        action: 'Arrivée du transport',
-        timestamp: '2024-01-15 08:30',
-        status: 'completed',
-        user: 'Ahmed Benali'
-      },
-      {
-        id: 3,
-        action: 'Vérification des documents',
-        timestamp: '2024-01-15 08:45',
-        status: 'completed',
-        user: 'Mohamed Khelil'
-      },
-      {
-        id: 4,
-        action: 'Contrôle sanitaire',
-        timestamp: '2024-01-15 09:00',
-        status: 'completed',
-        user: 'Vétérinaire'
-      },
-      {
-        id: 5,
-        action: 'Déchargement',
-        timestamp: '2024-01-15 09:15',
-        status: 'completed',
-        user: 'Équipe de réception'
-      },
-      {
-        id: 6,
-        action: 'Pesée et enregistrement',
-        timestamp: '2024-01-15 10:00',
-        status: 'completed',
-        user: 'Système'
-      }
-    ],
-    statistics: {
-      totalWeight: 1250,
-      averageWeight: 50,
-      processingTime: 90,
-      qualityScore: 95
-    },
-    recentActivity: [
-      {
-        date: '2024-01-15T10:00:00Z',
-        action: 'Réception terminée',
-        details: 'Tous les animaux ont été pesés et enregistrés',
-        user: 'Système'
-      },
-      {
-        date: '2024-01-15T09:15:00Z',
-        action: 'Déchargement terminé',
-        details: '25 têtes de bétail déchargées avec succès',
-        user: 'Équipe de réception'
-      },
-      {
-        date: '2024-01-15T09:00:00Z',
-        action: 'Contrôle sanitaire',
-        details: 'Examen vétérinaire effectué - tous les animaux en bonne santé',
-        user: 'Vétérinaire'
-      }
-    ]
-  },
-  'REC002': {
-    id: 'REC002',
-    date: '2024-01-15',
-    time: '10:15',
-    supplier: {
-      name: 'Élevage Oran',
-      contact: 'Mohamed Khelil',
-      phone: '+213 555 789 012',
-      address: 'Zone Industrielle, Oran',
-      license: 'LIC-2024-002'
-    },
-    abattoir: {
-      name: 'Abattoir Oran',
-      address: 'Route de l\'Abattoir, Oran',
-      contact: 'Directeur: Aicha Boudjedra',
-      phone: '+213 555 789 012'
-    },
-    transport: {
-      vehicle: 'Camion-002',
-      driver: 'Mohamed Khelil',
-      license: 'DL-789012',
-      phone: '+213 555 789 012'
-    },
-    livestock: {
-      count: 18,
-      type: 'Ovins',
-      averageWeight: 25,
-      totalWeight: 450,
-      breed: 'Ouled Djellal',
-      age: '12-18 mois',
-      healthStatus: 'Bon état'
-    },
-    status: 'IN_PROGRESS',
-    notes: 'En cours de déchargement et de vérification sanitaire.',
-    documents: [
-      { id: 1, name: 'Certificat sanitaire', type: 'pdf', status: 'valid' },
-      { id: 2, name: 'Document de transport', type: 'pdf', status: 'valid' }
-    ],
-    timeline: [
-      {
-        id: 1,
-        action: 'Réception programmée',
-        timestamp: '2024-01-14 18:00',
-        status: 'completed',
-        user: 'Système'
-      },
-      {
-        id: 2,
-        action: 'Arrivée du transport',
-        timestamp: '2024-01-15 10:15',
-        status: 'completed',
-        user: 'Mohamed Khelil'
-      },
-      {
-        id: 3,
-        action: 'Début du déchargement',
-        timestamp: '2024-01-15 10:30',
-        status: 'completed',
-        user: 'Équipe de réception'
-      }
-    ],
-    statistics: {
-      totalWeight: 450,
-      averageWeight: 25,
-      processingTime: 45,
-      qualityScore: 90
-    },
-    recentActivity: [
-      {
-        date: '2024-01-15T10:30:00Z',
-        action: 'Déchargement en cours',
-        details: '18 têtes d\'ovins en cours de déchargement',
-        user: 'Équipe de réception'
-      }
-    ]
-  },
-  'REC003': {
-    id: 'REC003',
-    date: '2024-01-15',
-    time: '14:20',
-    supplier: {
-      name: 'Ferme Constantine',
-      contact: 'Ali Mansouri',
-      phone: '+213 555 345 678',
-      address: 'Avenue de l\'Abattoir, Constantine',
-      license: 'LIC-2024-003'
-    },
-    abattoir: {
-      name: 'Abattoir Constantine',
-      address: 'Avenue de l\'Abattoir, Constantine',
-      contact: 'Directeur: Mohamed Khelil',
-      phone: '+213 555 345 678'
-    },
-    transport: {
-      vehicle: 'Camion-003',
-      driver: 'Ali Mansouri',
-      license: 'DL-345678',
-      phone: '+213 555 345 678'
-    },
-    livestock: {
-      count: 32,
-      type: 'Bovins',
-      averageWeight: 45,
-      totalWeight: 1440,
-      breed: 'Charolais',
-      age: '24-30 mois',
-      healthStatus: 'Excellent état'
-    },
-    status: 'PENDING',
-    notes: 'En attente d\'arrivée du transport. Animaux de qualité supérieure.',
-    documents: [
-      { id: 1, name: 'Certificat sanitaire', type: 'pdf', status: 'valid' },
-      { id: 2, name: 'Document de transport', type: 'pdf', status: 'valid' },
-      { id: 3, name: 'Facture fournisseur', type: 'pdf', status: 'valid' }
-    ],
-    timeline: [
-      {
-        id: 1,
-        action: 'Réception programmée',
-        timestamp: '2024-01-15 12:00',
-        status: 'completed',
-        user: 'Système'
-      }
-    ],
-    statistics: {
-      totalWeight: 1440,
-      averageWeight: 45,
-      processingTime: 0,
-      qualityScore: 98
-    },
-    recentActivity: [
-      {
-        date: '2024-01-15T14:20:00Z',
-        action: 'Réception créée',
-        details: 'Nouvelle réception programmée pour 32 têtes de bovins',
-        user: 'Système'
-      }
-    ]
-  }
-};
-
 export default function ReceptionDetailPage() {
+  const params = useParams();
+  const router = useRouter();
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { t, loading: translationLoading, currentLocale } = useLanguage();
-  const router = useRouter();
-  const params = useParams();
-  const [reception, setReception] = useState<ReceptionDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [showConfirmerModal, setShowConfirmerModal] = useState(false);
+  const [showAnnulerModal, setShowAnnulerModal] = useState(false);
+  const [nombreBetesRecues, setNombreBetesRecues] = useState<number>(0);
+  const [betesManquantes, setBetesManquantes] = useState<string>('');
+  const [betesEnPlus, setBetesEnPlus] = useState<string>('');
+  const [motifAnnulation, setMotifAnnulation] = useState('');
+  const [note, setNote] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState<string>('');
-  const [confirmationText, setConfirmationText] = useState('');
-  const [randomText, setRandomText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Détection RTL
   const isRTL = currentLocale === 'ar';
+  const receptionId = parseInt(params.id as string);
 
-  useEffect(() => {
-    const fetchReceptionDetail = async () => {
-      try {
-        setLoading(true);
-        const receptionId = params.id as string;
-        
-        // Simulation d'un appel API
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const receptionData = mockReceptionDetails[receptionId];
-        if (!receptionData) {
-          setError('Réception non trouvée');
-          return;
-        }
-        
-        setReception(receptionData);
-        console.log('Détails de la réception récupérés:', receptionData);
-      } catch (err) {
-        setError('Erreur lors du chargement des détails de la réception');
-        console.error('Erreur:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (isAuthenticated && params.id) {
-      fetchReceptionDetail();
-    }
-  }, [isAuthenticated, params.id]);
+  // Hooks pour les données et actions
+  const { data: reception, isLoading: loading, error, refetch } = useReception(receptionId);
+  const confirmerMutation = useConfirmerReception();
+  const annulerMutation = useAnnulerReception();
 
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const receptionId = params.id as string;
-      const receptionData = mockReceptionDetails[receptionId];
-      if (receptionData) {
-        setReception(receptionData);
-      }
-      
-      console.log('Détails de la réception rafraîchis:', receptionData);
+      await refetch();
     } catch (err) {
-      setError('Erreur lors du rafraîchissement');
-      console.error('Erreur:', err);
+      console.error('Erreur lors du rafraîchissement:', err);
     } finally {
       setRefreshing(false);
     }
   };
 
-  // Générer un texte aléatoire pour la confirmation
-  const generateRandomText = () => {
-    const words = ['CONFIRMER', 'VALIDER', 'ACCEPTER', 'APPROUVER', 'AUTORISER'];
-    const randomWord = words[Math.floor(Math.random() * words.length)];
-    const randomNumber = Math.floor(Math.random() * 9999) + 1000;
-    return `${randomWord}-${randomNumber}`;
-  };
+  // Rafraîchissement automatique toutes les 30 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetch();
+    }, 30000); // 30 secondes
 
-  // Ouvrir le modal de confirmation
-  const openConfirmModal = (action: string) => {
-    setPendingAction(action);
-    setRandomText(generateRandomText());
-    setConfirmationText('');
-    setShowConfirmModal(true);
-  };
+    return () => clearInterval(interval);
+  }, [refetch]);
 
-  // Fermer le modal de confirmation
-  const closeConfirmModal = () => {
-    setShowConfirmModal(false);
-    setPendingAction('');
-    setConfirmationText('');
-    setRandomText('');
-  };
+  // Rafraîchissement forcé au focus de la page
+  useEffect(() => {
+    const handleFocus = () => {
+      refetch();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [refetch]);
 
-  // Exécuter l'action après confirmation
-  const executeAction = async () => {
-    if (confirmationText !== randomText) {
-      alert(isRTL ? 'النص المدخل غير صحيح' : 'Le texte saisi est incorrect');
-      return;
-    }
-
+  const handleConfirmer = async () => {
     try {
       setIsProcessing(true);
-      
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      if (reception) {
-        let newStatus = reception.status;
-        
-        switch (pendingAction) {
-          case 'start':
-            newStatus = 'IN_PROGRESS';
-            break;
-          case 'complete':
-            newStatus = 'COMPLETED';
-            break;
-          case 'cancel':
-            newStatus = 'CANCELLED';
-            break;
-          case 'restart':
-            newStatus = 'PENDING';
-            break;
+      await confirmerMutation.mutateAsync({
+        id: receptionId,
+        data: {
+          nombre_betes_recues: nombreBetesRecues,
+          betes_manquantes: betesManquantes ? betesManquantes.split(',').map(b => b.trim()) : [],
+          note: note
         }
-        
-        setReception({
-          ...reception,
-          status: newStatus,
-          lastActivity: new Date().toISOString()
-        });
-        
-        console.log(`Action ${pendingAction} exécutée avec succès`);
-      }
-      
-      closeConfirmModal();
+      });
+      setSuccessMessage('Réception confirmée avec succès');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setShowConfirmerModal(false);
+      // Reset form
+      setNombreBetesRecues(0);
+      setBetesManquantes('');
+      setBetesEnPlus('');
+      setNote('');
     } catch (err) {
-      console.error('Erreur lors de l\'exécution de l\'action:', err);
-      alert(isRTL ? 'خطأ في تنفيذ العملية' : 'Erreur lors de l\'exécution de l\'action');
+      setErrorMessage('Erreur lors de la confirmation de la réception');
+      setTimeout(() => setErrorMessage(''), 3000);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Obtenir les actions disponibles selon le statut
-  const getAvailableActions = () => {
-    if (!reception) return [];
-    
-    const actions = [];
-    
-    switch (reception.status) {
-      case 'PENDING':
-        actions.push({
-          id: 'start',
-          label: isRTL ? 'بدء المعالجة' : 'Démarrer le traitement',
-          icon: Play,
-          color: 'bg-blue-600 hover:bg-blue-700 text-white',
-          description: isRTL ? 'بدء عملية استقبال الماشية' : 'Commencer la réception du bétail'
-        });
-        actions.push({
-          id: 'cancel',
-          label: isRTL ? 'إلغاء الاستقبال' : 'Annuler la réception',
-          icon: XCircle,
-          color: 'bg-red-600 hover:bg-red-700 text-white',
-          description: isRTL ? 'إلغاء عملية الاستقبال نهائياً' : 'Annuler définitivement la réception'
-        });
-        break;
-        
-      case 'IN_PROGRESS':
-        actions.push({
-          id: 'complete',
-          label: isRTL ? 'إكمال الاستقبال' : 'Terminer la réception',
-          icon: CheckCircle,
-          color: 'bg-green-600 hover:bg-green-700 text-white',
-          description: isRTL ? 'إنهاء عملية الاستقبال بنجاح' : 'Finaliser la réception avec succès'
-        });
-        actions.push({
-          id: 'cancel',
-          label: isRTL ? 'إلغاء الاستقبال' : 'Annuler la réception',
-          icon: XCircle,
-          color: 'bg-red-600 hover:bg-red-700 text-white',
-          description: isRTL ? 'إلغاء عملية الاستقبال نهائياً' : 'Annuler définitivement la réception'
-        });
-        break;
-        
-      case 'COMPLETED':
-        actions.push({
-          id: 'restart',
-          label: isRTL ? 'إعادة فتح' : 'Rouvrir',
-          icon: RotateCcw,
-          color: 'bg-yellow-600 hover:bg-yellow-700 text-white',
-          description: isRTL ? 'إعادة فتح الاستقبال للمعالجة' : 'Rouvrir la réception pour traitement'
-        });
-        break;
-        
-      case 'CANCELLED':
-        actions.push({
-          id: 'restart',
-          label: isRTL ? 'إعادة فتح' : 'Rouvrir',
-          icon: RotateCcw,
-          color: 'bg-yellow-600 hover:bg-yellow-700 text-white',
-          description: isRTL ? 'إعادة فتح الاستقبال للمعالجة' : 'Rouvrir la réception pour traitement'
-        });
-        break;
+  const handleAnnuler = async () => {
+    try {
+      setIsProcessing(true);
+      await annulerMutation.mutateAsync({
+        id: receptionId,
+        data: { motif_annulation: motifAnnulation }
+      });
+      setSuccessMessage('Réception annulée avec succès');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setShowAnnulerModal(false);
+      setMotifAnnulation('');
+    } catch (err) {
+      setErrorMessage('Erreur lors de l\'annulation de la réception');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setIsProcessing(false);
     }
-    
-    return actions;
   };
 
-  const getStatusBadge = (status: string) => {
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusBadge = (statut: string) => {
     const statusConfig = {
-      PENDING: { 
-        bg: 'bg-yellow-100 dark:bg-yellow-900/30', 
-        text: 'text-yellow-800 dark:text-yellow-300', 
+      'EN_ATTENTE': { 
+        bg: 'bg-orange-200 dark:bg-orange-900/50', 
+        text: 'text-orange-900 dark:text-orange-100', 
+        border: 'border-orange-300 dark:border-orange-700',
         label: isRTL ? 'في الانتظار' : 'En attente',
         icon: Clock
       },
-      IN_PROGRESS: { 
-        bg: 'bg-blue-100 dark:bg-blue-900/30', 
-        text: 'text-blue-800 dark:text-blue-300', 
+      'EN_ROUTE': { 
+        bg: 'bg-blue-200 dark:bg-blue-900/50', 
+        text: 'text-blue-900 dark:text-blue-100', 
+        border: 'border-blue-300 dark:border-blue-700',
+        label: isRTL ? 'في الطريق' : 'En route',
+        icon: Truck
+      },
+      'EN_COURS': { 
+        bg: 'bg-blue-200 dark:bg-blue-900/50', 
+        text: 'text-blue-900 dark:text-blue-100', 
+        border: 'border-blue-300 dark:border-blue-700',
         label: isRTL ? 'قيد المعالجة' : 'En cours',
         icon: Activity
       },
-      COMPLETED: { 
-        bg: 'bg-green-100 dark:bg-green-900/30', 
-        text: 'text-green-800 dark:text-green-300', 
-        label: isRTL ? 'مكتمل' : 'Terminé',
+      'RECU': { 
+        bg: 'bg-green-200 dark:bg-green-900/50', 
+        text: 'text-green-900 dark:text-green-100', 
+        border: 'border-green-300 dark:border-green-700',
+        label: isRTL ? 'مكتمل' : 'Reçu',
         icon: CheckCircle
       },
-      CANCELLED: { 
-        bg: 'bg-red-100 dark:bg-red-900/30', 
-        text: 'text-red-800 dark:text-red-300', 
-        label: isRTL ? 'ملغي' : 'Annulé',
+      'PARTIEL': { 
+        bg: 'bg-yellow-200 dark:bg-yellow-900/50', 
+        text: 'text-yellow-900 dark:text-yellow-100', 
+        border: 'border-yellow-300 dark:border-yellow-700',
+        label: isRTL ? 'جزئي' : 'Partiel',
+        icon: AlertCircle
+      },
+      'ANNULE': { 
+        bg: 'bg-red-200 dark:bg-red-900/50', 
+        text: 'text-red-900 dark:text-red-100', 
+        border: 'border-red-300 dark:border-red-700',
+        label: isRTL ? 'ملغى' : 'Annulé',
         icon: XCircle
-      }
+      },
     };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
+
+    const config = statusConfig[statut as keyof typeof statusConfig] || statusConfig['EN_ATTENTE'];
     const IconComponent = config.icon;
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.bg} ${config.text} ${config.border}`}>
         <IconComponent className={`h-3 w-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
         {config.label}
       </span>
     );
   };
 
-  const formatDate = (dateString: string) => {
-    if (typeof window === 'undefined') {
-      return new Date(dateString).toISOString().split('T')[0];
-    }
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  if (isLoading || translationLoading) {
+  if (isLoading || !isAuthenticated) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-500"></div>
         </div>
       </Layout>
     );
@@ -616,20 +218,21 @@ export default function ReceptionDetailPage() {
   if (error || !reception) {
     return (
       <Layout>
-        <div className="min-h-screen theme-bg-secondary theme-transition" dir={isRTL ? 'rtl' : 'ltr'}>
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
-              <h3 className="text-lg font-medium mb-2 theme-text-primary">
-                {error || 'Réception non trouvée'}
-              </h3>
-              <button
-                onClick={() => router.back()}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                Retour
-              </button>
-            </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold theme-text-primary mb-2">
+              {isRTL ? 'خطأ في تحميل البيانات' : 'Erreur de chargement'}
+            </h2>
+            <p className="theme-text-secondary mb-4">
+              {isRTL ? 'لا يمكن العثور على هذه الاستقبال' : 'Impossible de charger cette réception'}
+            </p>
+            <button
+              onClick={() => router.push('/dashboard/reception')}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
+              {isRTL ? 'العودة إلى القائمة' : 'Retour à la liste'}
+            </button>
           </div>
         </div>
       </Layout>
@@ -646,229 +249,260 @@ export default function ReceptionDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
-                <Truck className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                {isRTL ? 'معلومات الاستقبال' : 'Informations de Réception'}
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="theme-text-secondary">{isRTL ? 'معرف الاستقبال:' : 'ID Réception:'}</span>
-                  <span className="font-medium theme-text-primary">{reception.id}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="theme-text-secondary">{isRTL ? 'التاريخ:' : 'Date:'}</span>
-                  <span className="font-medium theme-text-primary">{reception.date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="theme-text-secondary">{isRTL ? 'الوقت:' : 'Heure:'}</span>
-                  <span className="font-medium theme-text-primary">{reception.time}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="theme-text-secondary">{isRTL ? 'الحالة:' : 'Statut:'}</span>
-                  {getStatusBadge(reception.status)}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
                 <Package className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                {isRTL ? 'تفاصيل الماشية' : 'Détails du Bétail'}
+                {isRTL ? 'معلومات الاستقبال' : 'Informations de la réception'}
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="theme-text-secondary">{isRTL ? 'العدد:' : 'Nombre:'}</span>
-                  <span className="font-medium theme-text-primary">{reception.livestock.count} {isRTL ? 'رأس' : 'têtes'}</span>
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'رقم الاستقبال:' : 'Numéro:'}</span>
+                  <span className="text-sm font-medium theme-text-primary">{reception.numero_reception}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="theme-text-secondary">{isRTL ? 'النوع:' : 'Type:'}</span>
-                  <span className="font-medium theme-text-primary">{reception.livestock.type}</span>
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'الحالة:' : 'Statut:'}</span>
+                  {getStatusBadge(reception.statut)}
                 </div>
                 <div className="flex justify-between">
-                  <span className="theme-text-secondary">{isRTL ? 'العرق:' : 'Race:'}</span>
-                  <span className="font-medium theme-text-primary">{reception.livestock.breed}</span>
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'الماشية المتوقعة:' : 'Bêtes attendues:'}</span>
+                  <span className="text-sm font-medium theme-text-primary">{reception.nombre_betes_attendues}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="theme-text-secondary">{isRTL ? 'العمر:' : 'Âge:'}</span>
-                  <span className="font-medium theme-text-primary">{reception.livestock.age}</span>
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'الماشية المستلمة:' : 'Bêtes reçues:'}</span>
+                  <span className="text-sm font-medium theme-text-primary">{reception.nombre_betes_recues}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="theme-text-secondary">{isRTL ? 'الوزن الإجمالي:' : 'Poids total:'}</span>
-                  <span className="font-medium theme-text-primary">{reception.livestock.totalWeight} kg</span>
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'معدل الاستقبال:' : 'Taux de réception:'}</span>
+                  <span className="text-sm font-medium theme-text-primary">{reception.taux_reception}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="theme-text-secondary">{isRTL ? 'الوزن المتوسط:' : 'Poids moyen:'}</span>
-                  <span className="font-medium theme-text-primary">{reception.livestock.averageWeight} kg</span>
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'تاريخ الإنشاء:' : 'Date de création:'}</span>
+                  <span className="text-sm theme-text-primary">{formatDate(reception.date_creation)}</span>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Fournisseur et Abattoir */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
-                <Users className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                {isRTL ? 'المورد' : 'Fournisseur'}
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <span className="theme-text-secondary">{isRTL ? 'الاسم:' : 'Nom:'}</span>
-                  <p className="font-medium theme-text-primary">{reception.supplier.name}</p>
-                </div>
-                <div>
-                  <span className="theme-text-secondary">{isRTL ? 'جهة الاتصال:' : 'Contact:'}</span>
-                  <p className="font-medium theme-text-primary">{reception.supplier.contact}</p>
-                </div>
-                <div>
-                  <span className="theme-text-secondary">{isRTL ? 'الهاتف:' : 'Téléphone:'}</span>
-                  <p className="font-medium theme-text-primary">{reception.supplier.phone}</p>
-                </div>
-                <div>
-                  <span className="theme-text-secondary">{isRTL ? 'العنوان:' : 'Adresse:'}</span>
-                  <p className="font-medium theme-text-primary">{reception.supplier.address}</p>
-                </div>
-                <div>
-                  <span className="theme-text-secondary">{isRTL ? 'الترخيص:' : 'Licence:'}</span>
-                  <p className="font-medium theme-text-primary">{reception.supplier.license}</p>
-                </div>
+                {reception.date_reception && (
+                  <div className="flex justify-between">
+                    <span className="text-sm theme-text-tertiary">{isRTL ? 'تاريخ الاستقبال:' : 'Date de réception:'}</span>
+                    <span className="text-sm theme-text-primary">{formatDate(reception.date_reception)}</span>
+                  </div>
+                )}
+                {reception.date_annulation && (
+                  <div className="flex justify-between">
+                    <span className="text-sm theme-text-tertiary">{isRTL ? 'تاريخ الإلغاء:' : 'Date d\'annulation:'}</span>
+                    <span className="text-sm theme-text-primary">{formatDate(reception.date_annulation)}</span>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
-                <MapPin className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                {isRTL ? 'المجزر' : 'Abattoir'}
+                <Building2 className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'المجازر' : 'Abattoirs'}
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
-                  <span className="theme-text-secondary">{isRTL ? 'الاسم:' : 'Nom:'}</span>
-                  <p className="font-medium theme-text-primary">{reception.abattoir.name}</p>
+                  <div className="flex items-center mb-2">
+                    <Truck className={`h-4 w-4 text-blue-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    <span className="text-sm font-medium theme-text-primary">
+                      {isRTL ? 'المجزر المرسل' : 'Abattoir expéditeur'}
+                    </span>
+                  </div>
+                  <p className="text-sm theme-text-primary ml-6">{reception.abattoir_expediteur?.nom || 'N/A'}</p>
+                  <p className="text-xs theme-text-secondary ml-6">
+                    {reception.abattoir_expediteur?.wilaya}, {reception.abattoir_expediteur?.commune}
+                  </p>
                 </div>
                 <div>
-                  <span className="theme-text-secondary">{isRTL ? 'العنوان:' : 'Adresse:'}</span>
-                  <p className="font-medium theme-text-primary">{reception.abattoir.address}</p>
-                </div>
-                <div>
-                  <span className="theme-text-secondary">{isRTL ? 'جهة الاتصال:' : 'Contact:'}</span>
-                  <p className="font-medium theme-text-primary">{reception.abattoir.contact}</p>
-                </div>
-                <div>
-                  <span className="theme-text-secondary">{isRTL ? 'الهاتف:' : 'Téléphone:'}</span>
-                  <p className="font-medium theme-text-primary">{reception.abattoir.phone}</p>
+                  <div className="flex items-center mb-2">
+                    <MapPin className={`h-4 w-4 text-green-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    <span className="text-sm font-medium theme-text-primary">
+                      {isRTL ? 'المجزر المستقبل' : 'Abattoir destinataire'}
+                    </span>
+                  </div>
+                  <p className="text-sm theme-text-primary ml-6">{reception.abattoir_destinataire?.nom || 'N/A'}</p>
+                  <p className="text-xs theme-text-secondary ml-6">
+                    {reception.abattoir_destinataire?.wilaya}, {reception.abattoir_destinataire?.commune}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Transport */}
+          {/* Transfert associé */}
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
               <Truck className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-              {isRTL ? 'معلومات النقل' : 'Informations de Transport'}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <span className="theme-text-secondary">{isRTL ? 'المركبة:' : 'Véhicule:'}</span>
-                <p className="font-medium theme-text-primary">{reception.transport.vehicle}</p>
-              </div>
-              <div>
-                <span className="theme-text-secondary">{isRTL ? 'السائق:' : 'Chauffeur:'}</span>
-                <p className="font-medium theme-text-primary">{reception.transport.driver}</p>
-              </div>
-              <div>
-                <span className="theme-text-secondary">{isRTL ? 'الرخصة:' : 'Permis:'}</span>
-                <p className="font-medium theme-text-primary">{reception.transport.license}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'timeline',
-      label: isRTL ? 'الجدول الزمني' : 'Chronologie',
-      content: (
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold theme-text-primary mb-6 flex items-center">
-              <Clock className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-              {isRTL ? 'تاريخ الإجراءات' : 'Historique des Actions'}
-            </h3>
-            <div className="space-y-4">
-              {reception.timeline.map((event, index) => (
-                <div key={event.id} className="flex items-start space-x-4">
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                    event.status === 'completed' 
-                      ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400'
-                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium theme-text-primary">{event.action}</p>
-                      <p className="text-sm theme-text-secondary">{event.timestamp}</p>
-                    </div>
-                    <p className="text-sm theme-text-secondary">{isRTL ? 'بواسطة:' : 'Par:'} {event.user}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'documents',
-      label: isRTL ? 'المستندات' : 'Documents',
-      content: (
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold theme-text-primary mb-6 flex items-center">
-              <FileText className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-              {isRTL ? 'مستندات الاستقبال' : 'Documents de Réception'}
+              {isRTL ? 'النقل المرتبط' : 'Transfert associé'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {reception.documents.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                  <div className="flex items-center">
-                    <FileText className="h-8 w-8 text-red-500 mr-3" />
-                    <div>
-                      <p className="font-medium theme-text-primary">{doc.name}</p>
-                      <p className="text-sm theme-text-secondary uppercase">{doc.type}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      doc.status === 'valid' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                    }`}>
-                      {doc.status === 'valid' ? (isRTL ? 'صالح' : 'Valide') : (isRTL ? 'غير صالح' : 'Invalide')}
-                    </span>
-                    <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 theme-text-primary">
-                      {isRTL ? 'عرض' : 'Voir'}
-                    </button>
-                  </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'رقم النقل:' : 'Numéro de transfert:'}</span>
+                  <span className="text-sm font-medium theme-text-primary">{reception.transfert?.numero_transfert || 'N/A'}</span>
                 </div>
-              ))}
+                <div className="flex justify-between">
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'حالة النقل:' : 'Statut du transfert:'}</span>
+                  {reception.transfert?.statut ? getStatusBadge(reception.transfert.statut) : <span className="text-sm theme-text-primary">N/A</span>}
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'عدد الماشية:' : 'Nombre de bêtes:'}</span>
+                  <span className="text-sm font-medium theme-text-primary">
+                    {reception.transfert?.nombre_betes_actuelles || 0} / {reception.transfert?.nombre_betes || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'تاريخ الإنشاء:' : 'Date de création:'}</span>
+                  <span className="text-sm theme-text-primary">{formatDate(reception.transfert?.date_creation || '')}</span>
+                </div>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={() => router.push(`/dashboard/transfert/${reception.transfert?.id}`)}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
+                >
+                  <Eye className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                  {isRTL ? 'عرض النقل' : 'Voir le transfert'}
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Utilisateurs */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
+              <Users className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {isRTL ? 'المستخدمين' : 'Utilisateurs'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center mb-2">
+                  <User className={`h-4 w-4 text-blue-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                  <span className="text-sm font-medium theme-text-primary">
+                    {isRTL ? 'أنشأ بواسطة' : 'Créé par'}
+                  </span>
+                </div>
+                <p className="text-sm theme-text-primary ml-6">{reception.cree_par?.nom || 'N/A'}</p>
+                <p className="text-xs theme-text-secondary ml-6">@{reception.cree_par?.username || 'N/A'}</p>
+              </div>
+              {reception.valide_par && (
+                <div>
+                  <div className="flex items-center mb-2">
+                    <CheckCircle className={`h-4 w-4 text-green-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    <span className="text-sm font-medium theme-text-primary">
+                      {isRTL ? 'تم التحقق بواسطة' : 'Validé par'}
+                    </span>
+                  </div>
+                  <p className="text-sm theme-text-primary ml-6">{reception.valide_par.nom}</p>
+                  <p className="text-xs theme-text-secondary ml-6">@{reception.valide_par.username}</p>
+                </div>
+              )}
+              {reception.annule_par && (
+                <div>
+                  <div className="flex items-center mb-2">
+                    <XCircle className={`h-4 w-4 text-red-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    <span className="text-sm font-medium theme-text-primary">
+                      {isRTL ? 'ألغى بواسطة' : 'Annulé par'}
+                    </span>
+                  </div>
+                  <p className="text-sm theme-text-primary ml-6">{reception.annule_par.nom}</p>
+                  <p className="text-xs theme-text-secondary ml-6">@{reception.annule_par.username}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Notes et informations supplémentaires */}
+          {(reception.note || reception.betes_manquantes?.length > 0) && (
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
+                <FileText className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'ملاحظات ومعلومات إضافية' : 'Notes et informations supplémentaires'}
+              </h3>
+              <div className="space-y-4">
+                {reception.note && (
+                  <div>
+                    <span className="text-sm font-medium theme-text-primary block mb-2">
+                      {isRTL ? 'ملاحظة:' : 'Note:'}
+                    </span>
+                    <p className="text-sm theme-text-primary bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                      {reception.note}
+                    </p>
+                  </div>
+                )}
+                {reception.betes_manquantes && reception.betes_manquantes.length > 0 && (
+                  <div>
+                    <span className="text-sm font-medium theme-text-primary block mb-2">
+                      {isRTL ? 'الماشية المفقودة:' : 'Bêtes manquantes:'}
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {reception.betes_manquantes.map((bete, index) => (
+                        <span key={index} className="px-2 py-1 bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 rounded-full text-xs">
+                          {bete}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )
     },
     {
-      id: 'notes',
-      label: isRTL ? 'الملاحظات' : 'Notes',
+      id: 'users',
+      label: isRTL ? 'المستخدمين' : 'Utilisateurs',
       content: (
         <div className="space-y-6">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
-              <FileText className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-              {isRTL ? 'ملاحظات الاستقبال' : 'Notes de Réception'}
+              <Users className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {isRTL ? 'معلومات المستخدمين' : 'Informations des utilisateurs'}
             </h3>
-            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p className="theme-text-primary whitespace-pre-wrap">{reception.notes}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center mb-3">
+                  <User className={`h-5 w-5 text-blue-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                  <span className="font-medium theme-text-primary">
+                    {isRTL ? 'المنشئ' : 'Créateur'}
+                  </span>
+                </div>
+                <p className="text-sm theme-text-primary">{reception.cree_par?.nom || 'N/A'}</p>
+                <p className="text-xs theme-text-secondary">@{reception.cree_par?.username || 'N/A'}</p>
+                <p className="text-xs theme-text-tertiary mt-1">
+                  {formatDate(reception.date_creation)}
+                </p>
+              </div>
+
+              {reception.valide_par && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center mb-3">
+                    <CheckCircle className={`h-5 w-5 text-green-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    <span className="font-medium theme-text-primary">
+                      {isRTL ? 'المتحقق' : 'Validateur'}
+                    </span>
+                  </div>
+                  <p className="text-sm theme-text-primary">{reception.valide_par.nom}</p>
+                  <p className="text-xs theme-text-secondary">@{reception.valide_par.username}</p>
+                  <p className="text-xs theme-text-tertiary mt-1">
+                    {formatDate(reception.date_reception || '')}
+                  </p>
+                </div>
+              )}
+
+              {reception.annule_par && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center mb-3">
+                    <XCircle className={`h-5 w-5 text-red-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    <span className="font-medium theme-text-primary">
+                      {isRTL ? 'الملغي' : 'Annulateur'}
+                    </span>
+                  </div>
+                  <p className="text-sm theme-text-primary">{reception.annule_par.nom}</p>
+                  <p className="text-xs theme-text-secondary">@{reception.annule_par.username}</p>
+                  <p className="text-xs theme-text-tertiary mt-1">
+                    {formatDate(reception.date_annulation || '')}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -878,136 +512,239 @@ export default function ReceptionDetailPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen theme-bg-secondary theme-transition" dir={isRTL ? 'rtl' : 'ltr'}>
-        {/* Header */}
-        <div className="shadow-sm border-b theme-bg-elevated theme-border-primary theme-transition">
-          <div className="px-6 py-4">
-            <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-              <div className={`flex ${isRTL ? 'flex-row-reverse' : 'flex-row'} items-center space-x-4 ${isRTL ? 'space-x-reverse' : ''}`}>
-                <button
-                  onClick={() => router.back()}
-                  className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                >
-                  <ArrowLeft className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                  {isRTL ? 'رجوع' : 'Retour'}
-                </button>
-                <div className={isRTL ? 'text-right' : 'text-left'}>
-                  <h1 className={`text-2xl font-bold flex items-center theme-text-primary theme-transition ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <Truck className={`h-7 w-7 text-primary-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
-                    {isRTL ? 'استقبال' : 'Réception'} {reception.id}
-                  </h1>
-                  <p className="mt-1 theme-text-secondary theme-transition">
-                    {reception.date} {isRTL ? 'في' : 'à'} {reception.time} - {reception.supplier.name}
-                  </p>
-                </div>
+      {/* En-tête avec navigation et actions */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <button
+                onClick={() => router.push('/dashboard/reception')}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg theme-transition mr-4"
+              >
+                <ArrowLeft className="h-5 w-5 theme-text-primary" />
+              </button>
+              <div>
+                <h1 className={`text-2xl font-bold flex items-center theme-text-primary theme-transition ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Package className={`h-7 w-7 text-primary-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
+                  {reception.numero_reception}
+                </h1>
+                <p className="mt-1 theme-text-secondary theme-transition">
+                  {isRTL ? 'تفاصيل الاستقبال' : 'Détails de la réception'}
+                </p>
               </div>
-              <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
-                <button 
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} ${refreshing ? 'animate-spin' : ''}`} />
-                  {isRTL ? 'تحديث' : 'Actualiser'}
-                </button>
-                <button 
-                  onClick={() => console.log('Modifier réception')}
-                  className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                >
-                  <Edit className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                  {isRTL ? 'تعديل' : 'Modifier'}
-                </button>
-                
-                {/* Boutons d'action selon le statut */}
-                {getAvailableActions().map((action) => {
-                  const IconComponent = action.icon;
-                  return (
-                    <button
-                      key={action.id}
-                      onClick={() => openConfirmModal(action.id)}
-                      className={`px-4 py-2 rounded-lg flex items-center transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${action.color}`}
-                      title={action.description}
-                    >
-                      <IconComponent className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                      {action.label}
-                    </button>
-                  );
-                })}
-                
-                {getStatusBadge(reception.status)}
+            </div>
+            <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
+              <button 
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} ${refreshing ? 'animate-spin' : ''}`} />
+                {isRTL ? 'تحديث' : 'Actualiser'}
+              </button>
+              <button 
+                onClick={() => {
+                  window.location.reload();
+                }}
+                className="px-3 py-2 rounded-lg flex items-center bg-blue-600 hover:bg-blue-700 text-white text-sm"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                {isRTL ? 'إعادة تحميل' : 'Recharger'}
+              </button>
+              <div className="text-xs theme-text-secondary flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
+                {isRTL ? 'تحديث تلقائي' : 'Auto-refresh'}
               </div>
+              {getStatusBadge(reception.statut)}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Content */}
-        <div className="px-6 py-6">
-          <Tabs tabs={tabs} isRTL={isRTL} />
+      {/* Messages de succès/erreur */}
+      {successMessage && (
+        <div className="px-6 py-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+              <span className="text-green-800">{successMessage}</span>
+            </div>
+          </div>
         </div>
+      )}
 
-        {/* Modal de Confirmation */}
-        {showConfirmModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
-              <div className="flex items-center mb-4">
-                <Shield className="h-6 w-6 text-yellow-500 mr-3" />
-                <h3 className="text-lg font-semibold theme-text-primary">
-                  {isRTL ? 'تأكيد العملية' : 'Confirmation requise'}
-                </h3>
+      {errorMessage && (
+        <div className="px-6 py-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <XCircle className="h-5 w-5 text-red-600 mr-2" />
+              <span className="text-red-800">{errorMessage}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Actions disponibles */}
+      {reception && (reception.statut === 'EN_ROUTE' || reception.statut === 'EN_ATTENTE' || reception.statut === 'EN_COURS') ? (
+        <div className="px-6 py-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
+              <Activity className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {isRTL ? 'الإجراءات المتاحة' : 'Actions disponibles'}
+            </h3>
+            <div className={`flex ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
+              <button
+                onClick={() => setShowConfirmerModal(true)}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center"
+              >
+                <CheckCircle className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'تأكيد الاستقبال' : 'Confirmer la réception'}
+              </button>
+              <button
+                onClick={() => setShowAnnulerModal(true)}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center"
+              >
+                <XCircle className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'إلغاء الاستقبال' : 'Annuler la réception'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Contenu principal avec onglets */}
+      <div className="px-6 py-6">
+        <Tabs tabs={tabs} />
+      </div>
+
+      {/* Modal de confirmation */}
+      {showConfirmerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <h3 className="text-lg font-semibold theme-text-primary mb-4">
+              {isRTL ? 'تأكيد الاستقبال' : 'Confirmer la réception'}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium theme-text-primary mb-2">
+                  {isRTL ? 'عدد الماشية المستلمة:' : 'Nombre de bêtes reçues:'}
+                </label>
+                <input
+                  type="number"
+                  value={nombreBetesRecues}
+                  onChange={(e) => setNombreBetesRecues(parseInt(e.target.value) || 0)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-text-primary"
+                  min="0"
+                  max={reception.nombre_betes_attendues}
+                />
+                <p className="text-xs theme-text-secondary mt-1">
+                  {isRTL ? 'المتوقع:' : 'Attendu:'} {reception.nombre_betes_attendues}
+                </p>
               </div>
               
-              <div className="mb-4">
-                <p className="text-sm theme-text-secondary mb-3">
-                  {isRTL 
-                    ? 'للمتابعة، يرجى كتابة النص التالي بالضبط:' 
-                    : 'Pour continuer, veuillez taper exactement le texte suivant:'
-                  }
-                </p>
-                <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg mb-3">
-                  <code className="text-lg font-mono font-bold text-gray-800 dark:text-gray-200">
-                    {randomText}
-                  </code>
+              {nombreBetesRecues < reception.nombre_betes_attendues && (
+                <div>
+                  <label className="block text-sm font-medium theme-text-primary mb-2">
+                    {isRTL ? 'أرقام الماشية المفقودة (اختياري):' : 'Numéros de boucles manquantes (optionnel):'}
+                  </label>
+                  <textarea
+                    value={betesManquantes}
+                    onChange={(e) => setBetesManquantes(e.target.value)}
+                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-text-primary"
+                    rows={3}
+                    placeholder={isRTL ? 'أدخل أرقام الماشية المفقودة مفصولة بفواصل...' : 'Entrez les numéros de boucles manquantes séparés par des virgules...'}
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={confirmationText}
-                  onChange={(e) => setConfirmationText(e.target.value)}
-                  placeholder={isRTL ? 'اكتب النص هنا...' : 'Tapez le texte ici...'}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-primary theme-text-primary"
-                  autoComplete="off"
+              )}
+              
+              {nombreBetesRecues > reception.nombre_betes_attendues && (
+                <div>
+                  <label className="block text-sm font-medium theme-text-primary mb-2">
+                    {isRTL ? 'أرقام الماشية الإضافية (اختياري):' : 'Numéros de boucles supplémentaires (optionnel):'}
+                  </label>
+                  <textarea
+                    value={betesEnPlus}
+                    onChange={(e) => setBetesEnPlus(e.target.value)}
+                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-text-primary"
+                    rows={3}
+                    placeholder={isRTL ? 'أدخل أرقام الماشية الإضافية مفصولة بفواصل...' : 'Entrez les numéros de boucles supplémentaires séparés par des virgules...'}
+                  />
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-sm font-medium theme-text-primary mb-2">
+                  {isRTL ? 'ملاحظة (اختياري):' : 'Note (optionnel):'}
+                </label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-text-primary"
+                  rows={3}
+                  placeholder={isRTL ? 'أدخل ملاحظة إضافية...' : 'Entrez une note supplémentaire...'}
                 />
               </div>
-              
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={closeConfirmModal}
-                  disabled={isProcessing}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
-                >
-                  {isRTL ? 'إلغاء' : 'Annuler'}
-                </button>
-                <button
-                  onClick={executeAction}
-                  disabled={isProcessing || confirmationText !== randomText}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      {isRTL ? 'جاري المعالجة...' : 'Traitement...'}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      {isRTL ? 'تأكيد' : 'Confirmer'}
-                    </>
-                  )}
-                </button>
-              </div>
+            </div>
+            <div className={`flex ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'} justify-end mt-6`}>
+              <button
+                onClick={() => setShowConfirmerModal(false)}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                {isRTL ? 'إلغاء' : 'Annuler'}
+              </button>
+              <button
+                onClick={handleConfirmer}
+                disabled={isProcessing || nombreBetesRecues < 0}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                {isProcessing ? (isRTL ? 'جاري التأكيد...' : 'Confirmation...') : (isRTL ? 'تأكيد' : 'Confirmer')}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Modal d'annulation */}
+      {showAnnulerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold theme-text-primary mb-4">
+              {isRTL ? 'إلغاء الاستقبال' : 'Annuler la réception'}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium theme-text-primary mb-2">
+                  {isRTL ? 'سبب الإلغاء:' : 'Motif d\'annulation:'}
+                </label>
+                <textarea
+                  value={motifAnnulation}
+                  onChange={(e) => setMotifAnnulation(e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-text-primary"
+                  rows={3}
+                  placeholder={isRTL ? 'أدخل سبب الإلغاء...' : 'Entrez le motif d\'annulation...'}
+                />
+              </div>
+            </div>
+            <div className={`flex ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'} justify-end mt-6`}>
+              <button
+                onClick={() => setShowAnnulerModal(false)}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                {isRTL ? 'إلغاء' : 'Annuler'}
+              </button>
+              <button
+                onClick={handleAnnuler}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {isProcessing ? (isRTL ? 'جاري الإلغاء...' : 'Annulation...') : (isRTL ? 'إلغاء' : 'Annuler')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

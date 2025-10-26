@@ -14,3 +14,5 @@ export const useBeteHistory = (beteId: number, page: number = 1, pageSize: numbe
 
 
 
+
+

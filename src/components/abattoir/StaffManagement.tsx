@@ -22,6 +22,7 @@ import {
 import { useAllPersonnelByAbattoir } from '@/lib/hooks/usePersonnel';
 import { Personnel } from '@/lib/api/personnelService';
 import { useRouter } from 'next/navigation';
+import CreatePersonnelModal from './CreatePersonnelModalNew';
 
 interface StaffManagementProps {
   abattoir: any;
@@ -32,6 +33,7 @@ export default function StaffManagement({ abattoir, isRTL }: StaffManagementProp
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const router = useRouter();
 
   // Récupérer tout le personnel de l'abattoir depuis l'API
@@ -192,7 +194,10 @@ export default function StaffManagement({ abattoir, isRTL }: StaffManagementProp
               )}
               {isRTL ? 'تحديث' : 'Actualiser'}
             </button>
-            <button className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 rounded-lg flex items-center bg-green-600 hover:bg-green-700 text-white theme-transition focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
               <UserPlus className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
               {isRTL ? 'إضافة موظف' : 'Ajouter un employé'}
             </button>
@@ -396,6 +401,19 @@ export default function StaffManagement({ abattoir, isRTL }: StaffManagementProp
           </div>
         )}
       </div>
+
+      {/* Modal de création de personnel */}
+      <CreatePersonnelModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        abattoirId={abattoir.id}
+        abattoirNom={abattoir.name}
+        isRTL={isRTL}
+        onSuccess={() => {
+          setShowCreateModal(false);
+          refetch();
+        }}
+      />
     </div>
   );
 }

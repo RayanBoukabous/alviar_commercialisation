@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configuration de l'API Django
-const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://0.0.0.0:8000';
+const DJANGO_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 // Types pour l'authentification Django
 export interface DjangoAbattoir {
@@ -51,13 +51,21 @@ const djangoApi = axios.create({
   },
 });
 
-// Intercepteur pour ajouter le token d'authentification
+// Intercepteur pour ajouter le token d'authentification et gérer les FormData
 djangoApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('django_token');
-    if (token) {
+    if (token && config.headers) {
       config.headers.Authorization = `Token ${token}`;
     }
+
+    // Gérer automatiquement les FormData pour les uploads de fichiers
+    if (config.data instanceof FormData) {
+      if (config.headers) {
+        config.headers['Content-Type'] = 'multipart/form-data';
+      }
+    }
+
     return config;
   },
   (error) => {
@@ -88,7 +96,7 @@ export const djangoAuthService = {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
       const response = await djangoApi.post('/users/login/', credentials);
-      const { token, user } = response.data;
+      const { token, user } = response.data as LoginResponse;
 
       // Stocker le token et les données utilisateur (côté client seulement)
       if (typeof window !== 'undefined') {
@@ -96,7 +104,7 @@ export const djangoAuthService = {
         localStorage.setItem('django_user', JSON.stringify(user));
       }
 
-      return response.data;
+      return response.data as LoginResponse;
     } catch (error: any) {
       throw new Error(
         error.response?.data?.non_field_errors?.[0] ||

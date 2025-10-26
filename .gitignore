@@ -10,7 +10,7 @@
 .env.production.local
 .env.production
 env.local
-env.local.example
+# env.local.example  # Keep this file in version control
 
 # Dependencies
 node_modules/
@@ -472,7 +472,7 @@ Thumbs.db
 # Environment files
 .env*
 !.env.example
-!env.local.example
+!# env.local.example  # Keep this file in version control
 !env.production.example
 
 # Docker

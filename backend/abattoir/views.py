@@ -594,13 +594,16 @@ class StabulationListCreateView(generics.ListCreateAPIView):
         automatic_count = getattr(stabulation, '_automatic_count', None)
         
         if betes_ids:
-            # Sélection manuelle : utiliser les bêtes sélectionnées
+            # Sélection manuelle : ajouter les bêtes sélectionnées
+            stabulation.betes.set(betes_ids)
+            # CRITIQUE: Mettre à jour le statut des bêtes
             from bete.models import Bete
             Bete.objects.filter(id__in=betes_ids).update(statut='EN_STABULATION')
+            print(f"✅ {len(betes_ids)} bêtes mises au statut EN_STABULATION (sélection manuelle)")
+            
         elif automatic_count:
             # Sélection automatique : sélectionner aléatoirement des bêtes
             from bete.models import Bete
-            from django.db.models import Q
             
             # Récupérer les bêtes disponibles pour l'abattoir et l'espèce
             available_betes = Bete.objects.filter(
@@ -610,12 +613,12 @@ class StabulationListCreateView(generics.ListCreateAPIView):
             ).order_by('?')[:automatic_count]  # Sélection aléatoire
             
             if available_betes.exists():
-                # Mettre à jour le statut des bêtes sélectionnées
-                bete_ids = list(available_betes.values_list('id', flat=True))
-                Bete.objects.filter(id__in=bete_ids).update(statut='EN_STABULATION')
-                
                 # Ajouter les bêtes à la stabulation
+                bete_ids = list(available_betes.values_list('id', flat=True))
                 stabulation.betes.set(bete_ids)
+                # CRITIQUE: Mettre à jour le statut des bêtes
+                Bete.objects.filter(id__in=bete_ids).update(statut='EN_STABULATION')
+                print(f"✅ {len(bete_ids)} bêtes mises au statut EN_STABULATION (sélection automatique)")
             else:
                 # Aucune bête disponible, annuler la stabulation
                 stabulation.statut = 'ANNULE'
@@ -691,51 +694,116 @@ def stabulation_stats(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def terminer_stabulation(request, pk):
-    """Terminer une stabulation"""
+    """
+    MÉTHODE UNIQUE ET PROFESSIONNELLE POUR TERMINER UNE STABULATION
+    
+    Cette méthode :
+    1. Vérifie que la stabulation peut être terminée
+    2. Met la stabulation au statut TERMINE
+    3. Met TOUTES les bêtes au statut ABATTU
+    4. Met à jour les poids si fournis
+    5. Retourne un résultat clair
+    """
     try:
+        # 1. Récupérer la stabulation
         stabulation = Stabulation.objects.get(pk=pk)
         
+        # 2. Vérifications de sécurité
         if stabulation.statut != 'EN_COURS':
             return Response(
                 {'error': 'Seules les stabulations en cours peuvent être terminées'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # 3. Permissions (superuser ou responsable de l'abattoir)
+        if not request.user.is_superuser:
+            if not hasattr(request.user, 'abattoir') or stabulation.abattoir != request.user.abattoir:
+                return Response(
+                    {'error': 'Vous n\'avez pas le droit de modifier cette stabulation'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # 4. Récupérer les données de poids (optionnel)
+        poids_data = request.data.get('poidsData', [])
+        
+        # 5. VÉRIFIER D'ABORD LES NUMÉROS DE POSTE AVANT DE TERMINER
+        from bete.models import Bete
+        betes_ids = list(stabulation.betes.values_list('id', flat=True))
+        errors = []
+        
+        for poids_info in poids_data:
+            bete_id = poids_info.get('bete_id')
+            poids_a_chaud = poids_info.get('poids_a_chaud')
+            num_boucle_post_abattage = poids_info.get('num_boucle_post_abattage', '')
+            
+            if bete_id and poids_a_chaud:
+                try:
+                    bete = Bete.objects.get(id=bete_id)
+                    
+                    # Vérifier l'unicité du numéro de boucle post-abattage AVANT de terminer
+                    if num_boucle_post_abattage:
+                        existing_bete = Bete.objects.filter(
+                            num_boucle_post_abattage=num_boucle_post_abattage
+                        ).exclude(id=bete_id).first()
+                        
+                        if existing_bete:
+                            errors.append(f"Le numéro de boucle post-abattage '{num_boucle_post_abattage}' existe déjà pour la bête {existing_bete.num_boucle}")
+                            continue
+                    
+                except Bete.DoesNotExist:
+                    errors.append(f"Bête avec l'ID {bete_id} non trouvée")
+                    continue
+        
+        # Si il y a des erreurs, retourner les erreurs SANS terminer la stabulation
+        if errors:
+            return Response({
+                'error': 'Erreurs de validation',
+                'details': errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 6. MAINTENANT TERMINER LA STABULATION (seulement si pas d'erreurs)
+        # La méthode terminer_stabulation() met automatiquement les bêtes au statut ABATTU
         stabulation.terminer_stabulation()
         
-        serializer = StabulationSerializer(stabulation)
-        return Response(serializer.data)
+        # 8. Mettre à jour les poids et numéros de boucle post-abattage
+        for poids_info in poids_data:
+            bete_id = poids_info.get('bete_id')
+            poids_a_chaud = poids_info.get('poids_a_chaud')
+            num_boucle_post_abattage = poids_info.get('num_boucle_post_abattage', '')
+            
+            if bete_id and poids_a_chaud:
+                try:
+                    bete = Bete.objects.get(id=bete_id)
+                    bete.poids_a_chaud = poids_a_chaud
+                    if num_boucle_post_abattage:
+                        bete.num_boucle_post_abattage = num_boucle_post_abattage
+                    bete.save()
+                except Bete.DoesNotExist:
+                    pass  # Déjà vérifié plus haut
+        
+        # 9. Retourner le résultat
+        return Response({
+            'message': 'Stabulation terminée avec succès',
+            'stabulation': {
+                'id': stabulation.id,
+                'statut': 'TERMINE',
+                'date_fin': stabulation.date_fin.isoformat() if stabulation.date_fin else None
+            },
+            'betes_affectees': len(betes_ids)
+        })
         
     except Stabulation.DoesNotExist:
         return Response(
             {'error': 'Stabulation non trouvée'}, 
             status=status.HTTP_404_NOT_FOUND
         )
-
-
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def annuler_stabulation(request, pk):
-    """Annuler une stabulation"""
-    try:
-        stabulation = Stabulation.objects.get(pk=pk)
-        
-        if stabulation.statut != 'EN_COURS':
-            return Response(
-                {'error': 'Seules les stabulations en cours peuvent être annulées'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        stabulation.annuler_stabulation()
-        
-        serializer = StabulationSerializer(stabulation)
-        return Response(serializer.data)
-        
-    except Stabulation.DoesNotExist:
+    except Exception as e:
         return Response(
-            {'error': 'Stabulation non trouvée'}, 
-            status=status.HTTP_404_NOT_FOUND
+            {'error': f'Erreur lors de la finalisation: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
 
 
 @api_view(['POST'])
@@ -970,43 +1038,6 @@ def all_stabulations(request):
     })
 
 
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def terminer_stabulation(request, pk):
-    """Terminer une stabulation et remettre les bêtes au statut VIVANT"""
-    try:
-        stabulation = Stabulation.objects.get(pk=pk)
-        
-        # Vérifier que l'utilisateur a le droit de modifier cette stabulation
-        if not request.user.is_superuser and stabulation.abattoir != request.user.abattoir:
-            return Response(
-                {'error': 'Vous n\'avez pas le droit de modifier cette stabulation'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        # Mettre à jour le statut de la stabulation
-        stabulation.statut = 'TERMINE'
-        stabulation.date_fin = timezone.now()
-        stabulation.save()
-        
-        # Remettre les bêtes au statut VIVANT
-        from bete.models import Bete
-        Bete.objects.filter(id__in=stabulation.betes.values_list('id', flat=True)).update(statut='VIVANT')
-        
-        return Response({
-            'message': 'Stabulation terminée avec succès',
-            'stabulation': {
-                'id': stabulation.id,
-                'statut': stabulation.statut,
-                'date_fin': stabulation.date_fin
-            }
-        })
-        
-    except Stabulation.DoesNotExist:
-        return Response(
-            {'error': 'Stabulation non trouvée'}, 
-            status=status.HTTP_404_NOT_FOUND
-        )
 
 
 @api_view(['POST'])
@@ -1023,21 +1054,45 @@ def annuler_stabulation(request, pk):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Mettre à jour le statut de la stabulation
-        stabulation.statut = 'ANNULE'
-        stabulation.date_fin = timezone.now()
-        stabulation.save()
+        # Vérifier que la stabulation peut être annulée
+        if stabulation.statut != 'EN_COURS':
+            return Response(
+                {'error': 'Seules les stabulations en cours peuvent être annulées'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        # Remettre les bêtes au statut VIVANT
-        from bete.models import Bete
-        Bete.objects.filter(id__in=stabulation.betes.values_list('id', flat=True)).update(statut='VIVANT')
+        # Récupérer le motif d'annulation
+        raison = request.data.get('raison', '').strip()
+        if not raison:
+            return Response(
+                {'error': 'Le motif d\'annulation est obligatoire'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validation de la longueur du motif
+        if len(raison) < 10:
+            return Response(
+                {'error': 'Le motif d\'annulation doit contenir au moins 10 caractères'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if len(raison) > 500:
+            return Response(
+                {'error': 'Le motif d\'annulation ne peut pas dépasser 500 caractères'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Annuler la stabulation avec le motif
+        stabulation.annuler_stabulation(utilisateur=request.user, raison=raison)
         
         return Response({
             'message': 'Stabulation annulée avec succès',
             'stabulation': {
                 'id': stabulation.id,
                 'statut': stabulation.statut,
-                'date_fin': stabulation.date_fin
+                'date_fin': stabulation.date_fin,
+                'raison_annulation': stabulation.raison_annulation,
+                'annule_par': stabulation.annule_par.username if stabulation.annule_par else None
             }
         })
         
@@ -1046,3 +1101,415 @@ def annuler_stabulation(request, pk):
             {'error': 'Stabulation non trouvée'}, 
             status=status.HTTP_404_NOT_FOUND
         )
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def betes_disponibles_stabulation(request):
+    """Récupérer les bêtes disponibles pour créer une stabulation"""
+    user = request.user
+    
+    # Paramètres de filtrage
+    abattoir_id = request.query_params.get('abattoir_id')
+    type_bete = request.query_params.get('type_bete')
+    
+    if not abattoir_id:
+        return Response(
+            {'error': 'abattoir_id est requis'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Base queryset - SEULEMENT les bêtes VIVANTES (pas EN_STABULATION)
+    queryset = Bete.objects.filter(
+        abattoir_id=abattoir_id,
+        statut='VIVANT'  # IMPORTANT: Seulement les bêtes vivantes
+    ).select_related('espece', 'abattoir', 'created_by')
+    
+    # Filtrage par type de bête
+    if type_bete:
+        queryset = queryset.filter(espece__nom__iexact=type_bete)
+    
+    # Filtrage par utilisateur (si pas superuser)
+    if not user.is_superuser:
+        if user.abattoir and user.abattoir.id != int(abattoir_id):
+            return Response(
+                {'error': 'Vous n\'avez pas accès à cet abattoir'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+    
+    # Sérialisation
+    from bete.serializers import BeteSerializer
+    serializer = BeteSerializer(queryset, many=True)
+    
+    return Response({
+        'betes': serializer.data,
+        'count': queryset.count(),
+        'abattoir_id': abattoir_id,
+        'type_bete': type_bete
+    })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def historique_stabulation(request, pk):
+    """Récupérer l'historique des modifications d'une stabulation"""
+    try:
+        stabulation = Stabulation.objects.get(pk=pk)
+        
+        # Vérifier les permissions
+        user = request.user
+        if not user.is_superuser:
+            if not user.abattoir or stabulation.abattoir != user.abattoir:
+                return Response(
+                    {'error': 'Vous n\'avez pas accès à cette stabulation'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Récupérer l'historique
+        historique = stabulation.historique.all()
+        
+        # Sérialisation
+        from .serializers import HistoriqueStabulationSerializer
+        serializer = HistoriqueStabulationSerializer(historique, many=True)
+        
+        return Response({
+            'stabulation_id': stabulation.id,
+            'numero_stabulation': stabulation.numero_stabulation,
+            'historique': serializer.data,
+            'count': historique.count()
+        })
+        
+    except Stabulation.DoesNotExist:
+        return Response(
+            {'error': 'Stabulation non trouvée'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def dashboard_statistics(request):
+    """Récupérer les statistiques du dashboard principal"""
+    from django.db.models import Count, Q
+    from django.utils import timezone
+    from bete.models import Bete
+    from transfert.models import Transfert
+    from datetime import date, timedelta
+    
+    def synchronize_bete_statuses():
+        """Synchronise les statuts des bêtes avec les stabulations pour assurer la cohérence"""
+        from abattoir.models import Stabulation
+        
+        # Mettre à jour les bêtes dans les stabulations EN_COURS
+        stabulations_en_cours = Stabulation.objects.filter(statut='EN_COURS')
+        for stab in stabulations_en_cours:
+            stab.betes.update(statut='EN_STABULATION')
+        
+        # CORRECTION CRITIQUE: Ne pas toucher aux bêtes des stabulations terminées
+        # Les bêtes des stabulations TERMINE restent ABATTU (c'est le comportement attendu)
+        # Seules les bêtes des stabulations ANNULE peuvent être remises VIVANT
+        stabulations_annulees = Stabulation.objects.filter(statut='ANNULE')
+        for stab in stabulations_annulees:
+            stab.betes.update(statut='VIVANT')
+        
+        # Les stabulations TERMINE ne sont PAS touchées - les bêtes restent ABATTU
+    
+    # Synchroniser les statuts pour assurer la cohérence
+    synchronize_bete_statuses()
+    
+    user = request.user
+    today = timezone.now().date()
+    
+    # Base querysets selon le type d'utilisateur
+    if user.is_superuser:
+        # Pour les superusers, afficher toutes les données globalement
+        betes_queryset = Bete.objects.all()
+        transferts_queryset = Transfert.objects.all()
+    else:
+        # Utilisateur normal - seulement son abattoir
+        if hasattr(user, 'abattoir') and user.abattoir:
+            betes_queryset = Bete.objects.filter(abattoir=user.abattoir)
+            transferts_queryset = Transfert.objects.filter(
+                Q(abattoir_expediteur=user.abattoir) | Q(abattoir_destinataire=user.abattoir)
+            )
+        else:
+            betes_queryset = Bete.objects.none()
+            transferts_queryset = Transfert.objects.none()
+    
+    # 1. Nombre de bêtes vivantes
+    nombre_betes = betes_queryset.filter(statut='VIVANT').count()
+    
+    # 2. Nombre de carcasses (bêtes abattues)
+    nombre_carcasses = betes_queryset.filter(statut='ABATTU').count()
+    
+    # 3. Nombre de transferts aujourd'hui
+    transferts_aujourdhui = transferts_queryset.filter(
+        date_creation__date=today
+    ).count()
+    
+    # 4. Nombre d'animaux en stabulation (seulement dans les stabulations EN_COURS)
+    from abattoir.models import Stabulation
+    stabulations_en_cours = Stabulation.objects.filter(statut='EN_COURS')
+    if user.is_superuser:
+        # Superuser voit toutes les stabulations
+        animaux_stabulation = sum(stab.betes.count() for stab in stabulations_en_cours)
+    else:
+        # Utilisateur normal - seulement son abattoir
+        if hasattr(user, 'abattoir') and user.abattoir:
+            stabulations_en_cours = stabulations_en_cours.filter(abattoir=user.abattoir)
+            animaux_stabulation = sum(stab.betes.count() for stab in stabulations_en_cours)
+        else:
+            animaux_stabulation = 0
+    
+    # Statistiques supplémentaires pour enrichir le dashboard
+    stats_supplementaires = {
+        'betes_par_statut': list(betes_queryset.values('statut').annotate(count=Count('id'))),
+        'transferts_par_statut': list(transferts_queryset.values('statut').annotate(count=Count('id'))),
+        'betes_par_espece': list(betes_queryset.values('espece__nom').annotate(count=Count('id'))),
+        'transferts_7_derniers_jours': transferts_queryset.filter(
+            date_creation__date__gte=today - timedelta(days=7)
+        ).count(),
+        'betes_ajoutees_aujourdhui': betes_queryset.filter(
+            created_at__date=today
+        ).count(),
+    }
+    
+    return Response({
+        'nombre_betes': nombre_betes,
+        'nombre_carcasses': nombre_carcasses,
+        'transferts_aujourdhui': transferts_aujourdhui,
+        'animaux_stabulation': animaux_stabulation,
+        'stats_supplementaires': stats_supplementaires,
+        'date_actualisation': timezone.now().isoformat(),
+        'abattoir_nom': user.abattoir.nom if hasattr(user, 'abattoir') and user.abattoir else 'Tous les abattoirs',
+        'abattoir_location': f"{user.abattoir.wilaya}, {user.abattoir.commune}" if hasattr(user, 'abattoir') and user.abattoir else 'Système central'
+    })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def slaughter_data_by_period(request):
+    """Récupérer les données d'abattage filtrées par période selon les stabulations terminées"""
+    from django.db.models import Count, Q
+    from django.utils import timezone
+    from bete.models import Bete
+    from abattoir.models import Stabulation
+    from datetime import date, timedelta
+    
+    user = request.user
+    period = request.query_params.get('period', 'today')  # today, week, month
+    
+    # Calculer les dates selon la période
+    today = timezone.now().date()
+    
+    if period == 'today':
+        start_date = today
+        end_date = today
+    elif period == 'week':
+        start_date = today - timedelta(days=7)
+        end_date = today
+    elif period == 'month':
+        start_date = today - timedelta(days=30)
+        end_date = today
+    else:
+        start_date = today
+        end_date = today
+    
+    # CORRECTION: Filtrer selon les stabulations terminées dans la période
+    if user.is_superuser:
+        stabulations_queryset = Stabulation.objects.filter(statut='TERMINE')
+    else:
+        if hasattr(user, 'abattoir') and user.abattoir:
+            stabulations_queryset = Stabulation.objects.filter(statut='TERMINE', abattoir=user.abattoir)
+        else:
+            stabulations_queryset = Stabulation.objects.none()
+    
+    # Filtrer les stabulations terminées dans la période
+    # Utiliser une approche plus simple avec les dates
+    stabulations_terminees = stabulations_queryset.filter(
+        date_fin__date__gte=start_date,
+        date_fin__date__lte=end_date
+    )
+    
+    # Récupérer toutes les bêtes de ces stabulations terminées
+    betes_filtrees = Bete.objects.filter(
+        stabulations__in=stabulations_terminees,
+        statut='ABATTU'
+    )
+    
+    # Grouper par abattoir et espèce
+    from django.db.models import Sum
+    
+    # Si superuser, grouper par abattoir
+    if user.is_superuser:
+        abattoirs_data = []
+        abattoirs = betes_filtrees.values('abattoir__nom').distinct()
+        
+        for abattoir in abattoirs:
+            abattoir_nom = abattoir['abattoir__nom'] or 'Abattoir inconnu'
+            abattoir_betes = betes_filtrees.filter(abattoir__nom=abattoir_nom)
+            
+            # Compter par espèce
+            especes_count = {}
+            for espece in ['Bovin', 'Ovin', 'Caprin', 'Autre']:
+                especes_count[espece] = abattoir_betes.filter(espece__nom=espece).count()
+            
+            abattoirs_data.append({
+                'abattoir_nom': abattoir_nom,
+                'Bovin': especes_count['Bovin'],
+                'Ovin': especes_count['Ovin'],
+                'Caprin': especes_count['Caprin'],
+                'Autre': especes_count['Autre']
+            })
+    else:
+        # Utilisateur normal - seulement son abattoir
+        if hasattr(user, 'abattoir') and user.abattoir:
+            especes_count = {}
+            for espece in ['Bovin', 'Ovin', 'Caprin', 'Autre']:
+                especes_count[espece] = betes_filtrees.filter(espece__nom=espece).count()
+            
+            abattoirs_data = [{
+                'abattoir_nom': user.abattoir.nom,
+                'Bovin': especes_count['Bovin'],
+                'Ovin': especes_count['Ovin'],
+                'Caprin': especes_count['Caprin'],
+                'Autre': especes_count['Autre']
+            }]
+        else:
+            abattoirs_data = []
+    
+    return Response({
+        'period': period,
+        'start_date': start_date.isoformat(),
+        'end_date': end_date.isoformat(),
+        'abattoirs_data': abattoirs_data,
+        'total_animals': sum(sum(abattoir[espece] for espece in ['Bovin', 'Ovin', 'Caprin', 'Autre']) for abattoir in abattoirs_data)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def diagnostic_data_consistency(request):
+    """Diagnostic de cohérence des données pour les superusers"""
+    if not request.user.is_superuser:
+        return Response(
+            {'error': 'Accès non autorisé. Seuls les superusers peuvent accéder à ce diagnostic.'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    from abattoir.models import Stabulation
+    from bete.models import Bete
+    
+    # 1. Méthode Dashboard (statuts des bêtes)
+    betes_en_stabulation = Bete.objects.filter(statut='EN_STABULATION').count()
+    
+    # 2. Méthode Page Stabulation (bêtes dans stabulations EN_COURS)
+    stabulations_en_cours = Stabulation.objects.filter(statut='EN_COURS')
+    betes_dans_stabulations = sum(stab.betes.count() for stab in stabulations_en_cours)
+    
+    # 3. Détail par abattoir
+    detail_par_abattoir = []
+    for stab in stabulations_en_cours:
+        betes_count = stab.betes.count()
+        betes_en_stabulation_count = stab.betes.filter(statut='EN_STABULATION').count()
+        detail_par_abattoir.append({
+            'stabulation_id': stab.id,
+            'numero_stabulation': stab.numero_stabulation,
+            'abattoir': stab.abattoir.nom,
+            'betes_total': betes_count,
+            'betes_en_stabulation': betes_en_stabulation_count,
+            'incoherent': betes_count != betes_en_stabulation_count
+        })
+    
+    # 4. Bêtes orphelines
+    betes_orphelines = Bete.objects.filter(statut='EN_STABULATION').exclude(
+        stabulations__statut='EN_COURS'
+    )
+    
+    return Response({
+        'dashboard_method': betes_en_stabulation,
+        'stabulation_page_method': betes_dans_stabulations,
+        'difference': betes_en_stabulation - betes_dans_stabulations,
+        'is_consistent': betes_en_stabulation == betes_dans_stabulations,
+        'detail_par_abattoir': detail_par_abattoir,
+        'betes_orphelines_count': betes_orphelines.count(),
+        'betes_orphelines': [
+            {
+                'id': bete.id,
+                'statut': bete.statut,
+                'abattoir': bete.abattoir.nom if bete.abattoir else 'N/A'
+            } for bete in betes_orphelines[:10]  # Limiter à 10 pour éviter une réponse trop lourde
+        ]
+    })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def slaughtered_animals_report(request):
+    """Rapport détaillé des bêtes abattues pour les superusers"""
+    if not request.user.is_superuser:
+        return Response(
+            {'error': 'Accès non autorisé. Seuls les superusers peuvent accéder à ce rapport.'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    from bete.models import Bete
+    from abattoir.models import Stabulation
+    from django.db.models import Count, Q
+    
+    # 1. Statistiques par statut
+    stats_by_status = Bete.objects.values('statut').annotate(count=Count('id')).order_by('statut')
+    
+    # 2. Bêtes abattues détaillées
+    betes_abattues = Bete.objects.filter(statut='ABATTU').select_related('espece', 'abattoir')
+    
+    # 3. Stabulations terminées avec leurs bêtes
+    stabulations_terminees = Stabulation.objects.filter(statut='TERMINE').select_related('abattoir')
+    
+    stabulations_details = []
+    for stab in stabulations_terminees:
+        betes_in_stab = stab.betes.filter(statut='ABATTU')
+        stabulations_details.append({
+            'stabulation_id': stab.id,
+            'numero_stabulation': stab.numero_stabulation,
+            'abattoir': stab.abattoir.nom,
+            'date_fin': stab.date_fin,
+            'betes_abattues_count': betes_in_stab.count(),
+            'betes_details': [
+                {
+                    'id': bete.id,
+                    'num_boucle': bete.num_boucle,
+                    'num_boucle_post_abattage': bete.num_boucle_post_abattage,
+                    'espece': bete.espece.nom,
+                    'poids_vif': float(bete.poids_vif) if bete.poids_vif else None,
+                    'poids_a_chaud': float(bete.poids_a_chaud) if bete.poids_a_chaud else None,
+                    'poids_a_froid': float(bete.poids_a_froid) if bete.poids_a_froid else None,
+                    'date_abattage': bete.updated_at.isoformat()
+                } for bete in betes_in_stab[:20]  # Limiter à 20 par stabulation
+            ]
+        })
+    
+    # 4. Statistiques globales
+    total_betes = Bete.objects.count()
+    betes_abattues_count = betes_abattues.count()
+    stabulations_terminees_count = stabulations_terminees.count()
+    
+    return Response({
+        'summary': {
+            'total_betes': total_betes,
+            'betes_abattues': betes_abattues_count,
+            'stabulations_terminees': stabulations_terminees_count,
+            'taux_abattage': round((betes_abattues_count / total_betes * 100), 2) if total_betes > 0 else 0
+        },
+        'stats_by_status': list(stats_by_status),
+        'stabulations_terminees': stabulations_details,
+        'betes_abattues_recentes': [
+            {
+                'id': bete.id,
+                'num_boucle': bete.num_boucle,
+                'espece': bete.espece.nom,
+                'abattoir': bete.abattoir.nom if bete.abattoir else 'N/A',
+                'poids_a_chaud': float(bete.poids_a_chaud) if bete.poids_a_chaud else None,
+                'date_abattage': bete.updated_at.isoformat()
+            } for bete in betes_abattues.order_by('-updated_at')[:50]  # 50 plus récentes
+        ]
+    })

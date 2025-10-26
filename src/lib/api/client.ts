@@ -85,6 +85,15 @@ class ApiClient {
     }
 
     private getAuthToken(): string | null {
+        // Essayer d'abord le token Django
+        if (typeof window !== 'undefined') {
+            const djangoToken = localStorage.getItem('django_token');
+            if (djangoToken) {
+                return djangoToken;
+            }
+        }
+        
+        // Fallback vers le token manager
         return tokenManager.getToken();
     }
 

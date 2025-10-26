@@ -36,6 +36,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -48,12 +49,14 @@ INSTALLED_APPS = [
     # 'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'simple_history',
+    'django_filters',
     'users',
     'bete',
     'abattoir',
     'client',
     'personnel',
     'bon_commande',
+    'notification',
     'transfert',
 ]
 
@@ -138,8 +141,24 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Configuration pour les fichiers statiques en développement
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+# Configuration pour les fichiers statiques
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Configuration pour les fichiers
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10 MB
+FILE_UPLOAD_PERMISSIONS = 0o644
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -148,6 +167,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
+
+# Configuration JWT (à activer après installation de djangorestframework-simplejwt)
+# from datetime import timedelta
+
+# SIMPLE_JWT = {
+#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+#     'ROTATE_REFRESH_TOKENS': True,
+#     'BLACKLIST_AFTER_ROTATION': True,
+#     'UPDATE_LAST_LOGIN': True,
+# }
 
 # Django REST Framework
 REST_FRAMEWORK = {
@@ -228,3 +258,203 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+# Jazzmin Configuration
+JAZZMIN_SETTINGS = {
+    # title of the window (Will default to current_admin_site.site_title if absent or None)
+    "site_title": "ALVIAR Dashboard",
+
+    # Title on the login screen (19 chars max) (defaults to current_admin_site.site_header if absent or None)
+    "site_header": "ALVIAR",
+
+    # Title on the brand (19 chars max) (defaults to current_admin_site.site_header if absent or None)
+    "site_brand": "ALVIAR",
+
+    # Logo to use for your site, must be present in static files, used for brand on top left
+    "site_logo": "alviar_logo_dark.png",
+
+    # Logo to use for your site, must be present in static files, used for login form logo (only used if login_logo is not set)
+    "login_logo": "alviar_logo_dark.png",
+
+    # Logo to use for login form in dark themes (only used if login_logo_dark is not set)
+    "login_logo_dark": "alviar_logo_white.png",
+
+    # CSS classes that are applied to the logo above
+    "site_logo_classes": "img-circle",
+
+    # Relative path to a favicon for your site, will default to site_logo if absent (ideally 32x32 px)
+    "site_icon": "alviar_logo_dark.png",
+
+    # Welcome text on the login screen
+    "welcome_sign": "Bienvenue dans le Dashboard ALVIAR",
+
+    # Copyright on the footer
+    "copyright": "ALVIAR Dashboard",
+
+    # List of model admins to search from the search bar, search bar omitted if empty
+    "search_model": ["auth.User", "bete.Bete", "client.Client", "personnel.Personnel"],
+
+    # Field name on user model that contains avatar ImageField/URLField/Charfield or a callable that receives the user
+    "user_avatar": None,
+
+    ############
+    # Top Menu #
+    ############
+
+    # Links to put along the top menu
+    "topmenu_links": [
+
+        # Url that gets reversed (Permissions can be added)
+        {"name": "Accueil",  "url": "admin:index", "permissions": ["auth.view_user"]},
+
+        # external url that opens in a new window (Permissions can be added)
+        {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
+
+        # model admin to link to (Permissions checked against model)
+        {"model": "auth.User"},
+
+        # App with dropdown menu to all its models pages (Permissions checked against models)
+        {"app": "bete"},
+        {"app": "client"},
+        {"app": "personnel"},
+        {"app": "abattoir"},
+        {"app": "transfert"},
+        {"app": "bon_commande"},
+        {"app": "notification"},
+    ],
+
+    #############
+    # User Menu #
+    #############
+
+    # Additional links to include in the user menu on the top right ("app" url type is not allowed)
+    "usermenu_links": [
+        {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
+        {"model": "auth.user"}
+    ],
+
+    #############
+    # Side Menu #
+    #############
+
+    # Whether to display the side menu
+    "show_sidebar": True,
+
+    # Whether to aut expand the menu
+    "navigation_expanded": True,
+
+    # Hide these apps when generating side menu e.g (auth)
+    "hide_apps": [],
+
+    # Hide these models when generating side menu (e.g auth.user)
+    "hide_models": [],
+
+    # List of apps (and/or models) to base side menu ordering off of (does not need to contain all apps/models)
+    "order_with_respect_to": ["auth", "bete", "client", "personnel", "abattoir", "transfert", "bon_commande", "notification"],
+
+    # Custom links to append to app groups, keyed on app name
+    "custom_links": {
+        "bete": [{
+            "name": "Rapports Bétail",
+            "url": "admin:bete_bete_changelist",
+            "icon": "fas fa-chart-line",
+            "permissions": ["bete.view_bete"]
+        }],
+        "client": [{
+            "name": "Rapports Clients",
+            "url": "admin:client_client_changelist",
+            "icon": "fas fa-users",
+            "permissions": ["client.view_client"]
+        }]
+    },
+
+    # Custom icons for side menu apps/models See https://fontawesome.com/icons?d=gallery&m=free
+    # for the full list of 5.13.0 free icon classes
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "bete": "fas fa-cow",
+        "bete.bete": "fas fa-cow",
+        "bete.espece": "fas fa-paw",
+        "client": "fas fa-building",
+        "client.client": "fas fa-building",
+        "personnel": "fas fa-user-tie",
+        "personnel.personnel": "fas fa-user-tie",
+        "abattoir": "fas fa-industry",
+        "abattoir.abattoir": "fas fa-industry",
+        "transfert": "fas fa-truck",
+        "transfert.transfert": "fas fa-truck",
+        "bon_commande": "fas fa-file-invoice",
+        "bon_commande.boncommande": "fas fa-file-invoice",
+        "notification": "fas fa-bell",
+        "notification.notification": "fas fa-bell",
+    },
+    # Icons that are used when one is not manually specified
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+
+    #################
+    # Related Modal #
+    #################
+    # Use modals instead of popups
+    "related_modal_active": False,
+
+    #############
+    # UI Tweaks #
+    #############
+    # Relative paths to custom CSS/JS scripts (must be present in static files)
+    "custom_css": None,
+    "custom_js": None,
+    # Whether to link font from fonts.googleapis.com (use custom_css to supply font otherwise)
+    "use_google_fonts_cdn": True,
+    # Whether to show the UI customizer on the sidebar
+    "show_ui_builder": False,
+
+    ###############
+    # Change view #
+    ###############
+    # Render out the change view as a single form, or in tabs, current options are
+    # - single
+    # - horizontal_tabs (default)
+    # - vertical_tabs
+    # - collapsible
+    # - carousel
+    "changeform_format": "horizontal_tabs",
+    # override change forms on a per modeladmin basis
+    "changeform_format_overrides": {"auth.user": "collapsible", "auth.group": "vertical_tabs"},
+    # Add a language dropdown into the admin
+    "language_chooser": False,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-success",
+    "accent": "accent-teal",
+    "navbar": "navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": False,
+    "sidebar": "sidebar-dark-info",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "flatly",
+    "dark_mode_theme": None,
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
+}
+

@@ -1,5 +1,10 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
+from django.utils.html import format_html
+from django.urls import reverse
+from django.utils.safestring import mark_safe
+from django.db.models import Count, Q, Avg
+from django.contrib.admin import SimpleListFilter
 from .models import Abattoir, ChambreFroide, HistoriqueChambreFroide, Stabulation
 
 
@@ -11,22 +16,56 @@ class ChambreFroideInline(admin.TabularInline):
     readonly_fields = ['created_at', 'updated_at']
 
 
+class WilayaFilter(SimpleListFilter):
+    """Filtre personnalisé pour la wilaya des abattoirs"""
+    title = _('Wilaya')
+    parameter_name = 'wilaya'
+
+    def lookups(self, request, model_admin):
+        wilayas = Abattoir.objects.values_list('wilaya', flat=True).distinct().exclude(wilaya__isnull=True).exclude(wilaya='')
+        return [(w, w) for w in wilayas]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(wilaya=self.value())
+        return queryset
+
+
 @admin.register(Abattoir)
 class AbattoirAdmin(admin.ModelAdmin):
-    """Configuration de l'administration des abattoirs"""
+    """Configuration professionnelle de l'administration des abattoirs"""
     
     list_display = [
-        'nom', 'wilaya', 'commune', 'capacite_reception_ovin', 
-        'capacite_reception_bovin', 'capacite_stabulation_ovin', 'capacite_stabulation_bovin', 'responsable', 'actif'
+        'nom', 'localisation', 'capacites_display', 'chambres_froides_count', 
+        'responsable', 'actif_badge', 'created_at'
     ]
     
-    list_filter = ['actif', 'wilaya', 'commune', 'created_at']
+    list_filter = [
+        WilayaFilter,
+        'actif', 
+        'wilaya', 
+        'commune', 
+        'created_at'
+    ]
     
-    search_fields = ['nom', 'wilaya', 'commune', 'telephone', 'email']
+    search_fields = [
+        'nom', 'wilaya', 'commune', 'telephone', 'email', 'adresse'
+    ]
     
-    readonly_fields = ['created_at', 'updated_at', 'adresse_complete', 'capacite_totale_reception', 'capacite_totale_stabulation']
+    readonly_fields = [
+        'created_at', 'updated_at', 'adresse_complete', 
+        'capacite_totale_reception', 'capacite_totale_stabulation',
+        'chambres_froides_count'
+    ]
     
+    raw_id_fields = ['responsable']
     inlines = [ChambreFroideInline]
+    
+    # Configuration pour Jazzmin
+    list_per_page = 25
+    list_max_show_all = 100
+    date_hierarchy = 'created_at'
+    list_select_related = ['responsable']
     
     fieldsets = (
         (_('Informations de base'), {
@@ -48,12 +87,66 @@ class AbattoirAdmin(admin.ModelAdmin):
             'fields': ('responsable', 'actif')
         }),
         (_('Métadonnées'), {
-            'fields': ('created_at', 'updated_at'),
+            'fields': ('created_at', 'updated_at', 'chambres_froides_count'),
             'classes': ('collapse',)
         }),
     )
     
     ordering = ['wilaya', 'commune', 'nom']
+    
+    def localisation(self, obj):
+        """Affiche la localisation"""
+        location = []
+        if obj.wilaya:
+            location.append(obj.wilaya)
+        if obj.commune:
+            location.append(obj.commune)
+        return ', '.join(location) if location else '-'
+    localisation.short_description = _('Localisation')
+    localisation.admin_order_field = 'wilaya'
+    
+    def capacites_display(self, obj):
+        """Affiche les capacités de manière compacte"""
+        reception = obj.capacite_totale_reception or 0
+        stabulation = obj.capacite_totale_stabulation or 0
+        return format_html(
+            '<div style="font-size: 11px;">'
+            '<div>📥 Réception: <strong>{}</strong></div>'
+            '<div>🏠 Stabulation: <strong>{}</strong></div>'
+            '</div>',
+            reception, stabulation
+        )
+    capacites_display.short_description = _('Capacités')
+    
+    def chambres_froides_count(self, obj):
+        """Affiche le nombre de chambres froides"""
+        count = obj.chambrefroide_set.count()
+        if count > 0:
+            return format_html(
+                '<span style="color: blue; font-weight: bold;">{}</span>',
+                count
+            )
+        return format_html('<span style="color: gray;">0</span>')
+    chambres_froides_count.short_description = _('Chambres froides')
+    chambres_froides_count.admin_order_field = 'chambrefroide_count'
+    
+    def actif_badge(self, obj):
+        """Affiche le statut actif avec un badge"""
+        if obj.actif:
+            return format_html(
+                '<span style="background-color: green; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">Actif</span>'
+            )
+        else:
+            return format_html(
+                '<span style="background-color: red; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">Inactif</span>'
+            )
+    actif_badge.short_description = _('Statut')
+    actif_badge.admin_order_field = 'actif'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('responsable').annotate(
+            chambrefroide_count=Count('chambrefroide')
+        )
 
 
 class HistoriqueChambreFroideInline(admin.TabularInline):

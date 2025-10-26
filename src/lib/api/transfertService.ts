@@ -1,61 +1,131 @@
 import { djangoApi } from './djangoAuthService';
 
-// Types pour les transferts
-export interface Abattoir {
-    id: number;
-    nom: string;
-    wilaya: string;
-    commune: string;
-}
-
-export interface User {
-    id: number;
-    username: string;
-    first_name: string;
-    last_name: string;
-    nom: string;
-}
-
-export interface Bete {
-    id: number;
-    num_boucle: string;
-    espece_nom: string;
-    sexe: string;
-    poids_vif: string;
-}
-
+// Interfaces pour les transferts
 export interface Transfert {
     id: number;
     numero_transfert: string;
-    abattoir_expediteur: Abattoir;
-    abattoir_destinataire: Abattoir;
-    betes: Bete[];
+    abattoir_expediteur: {
+        id: number;
+        nom: string;
+        wilaya: string;
+        commune: string;
+        adresse_complete: string;
+    };
+    abattoir_destinataire: {
+        id: number;
+        nom: string;
+        wilaya: string;
+        commune: string;
+        adresse_complete: string;
+    };
     nombre_betes: number;
-    statut: 'EN_COURS' | 'LIVRE' | 'ANNULE';
+    nombre_betes_actuelles: number;
+    statut: 'EN_COURS' | 'EN_LIVRAISON' | 'LIVRE' | 'ANNULE';
     statut_display: string;
     date_creation: string;
     date_livraison?: string;
     date_annulation?: string;
-    cree_par: User;
-    valide_par?: User;
-    note?: string;
-    est_modifiable: boolean;
-    est_annulable: boolean;
-    est_livrable: boolean;
+    cree_par: {
+        id: number;
+        username: string;
+        first_name: string;
+        last_name: string;
+        nom: string;
+    };
+    valide_par?: {
+        id: number;
+        username: string;
+        first_name: string;
+        last_name: string;
+        nom: string;
+    };
+    annule_par?: {
+        id: number;
+        username: string;
+        first_name: string;
+        last_name: string;
+        nom: string;
+    };
+    motif?: string;
+    notes?: string;
+    betes: Array<{
+        id: number;
+        bete: {
+            id: number;
+            num_boucle: string;
+            espece_nom: string;
+            sexe: string;
+            poids_vif: string;
+            statut: string;
+            etat_sante: string;
+        };
+        ajoute_par: {
+            id: number;
+            username: string;
+            first_name: string;
+            last_name: string;
+            nom: string;
+        };
+        date_ajout: string;
+    }>;
+    est_complet: boolean;
+    peut_etre_livre: boolean;
+    peut_etre_annule: boolean;
+    reception?: {
+        id: number;
+        numero_reception: string;
+        statut: 'EN_ATTENTE' | 'EN_COURS' | 'RECU' | 'PARTIEL' | 'ANNULE';
+        statut_display: string;
+        nombre_betes_attendues: number;
+        nombre_betes_recues: number;
+        nombre_betes_manquantes: number;
+        taux_reception: number;
+        date_creation: string;
+        date_reception?: string;
+        cree_par: {
+            id: number;
+            username: string;
+            first_name: string;
+            last_name: string;
+            nom: string;
+        };
+    };
     created_at: string;
     updated_at: string;
 }
 
-export interface CreateTransfertRequest {
+export interface TransfertCreate {
+    abattoir_expediteur_id: number;
     abattoir_destinataire_id: number;
+    nombre_betes: number;
+    motif?: string;
+    notes?: string;
     betes_ids?: number[];
-    nombre_betes_aleatoire?: number;
-    note?: string;
 }
 
-export interface UpdateTransfertStatusRequest {
-    id: number;
-    statut: 'EN_COURS' | 'LIVRE' | 'ANNULE';
+export interface TransfertUpdate {
+    abattoir_expediteur_id?: number;
+    abattoir_destinataire_id?: number;
+    nombre_betes?: number;
+    motif?: string;
+    notes?: string;
+    betes_ids?: number[];
+}
+
+export interface TransfertFilters {
+    statut?: string;
+    abattoir_expediteur?: number;
+    abattoir_destinataire?: number;
+    date_creation_after?: string;
+    date_creation_before?: string;
+    date_livraison_after?: string;
+    date_livraison_before?: string;
+    nombre_betes_min?: number;
+    nombre_betes_max?: number;
+    en_cours?: boolean;
+    mes_transferts?: boolean;
+    search?: string;
+    ordering?: string;
 }
 
 export interface TransfertStats {
@@ -63,134 +133,110 @@ export interface TransfertStats {
     transferts_en_cours: number;
     transferts_livres: number;
     transferts_annules: number;
+    total_betes_transferees: number;
     taux_livraison: number;
 }
 
-export interface TransfertFilters {
-    statut?: string;
-    abattoir_id?: number;
-    search?: string;
+export interface AjouterBete {
+    bete_id: number;
 }
 
-// Services API
+export interface RetirerBete {
+    bete_id: number;
+}
+
+export interface LivrerTransfert {
+    // Pas de données spécifiques requises
+}
+
+export interface AnnulerTransfert {
+    motif_annulation?: string;
+}
+
+// Service pour les transferts
 export const transfertService = {
     // Récupérer tous les transferts
     async getTransferts(filters: TransfertFilters = {}): Promise<{
         results: Transfert[];
         count: number;
-        next: string | null;
-        previous: string | null;
+        next?: string;
+        previous?: string;
     }> {
         const params = new URLSearchParams();
 
-        if (filters.statut && filters.statut !== 'ALL') {
-            params.append('statut', filters.statut);
-        }
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                params.append(key, value.toString());
+            }
+        });
 
-        if (filters.abattoir_id) {
-            params.append('abattoir_id', filters.abattoir_id.toString());
-        }
-
-        if (filters.search) {
-            params.append('search', filters.search);
-        }
-
-        const response = await djangoApi.get(`/transferts/?${params.toString()}`);
-        return response.data;
+        const response = await djangoApi.get(`/transferts/transferts/?${params.toString()}`);
+        return response.data as {
+            results: Transfert[];
+            count: number;
+            next?: string;
+            previous?: string;
+        };
     },
 
     // Récupérer un transfert par ID
     async getTransfert(id: number): Promise<Transfert> {
-        const response = await djangoApi.get(`/transferts/${id}/`);
-        return response.data;
+        const response = await djangoApi.get(`/transferts/transferts/${id}/`);
+        return response.data as Transfert;
     },
 
     // Créer un nouveau transfert
-    async createTransfert(data: CreateTransfertRequest): Promise<Transfert> {
-        const response = await djangoApi.post('/transferts/', data);
-        return response.data;
+    async createTransfert(data: TransfertCreate): Promise<Transfert> {
+        const response = await djangoApi.post('/transferts/transferts/', data);
+        return response.data as Transfert;
     },
 
-    // Mettre à jour le statut d'un transfert
-    async updateTransfertStatus(data: UpdateTransfertStatusRequest): Promise<Transfert> {
-        const response = await djangoApi.patch(`/transferts/${data.id}/`, {
-            statut: data.statut
-        });
-        return response.data;
+    // Mettre à jour un transfert
+    async updateTransfert(id: number, data: TransfertUpdate): Promise<Transfert> {
+        const response = await djangoApi.patch(`/transferts/transferts/${id}/`, data);
+        return response.data as Transfert;
+    },
+
+    // Supprimer un transfert
+    async deleteTransfert(id: number): Promise<void> {
+        await djangoApi.delete(`/transferts/transferts/${id}/`);
+    },
+
+    // Ajouter une bête au transfert
+    async ajouterBete(id: number, data: AjouterBete): Promise<{ message: string }> {
+        const response = await djangoApi.post(`/transferts/transferts/${id}/ajouter_bete/`, data);
+        return response.data as { message: string };
+    },
+
+    // Retirer une bête du transfert
+    async retirerBete(id: number, data: RetirerBete): Promise<{ message: string }> {
+        const response = await djangoApi.post(`/transferts/transferts/${id}/retirer_bete/`, data);
+        return response.data as { message: string };
+    },
+
+    // Mettre un transfert en livraison
+    async mettreEnLivraisonTransfert(id: number): Promise<{ message: string }> {
+        const response = await djangoApi.post(`/transferts/transferts/${id}/mettre_en_livraison/`);
+        return response.data as { message: string };
+    },
+
+    // Livrer un transfert
+    async livrerTransfert(id: number, data: LivrerTransfert = {}): Promise<{ message: string }> {
+        const response = await djangoApi.post(`/transferts/transferts/${id}/livrer/`, data);
+        return response.data as { message: string };
     },
 
     // Annuler un transfert
-    async annulerTransfert(id: number): Promise<Transfert> {
-        const response = await djangoApi.post(`/transferts/${id}/annuler/`);
-        return response.data;
+    async annulerTransfert(id: number, data: AnnulerTransfert): Promise<{ message: string }> {
+        const response = await djangoApi.post(`/transferts/transferts/${id}/annuler/`, data);
+        return response.data as { message: string };
     },
 
-    // Marquer un transfert comme livré
-    async livrerTransfert(id: number): Promise<Transfert> {
-        const response = await djangoApi.post(`/transferts/${id}/livrer/`);
-        return response.data;
-    },
-
-    // Confirmer la réception détaillée d'un transfert
-    async confirmerReceptionDetaillee(id: number, data: {
-        received_count: number;
-        missing_betes?: string[];
-        received_betes?: number[];
-    }): Promise<{
-        detail: string;
-        transfert: Transfert;
-        betes_recues: number;
-        betes_manquantes: number;
-    }> {
-        const response = await djangoApi.post(`/transferts/${id}/confirmer-reception/`, data);
-        return response.data;
-    },
-
-    // Récupérer les statistiques
-    async getTransfertStats(): Promise<TransfertStats> {
-        const response = await djangoApi.get('/transferts/stats/');
-        return response.data;
-    },
-
-    // Récupérer les bêtes disponibles
-    async getBetesDisponibles(
-        abattoirId?: number,
-        search?: string,
-        espece?: string,
-        typeProduit?: string,
-        page: number = 1,
-        pageSize: number = 30
-    ): Promise<{
-        results: Bete[];
-        count: number;
-        page: number;
-        page_size: number;
-        total_pages: number;
-        has_next: boolean;
-        has_previous: boolean;
-    }> {
-        const params = new URLSearchParams();
-
-        if (abattoirId) {
-            params.append('abattoir_id', abattoirId.toString());
-        }
-
-        if (search) {
-            params.append('search', search);
-        }
-
-        if (espece) {
-            params.append('espece', espece);
-        }
-
-        if (typeProduit) {
-            params.append('type_produit', typeProduit);
-        }
-
-        params.append('page', page.toString());
-        params.append('page_size', pageSize.toString());
-
-        const response = await djangoApi.get(`/transferts/betes-disponibles/?${params.toString()}`);
-        return response.data;
+    // Récupérer les statistiques des transferts
+    async getStats(): Promise<TransfertStats> {
+        const response = await djangoApi.get('/transferts/transferts/stats/');
+        return response.data as TransfertStats;
     }
 };
+
+export default transfertService;

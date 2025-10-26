@@ -1,122 +1,149 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import React, { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { 
-  ArrowLeft,
-  ArrowRightLeft,
-  Building2,
-  Calendar,
-  User,
-  Package,
-  CheckCircle,
-  Clock,
-  XCircle,
+  ArrowLeft, 
+  Edit, 
+  Trash2, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Truck, 
+  MapPin, 
+  User, 
+  Calendar, 
+  Package, 
   AlertCircle,
-  FileText,
-  MapPin,
-  Phone,
-  Mail,
-  Hash,
-  Weight,
-  Users,
+  Plus,
   Eye,
-  Printer,
-  Download,
-  Truck,
-  Shield,
-  Activity
+  RefreshCw,
+  Activity,
+  FileText,
+  Hash,
+  Building2,
+  Users
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useRequireAuth } from '@/lib/hooks/useDjangoAuth';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
-import { toast } from 'react-hot-toast';
-import { useTransfert, useConfirmerReceptionDetaillee } from '@/lib/hooks/useTransferts';
+import { useTransfert, useMettreEnLivraisonTransfert, useLivrerTransfert, useAnnulerTransfert } from '@/lib/hooks/useTransferts';
 import { Transfert } from '@/lib/api/transfertService';
+import Tabs from '@/components/ui/Tabs';
 
-const TransfertDetailPage = () => {
-  const router = useRouter();
+export default function TransfertDetailPage() {
   const params = useParams();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useRequireAuth();
   const { t, loading: translationLoading, currentLocale } = useLanguage();
-  
-  const transfertId = params?.id ? parseInt(params.id as string) : null;
+  const [showAnnulerModal, setShowAnnulerModal] = useState(false);
+  const [motifAnnulation, setMotifAnnulation] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Détection RTL
   const isRTL = currentLocale === 'ar';
+  const transfertId = parseInt(params.id as string);
 
-  // État local
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmText, setConfirmText] = useState('');
-  const [isConfirming, setIsConfirming] = useState(false);
-  
-  // État pour la réception détaillée
-  const [receivedBetesCount, setReceivedBetesCount] = useState(0);
-  const [missingBetesNumbers, setMissingBetesNumbers] = useState<string[]>([]);
-  const [newMissingBeteNumber, setNewMissingBeteNumber] = useState('');
-  const [step, setStep] = useState<'count' | 'missing' | 'confirm'>('count');
+  // Hooks pour les données et actions
+  const { data: transfert, isLoading: loading, error, refetch } = useTransfert(transfertId);
+  const mettreEnLivraisonMutation = useMettreEnLivraisonTransfert();
+  const livrerMutation = useLivrerTransfert();
+  const annulerMutation = useAnnulerTransfert();
 
-  // Hooks API
-  const { 
-    data: transfert, 
-    isLoading: loading, 
-    error, 
-    refetch 
-  } = useTransfert(transfertId!);
-
-  const confirmerReceptionMutation = useConfirmerReceptionDetaillee();
-
-  // Vérifier si l'utilisateur peut confirmer la réception
-  // user.abattoir peut être soit un ID numérique, soit un objet avec une propriété id
-  const userAbattoirId = typeof user?.abattoir === 'number' ? user.abattoir : user?.abattoir?.id;
-  const destinataireId = transfert?.abattoir_destinataire?.id;
-  
-  const canConfirmReception = user && transfert && 
-    user.abattoir && 
-    userAbattoirId && 
-    destinataireId &&
-    userAbattoirId === destinataireId && 
-    transfert.statut === 'EN_COURS';
-
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return '-';
-    if (typeof window === 'undefined') {
-      return new Date(dateString).toISOString().split('T')[0];
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await refetch();
+    } catch (err) {
+      console.error('Erreur lors du rafraîchissement:', err);
+    } finally {
+      setRefreshing(false);
     }
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
-  const getStatusBadge = (status: string) => {
+  const handleMettreEnLivraison = async () => {
+    try {
+      setIsProcessing(true);
+      await mettreEnLivraisonMutation.mutateAsync(transfertId);
+      setSuccessMessage('Transfert mis en livraison avec succès');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage('Erreur lors de la mise en livraison du transfert');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleLivrer = async () => {
+    try {
+      setIsProcessing(true);
+      await livrerMutation.mutateAsync({ id: transfertId });
+      setSuccessMessage('Transfert livré avec succès');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage('Erreur lors de la livraison du transfert');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAnnuler = async () => {
+    try {
+      setIsProcessing(true);
+      await annulerMutation.mutateAsync({ 
+        id: transfertId, 
+        data: { motif_annulation: motifAnnulation } 
+      });
+      setSuccessMessage('Transfert annulé avec succès');
+      setShowAnnulerModal(false);
+      setMotifAnnulation('');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage('Erreur lors de l\'annulation du transfert');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getStatusBadge = (statut: string) => {
     const statusConfig = {
       'EN_COURS': { 
-        bg: 'bg-yellow-100 dark:bg-yellow-900/40', 
-        text: 'text-yellow-800 dark:text-yellow-200', 
-        border: 'border-yellow-200 dark:border-yellow-700',
-        label: isRTL ? 'قيد التنفيذ' : 'En cours',
-        icon: Clock
+        bg: 'bg-blue-200 dark:bg-blue-900/50', 
+        text: 'text-blue-900 dark:text-blue-100', 
+        border: 'border-blue-300 dark:border-blue-700',
+        label: isRTL ? 'قيد المعالجة' : 'En cours',
+        icon: Activity
+      },
+      'EN_LIVRAISON': { 
+        bg: 'bg-orange-200 dark:bg-orange-900/50', 
+        text: 'text-orange-900 dark:text-orange-100', 
+        border: 'border-orange-300 dark:border-orange-700',
+        label: isRTL ? 'في الطريق' : 'En livraison',
+        icon: Truck
       },
       'LIVRE': { 
-        bg: 'bg-green-100 dark:bg-green-900/40', 
-        text: 'text-green-800 dark:text-green-200', 
-        border: 'border-green-200 dark:border-green-700',
+        bg: 'bg-green-200 dark:bg-green-900/50', 
+        text: 'text-green-900 dark:text-green-100', 
+        border: 'border-green-300 dark:border-green-700',
         label: isRTL ? 'تم التسليم' : 'Livré',
         icon: CheckCircle
       },
       'ANNULE': { 
-        bg: 'bg-red-100 dark:bg-red-900/40', 
-        text: 'text-red-800 dark:text-red-200', 
-        border: 'border-red-200 dark:border-red-700',
+        bg: 'bg-red-200 dark:bg-red-900/50', 
+        text: 'text-red-900 dark:text-red-100', 
+        border: 'border-red-300 dark:border-red-700',
         label: isRTL ? 'ملغي' : 'Annulé',
         icon: XCircle
       }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['EN_COURS'];
+    const config = statusConfig[statut as keyof typeof statusConfig] || statusConfig['EN_COURS'];
     const IconComponent = config.icon;
     
     return (
@@ -127,70 +154,17 @@ const TransfertDetailPage = () => {
     );
   };
 
-  // Fonctions pour gérer la réception détaillée
-  const addMissingBete = () => {
-    if (newMissingBeteNumber.trim() && !missingBetesNumbers.includes(newMissingBeteNumber.trim())) {
-      setMissingBetesNumbers([...missingBetesNumbers, newMissingBeteNumber.trim()]);
-      setNewMissingBeteNumber('');
+  const formatDate = (dateString: string) => {
+    if (typeof window === 'undefined') {
+      return new Date(dateString).toISOString().split('T')[0];
     }
-  };
-
-  const removeMissingBete = (beteNumber: string) => {
-    setMissingBetesNumbers(missingBetesNumbers.filter(num => num !== beteNumber));
-  };
-
-  const resetModal = () => {
-    setShowConfirmModal(false);
-    setConfirmText('');
-    setReceivedBetesCount(0);
-    setMissingBetesNumbers([]);
-    setNewMissingBeteNumber('');
-    setStep('count');
-  };
-
-  const handleConfirmReception = async () => {
-    if (!transfert) return;
-
-    if (confirmText !== 'CONFIRMER') {
-      toast.error(isRTL ? 'يرجى كتابة "CONFIRMER" للتأكيد' : 'Veuillez taper "CONFIRMER" pour confirmer');
-      return;
-    }
-
-    setIsConfirming(true);
-    try {
-      // Préparer les données de réception détaillée
-      const betesRecues = transfert.betes.filter(bete => !missingBetesNumbers.includes(bete.num_boucle));
-      
-      // Vérifier que le nombre de bêtes reçues correspond au nombre déclaré
-      if (betesRecues.length !== receivedBetesCount) {
-        toast.error(isRTL 
-          ? `عدد البهائم المستلمة (${betesRecues.length}) لا يتطابق مع العدد المعلن (${receivedBetesCount})`
-          : `Le nombre de bêtes reçues (${betesRecues.length}) ne correspond pas au nombre déclaré (${receivedBetesCount})`
-        );
-        setIsConfirming(false);
-        return;
-      }
-      
-      const receptionData = {
-        received_count: receivedBetesCount,
-        missing_betes: missingBetesNumbers,
-        received_betes: betesRecues.map(bete => bete.id)
-      };
-
-      // Appeler l'API avec les données détaillées
-      await confirmerReceptionMutation.mutateAsync({
-        id: transfert.id,
-        data: receptionData
-      });
-      
-      resetModal();
-      refetch();
-    } catch (error: any) {
-      console.error('Erreur lors de la confirmation:', error);
-      // L'erreur est déjà gérée dans le hook
-    } finally {
-      setIsConfirming(false);
-    }
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (isLoading || translationLoading) {
@@ -203,31 +177,330 @@ const TransfertDetailPage = () => {
     );
   }
 
-  if (error) {
+  if (error || !transfert) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600">{error.message || 'Erreur lors du chargement'}</p>
+        <div className="min-h-screen theme-bg-secondary theme-transition" dir={isRTL ? 'rtl' : 'ltr'}>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+              <h3 className="text-lg font-medium mb-2 theme-text-primary">
+                {error?.message || 'Transfert non trouvé'}
+              </h3>
+              <button
+                onClick={() => router.back()}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                {isRTL ? 'العودة' : 'Retour'}
+              </button>
+            </div>
           </div>
         </div>
       </Layout>
     );
   }
 
-  if (!transfert) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">{isRTL ? 'النقل غير موجود' : 'Transfert non trouvé'}</p>
+  const tabs = [
+    {
+      id: 'overview',
+      label: isRTL ? 'نظرة عامة' : 'Vue d\'ensemble',
+      content: (
+        <div className="space-y-6">
+          {/* Informations générales */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
+                <Truck className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'معلومات النقل' : 'Informations du transfert'}
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'رقم النقل:' : 'Numéro:'}</span>
+                  <span className="text-sm font-medium theme-text-primary">{transfert.numero_transfert}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'الحالة:' : 'Statut:'}</span>
+                  {getStatusBadge(transfert.statut)}
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'عدد الماشية:' : 'Nombre de bêtes:'}</span>
+                  <span className="text-sm font-medium theme-text-primary">
+                    {transfert.nombre_betes_actuelles} / {transfert.nombre_betes}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'تاريخ الإنشاء:' : 'Date de création:'}</span>
+                  <span className="text-sm theme-text-primary">{formatDate(transfert.date_creation)}</span>
+                </div>
+                {transfert.date_livraison && (
+                  <div className="flex justify-between">
+                    <span className="text-sm theme-text-tertiary">{isRTL ? 'تاريخ التسليم:' : 'Date de livraison:'}</span>
+                    <span className="text-sm theme-text-primary">{formatDate(transfert.date_livraison)}</span>
+                  </div>
+                )}
+                {transfert.date_annulation && (
+                  <div className="flex justify-between">
+                    <span className="text-sm theme-text-tertiary">{isRTL ? 'تاريخ الإلغاء:' : 'Date d\'annulation:'}</span>
+                    <span className="text-sm theme-text-primary">{formatDate(transfert.date_annulation)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
+                <Building2 className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'المجازر' : 'Abattoirs'}
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center mb-2">
+                    <Truck className={`h-4 w-4 text-blue-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    <span className="text-sm font-medium theme-text-primary">
+                      {isRTL ? 'المجزر المرسل' : 'Abattoir expéditeur'}
+                    </span>
+                  </div>
+                  <p className="text-sm theme-text-primary ml-6">{transfert.abattoir_expediteur.nom}</p>
+                  <p className="text-xs theme-text-secondary ml-6">
+                    {transfert.abattoir_expediteur.wilaya}, {transfert.abattoir_expediteur.commune}
+                  </p>
+                </div>
+                <div>
+                  <div className="flex items-center mb-2">
+                    <MapPin className={`h-4 w-4 text-green-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    <span className="text-sm font-medium theme-text-primary">
+                      {isRTL ? 'المجزر المستقبل' : 'Abattoir destinataire'}
+                    </span>
+                  </div>
+                  <p className="text-sm theme-text-primary ml-6">{transfert.abattoir_destinataire.nom}</p>
+                  <p className="text-xs theme-text-secondary ml-6">
+                    {transfert.abattoir_destinataire.wilaya}, {transfert.abattoir_destinataire.commune}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bêtes du transfert */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
+              <Package className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {isRTL ? 'الماشية' : 'Bêtes du transfert'}
+              <span className="ml-2 text-sm theme-text-secondary">({transfert.betes?.length || 0} {isRTL ? 'رأس' : 'bêtes'})</span>
+            </h3>
+            
+            {transfert.betes && transfert.betes.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {transfert.betes.map((transfertBete) => (
+                  <div key={transfertBete.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium theme-text-primary">
+                        {transfertBete.bete?.num_boucle || 'N/A'}
+                      </span>
+                      <span className="text-xs theme-text-secondary">
+                        {transfertBete.bete?.poids_vif || 'N/A'} kg
+                      </span>
+                    </div>
+                    <div className="text-xs theme-text-secondary">
+                      {transfertBete.bete?.espece_nom || 'N/A'} - {transfertBete.bete?.sexe || 'N/A'}
+                    </div>
+                    <div className="text-xs theme-text-tertiary mt-1">
+                      {isRTL ? 'أضيف بواسطة:' : 'Ajouté par:'} {transfertBete.ajoute_par?.nom || 'N/A'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Package className="h-12 w-12 mx-auto mb-4 theme-text-tertiary" />
+                <p className="text-sm theme-text-secondary">
+                  {isRTL ? 'لا توجد ماشية في هذا النقل' : 'Aucune bête dans ce transfert'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Notes et motif */}
+          {(transfert.motif || transfert.notes) && (
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
+                <FileText className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'الملاحظات' : 'Notes et informations'}
+              </h3>
+              <div className="space-y-3">
+                {transfert.motif && (
+                  <div>
+                    <label className="text-sm font-medium theme-text-tertiary">
+                      {isRTL ? 'السبب:' : 'Motif:'}
+                    </label>
+                    <p className="text-sm theme-text-primary mt-1">{transfert.motif}</p>
+                  </div>
+                )}
+                {transfert.notes && (
+                  <div>
+                    <label className="text-sm font-medium theme-text-tertiary">
+                      {isRTL ? 'ملاحظات:' : 'Notes:'}
+                    </label>
+                    <p className="text-sm theme-text-primary mt-1">{transfert.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      id: 'users',
+      label: isRTL ? 'المستخدمون' : 'Utilisateurs',
+      content: (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
+              <Users className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {isRTL ? 'المستخدمون المسؤولون' : 'Utilisateurs responsables'}
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center">
+                  <User className={`h-4 w-4 text-blue-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                  <span className="text-sm font-medium theme-text-primary">
+                    {isRTL ? 'أنشأ بواسطة:' : 'Créé par:'}
+                  </span>
+                </div>
+                <span className="text-sm theme-text-primary">{transfert.cree_par.nom}</span>
+              </div>
+              
+              {transfert.valide_par && (
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center">
+                    <CheckCircle className={`h-4 w-4 text-green-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    <span className="text-sm font-medium theme-text-primary">
+                      {isRTL ? 'تم التحقق بواسطة:' : 'Validé par:'}
+                    </span>
+                  </div>
+                  <span className="text-sm theme-text-primary">{transfert.valide_par.nom}</span>
+                </div>
+              )}
+              
+              {transfert.annule_par && (
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center">
+                    <XCircle className={`h-4 w-4 text-red-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    <span className="text-sm font-medium theme-text-primary">
+                      {isRTL ? 'تم الإلغاء بواسطة:' : 'Annulé par:'}
+                    </span>
+                  </div>
+                  <span className="text-sm theme-text-primary">{transfert.annule_par.nom}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Informations d'annulation détaillées */}
+          {transfert.statut === 'ANNULE' && transfert.annule_par && (
+            <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg border border-red-200 dark:border-red-800">
+              <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-4 flex items-center">
+                <XCircle className={`h-5 w-5 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'تفاصيل الإلغاء' : 'Détails de l\'annulation'}
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-red-700 dark:text-red-300">
+                    {isRTL ? 'ألغاه:' : 'Annulé par:'}
+                  </span>
+                  <span className="text-sm font-medium text-red-800 dark:text-red-200">
+                    {transfert.annule_par.nom}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-red-700 dark:text-red-300">
+                    {isRTL ? 'تاريخ الإلغاء:' : 'Date d\'annulation:'}
+                  </span>
+                  <span className="text-sm text-red-800 dark:text-red-200">
+                    {formatDate(transfert.date_annulation || '')}
+                  </span>
+                </div>
+                {transfert.notes && transfert.notes.includes('Annulation:') && (
+                  <div>
+                    <span className="text-sm text-red-700 dark:text-red-300">
+                      {isRTL ? 'سبب الإلغاء:' : 'Motif d\'annulation:'}
+                    </span>
+                    <p className="text-sm text-red-800 dark:text-red-200 mt-1">
+                      {transfert.notes.split('Annulation:')[1]?.trim() || 'Non spécifié'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      id: 'reception',
+      label: isRTL ? 'الاستقبال' : 'Réception',
+      content: transfert.reception ? (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
+              <CheckCircle className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {isRTL ? 'الاستقبال المرتبط' : 'Réception associée'}
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm theme-text-tertiary">{isRTL ? 'رقم الاستقبال:' : 'Numéro de réception:'}</span>
+                <span className="text-sm font-medium theme-text-primary">{transfert.reception.numero_reception}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm theme-text-tertiary">{isRTL ? 'الحالة:' : 'Statut:'}</span>
+                <span className="text-sm theme-text-primary">{transfert.reception.statut_display}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm theme-text-tertiary">{isRTL ? 'الماشية المستلمة:' : 'Bêtes reçues:'}</span>
+                <span className="text-sm theme-text-primary">
+                  {transfert.reception.nombre_betes_recues} / {transfert.reception.nombre_betes_attendues}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm theme-text-tertiary">{isRTL ? 'معدل الاستقبال:' : 'Taux de réception:'}</span>
+                <span className="text-sm theme-text-primary">{transfert.reception.taux_reception}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm theme-text-tertiary">{isRTL ? 'تاريخ الإنشاء:' : 'Date de création:'}</span>
+                <span className="text-sm theme-text-primary">{formatDate(transfert.reception.date_creation)}</span>
+              </div>
+              {transfert.reception.date_reception && (
+                <div className="flex justify-between">
+                  <span className="text-sm theme-text-tertiary">{isRTL ? 'تاريخ الاستقبال:' : 'Date de réception:'}</span>
+                  <span className="text-sm theme-text-primary">{formatDate(transfert.reception.date_reception)}</span>
+                </div>
+              )}
+            </div>
+            <div className="mt-4">
+              <button
+                onClick={() => transfert.reception && router.push(`/dashboard/reception/${transfert.reception.id}`)}
+                className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Eye className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'عرض الاستقبال' : 'Voir la réception'}
+              </button>
+            </div>
           </div>
         </div>
-      </Layout>
-    );
-  }
+      ) : (
+        <div className="text-center py-12">
+          <CheckCircle className="h-12 w-12 mx-auto mb-4 theme-text-tertiary" />
+          <h3 className="text-lg font-medium mb-2 theme-text-primary">
+            {isRTL ? 'لا يوجد استقبال مرتبط' : 'Aucune réception associée'}
+          </h3>
+          <p className="theme-text-secondary">
+            {isRTL ? 'هذا النقل لا يحتوي على استقبال مرتبط' : 'Ce transfert n\'a pas de réception associée'}
+          </p>
+        </div>
+      )
+    }
+  ];
 
   return (
     <Layout>
@@ -236,620 +509,157 @@ const TransfertDetailPage = () => {
         <div className="shadow-sm border-b theme-bg-elevated theme-border-primary theme-transition">
           <div className="px-6 py-4">
             <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-              <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse space-x-4' : 'space-x-4'}`}>
-                <button
+              <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-4' : 'space-x-4'}`}>
+                <button 
                   onClick={() => router.back()}
-                  className="p-2 rounded-lg theme-bg-secondary hover:theme-bg-elevated theme-text-primary theme-transition"
+                  className="p-2 rounded-lg theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
                 <div className={isRTL ? 'text-right' : 'text-left'}>
                   <h1 className={`text-2xl font-bold flex items-center theme-text-primary theme-transition ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <ArrowRightLeft className={`h-7 w-7 text-primary-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
-                    {isRTL ? 'تفاصيل النقل' : 'Détails du transfert'}
+                    <Truck className={`h-7 w-7 text-primary-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
+                    {transfert.numero_transfert}
                   </h1>
                   <p className="mt-1 theme-text-secondary theme-transition">
-                    {transfert.numero_transfert}
+                    {isRTL ? 'تفاصيل النقل' : 'Détails du transfert'}
                   </p>
                 </div>
               </div>
               <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
-                {canConfirmReception && (
+                <button 
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition disabled:opacity-50 border theme-border-primary hover:theme-border-secondary"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} ${refreshing ? 'animate-spin' : ''}`} />
+                  {isRTL ? 'تحديث' : 'Actualiser'}
+                </button>
+                {getStatusBadge(transfert.statut)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Messages de succès/erreur */}
+        {successMessage && (
+          <div className="px-6 py-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                <span className="text-green-800">{successMessage}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="px-6 py-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <XCircle className="h-5 w-5 text-red-600 mr-2" />
+                <span className="text-red-800">{errorMessage}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Actions disponibles */}
+        {(transfert.peut_etre_livre || transfert.peut_etre_annule || transfert.statut === 'EN_COURS') ? (
+          <div className="px-6 py-4">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold theme-text-primary mb-4 flex items-center">
+                <Activity className={`h-5 w-5 text-primary-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'الإجراءات المتاحة' : 'Actions disponibles'}
+              </h3>
+              <div className={`flex ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
+                {transfert.statut === 'EN_COURS' && transfert.est_complet && (
                   <button
-                    onClick={() => setShowConfirmModal(true)}
-                    className="px-4 py-2 rounded-lg flex items-center bg-green-600 hover:bg-green-700 text-white font-medium shadow-lg theme-transition focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                    onClick={handleMettreEnLivraison}
+                    disabled={isProcessing}
+                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center"
                   >
-                    <CheckCircle className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                    {isRTL ? 'تأكيد الاستلام' : 'Confirmer la réception'}
+                    <Truck className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    {isRTL ? 'بدء التسليم' : 'Mettre en livraison'}
                   </button>
                 )}
-                {!canConfirmReception && user && transfert && user.abattoir && transfert.statut === 'EN_COURS' && (
-                  <div className="px-4 py-2 rounded-lg flex items-center bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700">
-                    <AlertCircle className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                    <span className="text-sm">
-                      {isRTL 
-                        ? `يمكن فقط لمستخدمي ${transfert.abattoir_destinataire.nom} تأكيد الاستلام`
-                        : `Seuls les utilisateurs de ${transfert.abattoir_destinataire.nom} peuvent confirmer la réception`
-                      }
-                    </span>
-                  </div>
-                )}
-                <button 
-                  onClick={() => window.print()}
-                  className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary"
-                >
-                  <Printer className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                  {isRTL ? 'طباعة' : 'Imprimer'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-6 py-6 space-y-6">
-          {/* Informations générales */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Carte principale */}
-            <div className="lg:col-span-2">
-              <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary p-6 theme-transition">
-                <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse space-x-3' : 'space-x-3'} mb-6`}>
-                  <div className="p-3 bg-primary-100 dark:bg-primary-900/50 rounded-lg">
-                    <ArrowRightLeft className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold theme-text-primary theme-transition">
-                      {isRTL ? 'معلومات النقل' : 'Informations du transfert'}
-                    </h2>
-                    <p className="theme-text-secondary theme-transition">
-                      {transfert.numero_transfert}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Abattoir expéditeur */}
-                  <div className="space-y-4">
-                    <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse space-x-2' : 'space-x-2'}`}>
-                      <Truck className="h-5 w-5 text-blue-600" />
-                      <h3 className="font-medium theme-text-primary theme-transition">
-                        {isRTL ? 'المجزر المصدر' : 'Abattoir expéditeur'}
-                      </h3>
-                    </div>
-                    <div className="pl-7 space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Building2 className="h-4 w-4 theme-text-secondary" />
-                        <span className="font-medium theme-text-primary theme-transition">
-                          {transfert.abattoir_expediteur.nom}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="h-4 w-4 theme-text-secondary" />
-                        <span className="theme-text-secondary theme-transition">
-                          {transfert.abattoir_expediteur.commune}, {transfert.abattoir_expediteur.wilaya}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Abattoir destinataire */}
-                  <div className="space-y-4">
-                    <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse space-x-2' : 'space-x-2'}`}>
-                      <Package className="h-5 w-5 text-green-600" />
-                      <h3 className="font-medium theme-text-primary theme-transition">
-                        {isRTL ? 'المجزر الوجهة' : 'Abattoir destinataire'}
-                      </h3>
-                    </div>
-                    <div className="pl-7 space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Building2 className="h-4 w-4 theme-text-secondary" />
-                        <span className="font-medium theme-text-primary theme-transition">
-                          {transfert.abattoir_destinataire.nom}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="h-4 w-4 theme-text-secondary" />
-                        <span className="theme-text-secondary theme-transition">
-                          {transfert.abattoir_destinataire.commune}, {transfert.abattoir_destinataire.wilaya}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Carte de statut */}
-            <div>
-              <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary p-6 theme-transition">
-                <h3 className="text-lg font-semibold theme-text-primary theme-transition mb-4">
-                  {isRTL ? 'حالة النقل' : 'Statut du transfert'}
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    {getStatusBadge(transfert.statut)}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 theme-text-secondary" />
-                      <span className="text-sm theme-text-secondary theme-transition">
-                        {isRTL ? 'تاريخ الإنشاء:' : 'Date de création:'} {formatDate(transfert.date_creation)}
+                {transfert.statut === 'EN_LIVRAISON' && (
+                  <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <div className="flex items-center">
+                      <Truck className={`h-5 w-5 text-orange-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                      <span className="text-orange-800 dark:text-orange-200 font-medium">
+                        {isRTL ? 'النقل في الطريق' : 'Transfert en cours de livraison'}
                       </span>
                     </div>
-                    {transfert.date_livraison && (
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-sm theme-text-secondary theme-transition">
-                          {isRTL ? 'تاريخ التسليم:' : 'Date de livraison:'} {formatDate(transfert.date_livraison)}
-                        </span>
-                      </div>
-                    )}
-                    {transfert.date_annulation && (
-                      <div className="flex items-center space-x-2">
-                        <XCircle className="h-4 w-4 text-red-600" />
-                        <span className="text-sm theme-text-secondary theme-transition">
-                          {isRTL ? 'تاريخ الإلغاء:' : 'Date d\'annulation:'} {formatDate(transfert.date_annulation)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Informations sur les bêtes */}
-          <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary p-6 theme-transition">
-            <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse space-x-3' : 'space-x-3'} mb-6`}>
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold theme-text-primary theme-transition">
-                  {isRTL ? 'البهائم المنقولة' : 'Bêtes transférées'}
-                </h2>
-                <p className="theme-text-secondary theme-transition">
-                  {transfert.nombre_betes} {isRTL ? 'رأس' : 'têtes'}
-                </p>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y theme-border-secondary theme-transition">
-                <thead className="theme-bg-secondary theme-transition">
-                  <tr>
-                    <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                      {isRTL ? 'رقم التعريف' : 'N° Identification'}
-                    </th>
-                    <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                      {isRTL ? 'النوع' : 'Espèce'}
-                    </th>
-                    <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                      {isRTL ? 'الجنس' : 'Sexe'}
-                    </th>
-                    <th className={`px-6 py-3 ${isRTL ? 'text-right' : 'text-left'} text-xs font-medium uppercase tracking-wider theme-text-tertiary theme-transition`}>
-                      {isRTL ? 'الوزن (kg)' : 'Poids (kg)'}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y theme-bg-elevated theme-border-secondary theme-transition">
-                  {transfert.betes.map((bete) => (
-                    <tr key={bete.id} className="transition-colors hover:theme-bg-secondary">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Hash className="h-4 w-4 theme-text-secondary mr-2" />
-                          <span className="text-sm font-medium theme-text-primary theme-transition">
-                            {bete.num_boucle}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm theme-text-primary theme-transition">
-                          {bete.espece_nom}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm theme-text-primary theme-transition">
-                          {bete.sexe}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Weight className="h-4 w-4 theme-text-secondary mr-2" />
-                          <span className="text-sm theme-text-primary theme-transition">
-                            {bete.poids_vif} kg
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Informations sur les utilisateurs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Créateur */}
-            <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary p-6 theme-transition">
-              <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse space-x-3' : 'space-x-3'} mb-4`}>
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
-                  <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <h3 className="font-semibold theme-text-primary theme-transition">
-                  {isRTL ? 'أنشأ بواسطة' : 'Créé par'}
-                </h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4 theme-text-secondary" />
-                  <span className="font-medium theme-text-primary theme-transition">
-                    {transfert.cree_par.nom}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm theme-text-secondary theme-transition">
-                    @{transfert.cree_par.username}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Validateur */}
-            {transfert.valide_par && (
-              <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary p-6 theme-transition">
-                <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse space-x-3' : 'space-x-3'} mb-4`}>
-                  <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
-                    <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h3 className="font-semibold theme-text-primary theme-transition">
-                    {isRTL ? 'تم التحقق بواسطة' : 'Validé par'}
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 theme-text-secondary" />
-                    <span className="font-medium theme-text-primary theme-transition">
-                      {transfert.valide_par.nom}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm theme-text-secondary theme-transition">
-                      @{transfert.valide_par.username}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Note */}
-          {transfert.note && (
-            <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary p-6 theme-transition">
-              <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse space-x-3' : 'space-x-3'} mb-4`}>
-                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg">
-                  <FileText className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                </div>
-                <h3 className="font-semibold theme-text-primary theme-transition">
-                  {isRTL ? 'ملاحظة' : 'Note'}
-                </h3>
-              </div>
-              <p className="theme-text-primary theme-transition">
-                {transfert.note}
-              </p>
-            </div>
-          )}
-
-          {/* Informations sur les permissions */}
-          {user && transfert && (
-            <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary p-6 theme-transition">
-              <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse space-x-3' : 'space-x-3'} mb-4`}>
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                  <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <h3 className="font-semibold theme-text-primary theme-transition">
-                  {isRTL ? 'معلومات الصلاحيات' : 'Informations sur les permissions'}
-                </h3>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="theme-text-secondary theme-transition">
-                    {isRTL ? 'المجزر الخاص بك:' : 'Votre abattoir:'}
-                  </span>
-                  <span className="font-medium theme-text-primary theme-transition">
-                    {user.abattoir ? user.abattoir.nom : (isRTL ? 'غير محدد' : 'Non défini')}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="theme-text-secondary theme-transition">
-                    {isRTL ? 'المجزر الوجهة:' : 'Abattoir destinataire:'}
-                  </span>
-                  <span className="font-medium theme-text-primary theme-transition">
-                    {transfert.abattoir_destinataire.nom}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="theme-text-secondary theme-transition">
-                    {isRTL ? 'يمكنك تأكيد الاستلام:' : 'Vous pouvez confirmer la réception:'}
-                  </span>
-                  <span className={`font-medium ${canConfirmReception ? 'text-green-600' : 'text-red-600'}`}>
-                    {canConfirmReception ? (isRTL ? 'نعم' : 'Oui') : (isRTL ? 'لا' : 'Non')}
-                  </span>
-                </div>
-                
-                
-                {!canConfirmReception && user.abattoir && transfert.statut === 'EN_COURS' && (
-                  <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                      {isRTL 
-                        ? `لا يمكنك تأكيد استلام هذا النقل لأنك تنتمي إلى ${user.abattoir.nom} وليس إلى ${transfert.abattoir_destinataire.nom}`
-                        : `Vous ne pouvez pas confirmer la réception de ce transfert car vous appartenez à ${user.abattoir.nom} et non à ${transfert.abattoir_destinataire.nom}`
-                      }
+                    <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                      {isRTL ? 'يجب على المجزر المستقبل تأكيد الاستقبال' : 'L\'abattoir destinataire doit confirmer la réception'}
                     </p>
                   </div>
                 )}
+                {transfert.peut_etre_annule && transfert.statut === 'EN_COURS' && (
+                  <button
+                    onClick={() => setShowAnnulerModal(true)}
+                    disabled={isProcessing}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center"
+                  >
+                    <XCircle className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    {isRTL ? 'إلغاء النقل' : 'Annuler le transfert'}
+                  </button>
+                )}
               </div>
             </div>
-          )}
+          </div>
+        ) : null}
+
+        {/* Contenu principal avec onglets */}
+        <div className="px-6 py-6">
+          <Tabs tabs={tabs} />
         </div>
 
-        {/* Modal de confirmation de réception détaillée */}
-        {showConfirmModal && (
+        {/* Modal d'annulation */}
+        {showAnnulerModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="theme-bg-elevated theme-transition rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-              <div className={`flex items-center justify-between mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <h3 className="text-xl font-semibold theme-text-primary theme-transition">
-                  {isRTL ? 'تأكيد استلام النقل' : 'Confirmer la réception'}
-                </h3>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold theme-text-primary mb-4">
+                {isRTL ? 'إلغاء النقل' : 'Annuler le transfert'}
+              </h3>
+              <p className="text-sm theme-text-secondary mb-4">
+                {isRTL ? 'هل أنت متأكد من إلغاء هذا النقل؟ يمكنك إضافة سبب الإلغاء أدناه.' : 'Êtes-vous sûr de vouloir annuler ce transfert ? Vous pouvez ajouter un motif d\'annulation ci-dessous.'}
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium theme-text-primary mb-2">
+                  {isRTL ? 'سبب الإلغاء (اختياري):' : 'Motif d\'annulation (optionnel):'}
+                </label>
+                <textarea
+                  value={motifAnnulation}
+                  onChange={(e) => setMotifAnnulation(e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 theme-bg-elevated theme-text-primary"
+                  rows={3}
+                  placeholder={isRTL ? 'أدخل سبب الإلغاء...' : 'Entrez le motif d\'annulation...'}
+                />
+              </div>
+              <div className={`flex ${isRTL ? 'space-x-reverse space-x-3' : 'space-x-3'} justify-end`}>
                 <button
-                  onClick={resetModal}
-                  className="p-1 hover:theme-bg-secondary rounded-full theme-transition"
+                  onClick={() => {
+                    setShowAnnulerModal(false);
+                    setMotifAnnulation('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg theme-text-primary hover:theme-bg-secondary"
                 >
-                  <XCircle className="h-5 w-5 theme-text-secondary" />
+                  {isRTL ? 'إلغاء' : 'Annuler'}
+                </button>
+                <button
+                  onClick={handleAnnuler}
+                  disabled={isProcessing}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isProcessing ? (isRTL ? 'جاري الإلغاء...' : 'Annulation...') : (isRTL ? 'تأكيد الإلغاء' : 'Confirmer l\'annulation')}
                 </button>
               </div>
-              
-              {/* Étape 1: Compter les bêtes reçues */}
-              {step === 'count' && (
-                <div className="space-y-6">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <div className="flex items-start">
-                      <Users className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                      <div className="ml-3">
-                        <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                          {isRTL ? 'الخطوة 1: عد البهائم المستلمة' : 'Étape 1: Compter les bêtes reçues'}
-                        </h4>
-                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                          {isRTL 
-                            ? `عدد البهائم في النقل: ${transfert.nombre_betes}`
-                            : `Nombre de bêtes dans le transfert: ${transfert.nombre_betes}`
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium theme-text-primary mb-2">
-                      {isRTL ? 'كم عدد البهائم التي استلمتها فعلياً؟' : 'Combien de bêtes avez-vous réellement reçues ?'}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max={transfert.nombre_betes}
-                      value={receivedBetesCount}
-                      onChange={(e) => setReceivedBetesCount(parseInt(e.target.value) || 0)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-secondary theme-border-primary theme-text-primary theme-transition"
-                      placeholder="0"
-                    />
-                    {receivedBetesCount < transfert.nombre_betes && (
-                      <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
-                        {isRTL 
-                          ? `⚠️ عدد أقل من المتوقع. ${transfert.nombre_betes - receivedBetesCount} بهيمة مفقودة.`
-                          : `⚠️ Nombre inférieur à celui attendu. ${transfert.nombre_betes - receivedBetesCount} bêtes manquantes.`
-                        }
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <button
-                      onClick={resetModal}
-                      className="flex-1 px-4 py-2 rounded-lg theme-bg-secondary hover:theme-bg-elevated theme-text-primary theme-transition border theme-border-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                    >
-                      {isRTL ? 'إلغاء' : 'Annuler'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (receivedBetesCount < transfert.nombre_betes) {
-                          setStep('missing');
-                        } else {
-                          setStep('confirm');
-                        }
-                      }}
-                      disabled={receivedBetesCount === 0}
-                      className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isRTL ? 'التالي' : 'Suivant'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Étape 2: Identifier les bêtes manquantes */}
-              {step === 'missing' && (
-                <div className="space-y-6">
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                    <div className="flex items-start">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                      <div className="ml-3">
-                        <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                          {isRTL ? 'الخطوة 2: تحديد البهائم المفقودة' : 'Étape 2: Identifier les bêtes manquantes'}
-                        </h4>
-                        <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                          {isRTL 
-                            ? `يرجى إدخال أرقام الحلقات للبهائم المفقودة (${transfert.nombre_betes - receivedBetesCount} بهيمة)`
-                            : `Veuillez entrer les numéros de boucles des bêtes manquantes (${transfert.nombre_betes - receivedBetesCount} bêtes)`
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium theme-text-primary mb-2">
-                      {isRTL ? 'رقم الحلقة للبهيمة المفقودة:' : 'Numéro de boucle de la bête manquante:'}
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newMissingBeteNumber}
-                        onChange={(e) => setNewMissingBeteNumber(e.target.value)}
-                        className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 theme-bg-secondary theme-border-primary theme-text-primary theme-transition"
-                        placeholder={isRTL ? 'مثال: DZ-ALG-2025-1-001171' : 'Ex: DZ-ALG-2025-1-001171'}
-                        onKeyPress={(e) => e.key === 'Enter' && addMissingBete()}
-                      />
-                      <button
-                        onClick={addMissingBete}
-                        className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg theme-transition"
-                      >
-                        {isRTL ? 'إضافة' : 'Ajouter'}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {missingBetesNumbers.length > 0 && (
-                    <div>
-                      <h5 className="text-sm font-medium theme-text-primary mb-2">
-                        {isRTL ? 'البهائم المفقودة:' : 'Bêtes manquantes:'}
-                      </h5>
-                      <div className="space-y-2">
-                        {missingBetesNumbers.map((beteNumber, index) => (
-                          <div key={index} className="flex items-center justify-between bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                            <span className="text-sm font-mono theme-text-primary">{beteNumber}</span>
-                            <button
-                              onClick={() => removeMissingBete(beteNumber)}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <button
-                      onClick={() => setStep('count')}
-                      className="flex-1 px-4 py-2 rounded-lg theme-bg-secondary hover:theme-bg-elevated theme-text-primary theme-transition border theme-border-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                    >
-                      {isRTL ? 'السابق' : 'Précédent'}
-                    </button>
-                    <button
-                      onClick={() => setStep('confirm')}
-                      className="flex-1 px-4 py-2 rounded-lg bg-yellow-600 hover:bg-yellow-700 text-white theme-transition focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
-                    >
-                      {isRTL ? 'التالي' : 'Suivant'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Étape 3: Confirmation finale */}
-              {step === 'confirm' && (
-                <div className="space-y-6">
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                    <div className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                      <div className="ml-3">
-                        <h4 className="text-sm font-medium text-green-800 dark:text-green-200">
-                          {isRTL ? 'الخطوة 3: تأكيد نهائي' : 'Étape 3: Confirmation finale'}
-                        </h4>
-                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                          {isRTL 
-                            ? 'يرجى مراجعة المعلومات قبل التأكيد النهائي'
-                            : 'Veuillez vérifier les informations avant la confirmation finale'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-3">
-                        <div className="text-sm theme-text-secondary">
-                          {isRTL ? 'عدد البهائم في النقل:' : 'Bêtes dans le transfert:'}
-                        </div>
-                        <div className="text-lg font-semibold theme-text-primary">
-                          {transfert.nombre_betes}
-                        </div>
-                      </div>
-                      <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-                        <div className="text-sm theme-text-secondary">
-                          {isRTL ? 'عدد البهائم المستلمة:' : 'Bêtes reçues:'}
-                        </div>
-                        <div className="text-lg font-semibold text-green-600">
-                          {receivedBetesCount}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {missingBetesNumbers.length > 0 && (
-                      <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-                        <div className="text-sm theme-text-secondary mb-2">
-                          {isRTL ? 'البهائم المفقودة:' : 'Bêtes manquantes:'}
-                        </div>
-                        <div className="text-sm font-mono theme-text-primary">
-                          {missingBetesNumbers.join(', ')}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium theme-text-primary mb-2">
-                      {isRTL ? 'اكتب "CONFIRMER" للتأكيد النهائي:' : 'Tapez "CONFIRMER" pour la confirmation finale:'}
-                    </label>
-                    <input
-                      type="text"
-                      value={confirmText}
-                      onChange={(e) => setConfirmText(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 theme-bg-secondary theme-border-primary theme-text-primary theme-transition"
-                      placeholder="CONFIRMER"
-                    />
-                  </div>
-                  
-                  <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <button
-                      onClick={() => setStep('missing')}
-                      className="flex-1 px-4 py-2 rounded-lg theme-bg-secondary hover:theme-bg-elevated theme-text-primary theme-transition border theme-border-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                    >
-                      {isRTL ? 'السابق' : 'Précédent'}
-                    </button>
-                    <button
-                      onClick={handleConfirmReception}
-                      disabled={isConfirming || confirmText !== 'CONFIRMER'}
-                      className="flex-1 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white theme-transition focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isConfirming ? (
-                        <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          {isRTL ? 'جاري التأكيد...' : 'Confirmation...'}
-                        </div>
-                      ) : (
-                        isRTL ? 'تأكيد الاستلام' : 'Confirmer la réception'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
       </div>
     </Layout>
   );
-};
-
-export default TransfertDetailPage;
+}

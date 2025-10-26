@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration Authentification - ALVIAR Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2563eb;
+            margin: 0;
+        }
+        .header p {
+            color: #6b7280;
+            margin: 10px 0 0 0;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+        }
+        .section h3 {
+            margin: 0 0 15px 0;
+            color: #1f2937;
+        }
+        .code {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background 0.2s;
+        }
+        .button:hover {
+            background: #1d4ed8;
+        }
+        .button.success {
+            background: #059669;
+        }
+        .button.success:hover {
+            background: #047857;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Configuration Authentification</h1>
+            <p>ALVIAR Dashboard - Configuration automatique</p>
+        </div>
+
+        <div class="section">
+            <h3>📋 Informations de Connexion</h3>
+            <div class="info">
+                <strong>Token d'authentification:</strong> d79c5797219ba347c138077104375776b80674a9<br>
+                <strong>Utilisateur:</strong> testuser<br>
+                <strong>Abattoir:</strong> Abattoir de Test (Blida)
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🚀 Configuration Automatique</h3>
+            <p>Cliquez sur le bouton ci-dessous pour configurer automatiquement l'authentification :</p>
+            <button class="button" onclick="setupAuth()">🔑 Configurer l'Authentification</button>
+            <button class="button success" onclick="testConnection()">🧪 Tester la Connexion</button>
+            <div id="status"></div>
+        </div>
+
+        <div class="section">
+            <h3>🔍 Configuration Manuelle</h3>
+            <p>Si la configuration automatique ne fonctionne pas, utilisez cette commande dans la console du navigateur :</p>
+            <div class="code">
+localStorage.setItem('django_token', 'd79c5797219ba347c138077104375776b80674a9');
+localStorage.setItem('django_user', '{"id":1,"username":"testuser","email":"test@example.com","is_superuser":true,"is_staff":true,"abattoir":{"id":6,"nom":"Abattoir de Test","wilaya":"Blida","commune":"Blida"}}');
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📝 Étapes Suivantes</h3>
+            <ol>
+                <li>Cliquez sur "Configurer l'Authentification"</li>
+                <li>Cliquez sur "Tester la Connexion" pour vérifier</li>
+                <li>Allez sur <a href="http://localhost:3000/dashboard/transfert" target="_blank">http://localhost:3000/dashboard/transfert</a></li>
+                <li>Rechargez la page si nécessaire</li>
+                <li>L'erreur "Erreur lors du chargement des abattoirs" devrait être résolue !</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function setupAuth() {
+            try {
+                // Configuration du token
+                localStorage.setItem('django_token', 'd79c5797219ba347c138077104375776b80674a9');
+                
+                // Configuration de l'utilisateur
+                const userData = {
+                    id: 1,
+                    username: 'testuser',
+                    email: 'test@example.com',
+                    is_superuser: true,
+                    is_staff: true,
+                    abattoir: {
+                        id: 6,
+                        nom: 'Abattoir de Test',
+                        wilaya: 'Blida',
+                        commune: 'Blida'
+                    }
+                };
+                localStorage.setItem('django_user', JSON.stringify(userData));
+                
+                showStatus('✅ Authentification configurée avec succès !', 'success');
+            } catch (error) {
+                showStatus('❌ Erreur lors de la configuration : ' + error.message, 'error');
+            }
+        }
+
+        function testConnection() {
+            const token = localStorage.getItem('django_token');
+            const user = localStorage.getItem('django_user');
+            
+            if (token && user) {
+                showStatus('✅ Authentification détectée ! Token et utilisateur présents.', 'success');
+            } else {
+                showStatus('❌ Authentification non configurée. Cliquez sur "Configurer l\'Authentification".', 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // Test automatique au chargement
+        window.onload = function() {
+            testConnection();
+        };
+    </script>
+</body>
+</html>

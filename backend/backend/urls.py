@@ -30,7 +30,16 @@ urlpatterns = [
     path('api/transferts/', include('transfert.urls')),
 ]
 
-# Servir les fichiers média en développement
+# Servir les fichiers statiques et média en développement
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    from django.contrib.staticfiles.views import serve
+    from django.urls import re_path
+    
+    # Servir les fichiers statiques
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    
+    # Fallback pour les fichiers statiques
+    urlpatterns += [
+        re_path(r'^static/(?P<path>.*)$', serve),
+    ]

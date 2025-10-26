@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { personnelService, PersonnelResponse, Personnel, PersonnelFilters } from '@/lib/api/personnelService';
 
 // Hook pour récupérer le personnel d'un abattoir
@@ -47,5 +47,74 @@ export const usePersonnelDetail = (personnelId: string) => {
         queryFn: () => personnelService.getPersonnelDetail(personnelId),
         enabled: !!personnelId,
         staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+};
+
+// Hook pour créer un nouveau personnel
+export const useCreatePersonnel = () => {
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: (personnelData: any) => personnelService.createPersonnel(personnelData),
+        onSuccess: (data, variables) => {
+            // Invalider et refetch les queries liées au personnel
+            queryClient.invalidateQueries({ queryKey: ['personnel'] });
+            
+            // Invalider spécifiquement la query du personnel de l'abattoir
+            if (variables.abattoir) {
+                queryClient.invalidateQueries({ 
+                    queryKey: ['personnel', 'abattoir', variables.abattoir] 
+                });
+                queryClient.invalidateQueries({ 
+                    queryKey: ['personnel', 'all', variables.abattoir] 
+                });
+            }
+        },
+        onError: (error) => {
+            console.error('Erreur lors de la création du personnel:', error);
+        }
+    });
+};
+
+// Hook pour mettre à jour un personnel
+export const useUpdatePersonnel = () => {
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: ({ personnelId, personnelData }: { personnelId: string; personnelData: any }) => 
+            personnelService.updatePersonnel(personnelId, personnelData),
+        onSuccess: (data, variables) => {
+            // Invalider et refetch les queries liées au personnel
+            queryClient.invalidateQueries({ queryKey: ['personnel'] });
+            
+            // Invalider spécifiquement la query du personnel de l'abattoir
+            if (data.abattoir) {
+                queryClient.invalidateQueries({ 
+                    queryKey: ['personnel', 'abattoir', data.abattoir] 
+                });
+                queryClient.invalidateQueries({ 
+                    queryKey: ['personnel', 'all', data.abattoir] 
+                });
+            }
+        },
+        onError: (error) => {
+            console.error('Erreur lors de la mise à jour du personnel:', error);
+        }
+    });
+};
+
+// Hook pour supprimer un personnel
+export const useDeletePersonnel = () => {
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        mutationFn: (personnelId: string) => personnelService.deletePersonnel(personnelId),
+        onSuccess: (data, personnelId) => {
+            // Invalider et refetch les queries liées au personnel
+            queryClient.invalidateQueries({ queryKey: ['personnel'] });
+        },
+        onError: (error) => {
+            console.error('Erreur lors de la suppression du personnel:', error);
+        }
     });
 };

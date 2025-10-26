@@ -110,3 +110,5 @@ def retirer_betes_stabulation(request, pk):
 
 
 
+
+

@@ -13,12 +13,15 @@ import {
   CheckCircle,
   XCircle,
   FileText,
-  Loader2
+  Loader2,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { HistoriqueChambreFroide } from '@/lib/api/abattoirService';
 import { useHistoriqueAbattoir } from '@/lib/hooks/useChambresFroides';
+import { exportHistoriqueChambresFroides, exportDetailedReport } from '@/lib/utils/excelExport';
 
 interface TemperatureHistoryProps {
   abattoirId: number;
@@ -26,6 +29,8 @@ interface TemperatureHistoryProps {
   isRTL: boolean;
   onRefresh?: () => void;
   isLoading?: boolean;
+  abattoirName?: string;
+  abattoirLocation?: string;
 }
 
 export default function TemperatureHistory({ 
@@ -33,7 +38,9 @@ export default function TemperatureHistory({
   chambreId, 
   isRTL, 
   onRefresh,
-  isLoading = false 
+  isLoading = false,
+  abattoirName = 'Abattoir',
+  abattoirLocation = 'Algérie'
 }: TemperatureHistoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -125,6 +132,45 @@ export default function TemperatureHistory({
     return format(new Date(dateString), 'HH:mm', { locale: fr });
   };
 
+  // Fonctions d'export Excel
+  const handleExportExcel = () => {
+    if (!historique || historique.length === 0) {
+      alert(isRTL ? 'لا توجد بيانات للتصدير' : 'Aucune donnée à exporter');
+      return;
+    }
+
+    try {
+      exportHistoriqueChambresFroides(historique, {
+        abattoirName,
+        abattoirLocation,
+        exportDate: new Date(),
+        isRTL
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      alert(isRTL ? 'خطأ في التصدير' : 'Erreur lors de l\'export');
+    }
+  };
+
+  const handleExportDetailedReport = () => {
+    if (!historique || historique.length === 0) {
+      alert(isRTL ? 'لا توجد بيانات للتصدير' : 'Aucune donnée à exporter');
+      return;
+    }
+
+    try {
+      exportDetailedReport(historique, {
+        abattoirName,
+        abattoirLocation,
+        exportDate: new Date(),
+        isRTL
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      alert(isRTL ? 'خطأ في التصدير' : 'Erreur lors de l\'export');
+    }
+  };
+
   // Gestion des états de chargement et d'erreur
   if (loadingHistorique) {
     return (
@@ -180,22 +226,42 @@ export default function TemperatureHistory({
                 {isRTL ? 'تاريخ درجات الحرارة' : 'Historique des températures'}
               </span>
             </h2>
-          <button 
-            onClick={() => {
-              refetch();
-              onRefresh?.();
-            }}
-            disabled={loadingHistorique}
-            className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loadingHistorique ? (
-              <Loader2 className={`h-4 w-4 animate-spin ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            ) : (
-              <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            )}
-            {isRTL ? 'تحديث' : 'Actualiser'}
-          </button>
-        </div>
+            <div className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse space-x-3' : 'space-x-3'}`}>
+              <button 
+                onClick={handleExportExcel}
+                disabled={loadingHistorique || !historique || historique.length === 0}
+                className="px-4 py-2 rounded-lg flex items-center bg-green-600 hover:bg-green-700 text-white theme-transition focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isRTL ? 'تصدير Excel' : 'Exporter Excel'}
+              >
+                <Download className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'تصدير Excel' : 'Export Excel'}
+              </button>
+              <button 
+                onClick={handleExportDetailedReport}
+                disabled={loadingHistorique || !historique || historique.length === 0}
+                className="px-4 py-2 rounded-lg flex items-center bg-blue-600 hover:bg-blue-700 text-white theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isRTL ? 'تقرير مفصل' : 'Rapport détaillé'}
+              >
+                <FileSpreadsheet className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                {isRTL ? 'تقرير مفصل' : 'Rapport détaillé'}
+              </button>
+              <button 
+                onClick={() => {
+                  refetch();
+                  onRefresh?.();
+                }}
+                disabled={loadingHistorique}
+                className="px-4 py-2 rounded-lg flex items-center theme-bg-elevated hover:theme-bg-secondary theme-text-primary theme-transition border theme-border-primary hover:theme-border-secondary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingHistorique ? (
+                  <Loader2 className={`h-4 w-4 animate-spin ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                ) : (
+                  <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                )}
+                {isRTL ? 'تحديث' : 'Actualiser'}
+              </button>
+            </div>
+          </div>
 
         {/* Filtres */}
         <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${isRTL ? 'text-right' : 'text-left'}`}>

@@ -119,9 +119,11 @@ export const abattoirStatsService = {
     // Obtenir la liste des abattoirs pour les filtres
     async getAbattoirsList(): Promise<Abattoir[]> {
         try {
-            const response = await djangoApi.get('/abattoirs/');
+            const response = await djangoApi.get('/abattoirs/?page_size=100'); // Récupérer tous les abattoirs
+            console.log('🔍 API Response:', response.data);
             return response.data.results || response.data;
         } catch (error: any) {
+            console.error('❌ Erreur API abattoirs:', error);
             throw new Error('Erreur lors de la récupération de la liste des abattoirs');
         }
     },

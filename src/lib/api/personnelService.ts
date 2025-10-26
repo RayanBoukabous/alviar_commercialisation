@@ -78,7 +78,7 @@ export const personnelService = {
             const url = `/personnel/abattoir/${abattoirId}/?${params.toString()}`;
 
             const response = await djangoApi.get(url);
-            return response.data;
+            return response.data as PersonnelResponse;
         } catch (error: any) {
             console.error('Erreur lors de la récupération du personnel:', error);
             throw new Error(error.response?.data?.error || 'Erreur lors de la récupération du personnel');
@@ -106,7 +106,9 @@ export const personnelService = {
     async getRoles(): Promise<any[]> {
         try {
             const response = await djangoApi.get('/personnel/roles/');
-            return response.data;
+            // L'API retourne un objet avec 'results', on extrait le tableau
+            const data = response.data as any;
+            return data.results || data;
         } catch (error: any) {
             console.error('Erreur lors de la récupération des rôles:', error);
             throw new Error(error.response?.data?.error || 'Erreur lors de la récupération des rôles');
@@ -128,7 +130,7 @@ export const personnelService = {
 
             const url = `/personnel/abattoir/${abattoirId}/?${params.toString()}`;
             const response = await djangoApi.get(url);
-            return response.data;
+            return response.data as PersonnelResponse;
         } catch (error: any) {
             console.error('Erreur lors de la récupération du personnel:', error);
             throw new Error(error.response?.data?.error || 'Erreur lors de la récupération du personnel');
@@ -139,10 +141,42 @@ export const personnelService = {
     async getPersonnelDetail(personnelId: string): Promise<Personnel> {
         try {
             const response = await djangoApi.get(`/personnel/${personnelId}/`);
-            return response.data;
+            return response.data as Personnel;
         } catch (error: any) {
             console.error('Erreur lors de la récupération des détails du personnel:', error);
             throw new Error(error.response?.data?.error || 'Erreur lors de la récupération des détails du personnel');
+        }
+    },
+
+    // Créer un nouveau personnel
+    async createPersonnel(personnelData: any): Promise<Personnel> {
+        try {
+            const response = await djangoApi.post('/personnel/', personnelData);
+            return response.data as Personnel;
+        } catch (error: any) {
+            console.error('Erreur lors de la création du personnel:', error);
+            throw new Error(error.response?.data?.error || 'Erreur lors de la création du personnel');
+        }
+    },
+
+    // Mettre à jour un personnel
+    async updatePersonnel(personnelId: string, personnelData: any): Promise<Personnel> {
+        try {
+            const response = await djangoApi.put(`/personnel/${personnelId}/`, personnelData);
+            return response.data as Personnel;
+        } catch (error: any) {
+            console.error('Erreur lors de la mise à jour du personnel:', error);
+            throw new Error(error.response?.data?.error || 'Erreur lors de la mise à jour du personnel');
+        }
+    },
+
+    // Supprimer un personnel
+    async deletePersonnel(personnelId: string): Promise<void> {
+        try {
+            await djangoApi.delete(`/personnel/${personnelId}/`);
+        } catch (error: any) {
+            console.error('Erreur lors de la suppression du personnel:', error);
+            throw new Error(error.response?.data?.error || 'Erreur lors de la suppression du personnel');
         }
     }
 };

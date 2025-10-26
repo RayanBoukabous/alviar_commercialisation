@@ -1,12 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-    transfertService,
-    Transfert,
-    CreateTransfertRequest,
-    UpdateTransfertStatusRequest,
-    TransfertFilters
-} from '@/lib/api/transfertService';
-import { toast } from 'react-hot-toast';
+import { transfertService, Transfert, TransfertCreate, TransfertUpdate, TransfertFilters, AjouterBete, RetirerBete, LivrerTransfert, AnnulerTransfert, TransfertStats } from '../api/transfertService';
 
 // Clés de requête
 export const transfertKeys = {
@@ -16,11 +9,9 @@ export const transfertKeys = {
     details: () => [...transfertKeys.all, 'detail'] as const,
     detail: (id: number) => [...transfertKeys.details(), id] as const,
     stats: () => [...transfertKeys.all, 'stats'] as const,
-    betesDisponibles: (abattoirId?: number, search?: string, espece?: string, typeProduit?: string, page?: number) =>
-        [...transfertKeys.all, 'betes-disponibles', abattoirId, search, espece, typeProduit, page] as const,
 };
 
-// Hook pour récupérer les transferts
+// Hook pour récupérer tous les transferts
 export const useTransferts = (filters: TransfertFilters = {}) => {
     return useQuery({
         queryKey: transfertKeys.list(filters),
@@ -38,29 +29,12 @@ export const useTransfert = (id: number) => {
     });
 };
 
-// Hook pour récupérer les statistiques
+// Hook pour les statistiques des transferts
 export const useTransfertStats = () => {
     return useQuery({
         queryKey: transfertKeys.stats(),
-        queryFn: transfertService.getTransfertStats,
+        queryFn: () => transfertService.getStats(),
         staleTime: 10 * 60 * 1000, // 10 minutes
-    });
-};
-
-// Hook pour récupérer les bêtes disponibles avec pagination infinie
-export const useBetesDisponibles = (
-    abattoirId?: number,
-    search?: string,
-    espece?: string,
-    typeProduit?: string,
-    page: number = 1,
-    pageSize: number = 30
-) => {
-    return useQuery({
-        queryKey: transfertKeys.betesDisponibles(abattoirId, search, espece, typeProduit, page),
-        queryFn: () => transfertService.getBetesDisponibles(abattoirId, search, espece, typeProduit, page, pageSize),
-        enabled: !!abattoirId && !!espece && !!typeProduit,
-        staleTime: 2 * 60 * 1000, // 2 minutes
     });
 };
 
@@ -69,66 +43,86 @@ export const useCreateTransfert = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: CreateTransfertRequest) => transfertService.createTransfert(data),
-        onSuccess: (newTransfert) => {
-            // Invalider et refetch les listes
+        mutationFn: (data: TransfertCreate) => transfertService.createTransfert(data),
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: transfertKeys.lists() });
             queryClient.invalidateQueries({ queryKey: transfertKeys.stats() });
-
-            // Ajouter le nouveau transfert au cache
-            queryClient.setQueryData(transfertKeys.detail(newTransfert.id), newTransfert);
-
-            toast.success('Transfert créé avec succès');
-        },
-        onError: (error: any) => {
-            console.error('Erreur lors de la création du transfert:', error);
-            toast.error(error.response?.data?.detail || 'Erreur lors de la création du transfert');
         },
     });
 };
 
-// Hook pour mettre à jour le statut d'un transfert
-export const useUpdateTransfertStatus = () => {
+// Hook pour mettre à jour un transfert
+export const useUpdateTransfert = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: UpdateTransfertStatusRequest) => transfertService.updateTransfertStatus(data),
-        onSuccess: (updatedTransfert) => {
-            // Mettre à jour le cache
-            queryClient.setQueryData(transfertKeys.detail(updatedTransfert.id), updatedTransfert);
-
-            // Invalider les listes et stats
+        mutationFn: ({ id, data }: { id: number; data: TransfertUpdate }) =>
+            transfertService.updateTransfert(id, data),
+        onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: transfertKeys.lists() });
-            queryClient.invalidateQueries({ queryKey: transfertKeys.stats() });
-
-            toast.success('Statut mis à jour avec succès');
-        },
-        onError: (error: any) => {
-            console.error('Erreur lors de la mise à jour du statut:', error);
-            toast.error(error.response?.data?.detail || 'Erreur lors de la mise à jour du statut');
+            queryClient.invalidateQueries({ queryKey: transfertKeys.detail(variables.id) });
         },
     });
 };
 
-// Hook pour annuler un transfert
-export const useAnnulerTransfert = () => {
+// Hook pour supprimer un transfert
+export const useDeleteTransfert = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (id: number) => transfertService.annulerTransfert(id),
-        onSuccess: (updatedTransfert) => {
-            // Mettre à jour le cache
-            queryClient.setQueryData(transfertKeys.detail(updatedTransfert.id), updatedTransfert);
-
-            // Invalider les listes et stats
+        mutationFn: (id: number) => transfertService.deleteTransfert(id),
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: transfertKeys.lists() });
             queryClient.invalidateQueries({ queryKey: transfertKeys.stats() });
-
-            toast.success('Transfert annulé avec succès');
         },
-        onError: (error: any) => {
-            console.error('Erreur lors de l\'annulation du transfert:', error);
-            toast.error(error.response?.data?.detail || 'Erreur lors de l\'annulation du transfert');
+    });
+};
+
+// Hook pour ajouter une bête au transfert
+export const useAjouterBete = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, data }: { id: number; data: AjouterBete }) =>
+            transfertService.ajouterBete(id, data),
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transfertKeys.detail(variables.id) });
+            queryClient.invalidateQueries({ queryKey: transfertKeys.lists() });
+        },
+    });
+};
+
+// Hook pour retirer une bête du transfert
+export const useRetirerBete = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, data }: { id: number; data: RetirerBete }) =>
+            transfertService.retirerBete(id, data),
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transfertKeys.detail(variables.id) });
+            queryClient.invalidateQueries({ queryKey: transfertKeys.lists() });
+        },
+    });
+};
+
+// Hook pour mettre un transfert en livraison
+export const useMettreEnLivraisonTransfert = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id: number) => transfertService.mettreEnLivraisonTransfert(id),
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transfertKeys.detail(variables.id) });
+            queryClient.invalidateQueries({ queryKey: transfertKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: transfertKeys.stats() });
+            // Invalider aussi les réceptions car le statut change
+            queryClient.invalidateQueries({ queryKey: ['receptions'] });
+            queryClient.invalidateQueries({ queryKey: ['receptions', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['receptions', 'stats'] });
+            // Invalidation plus agressive
+            queryClient.invalidateQueries({ queryKey: ['receptions'], exact: false });
+            queryClient.refetchQueries({ queryKey: ['receptions'] });
         },
     });
 };
@@ -138,44 +132,69 @@ export const useLivrerTransfert = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (id: number) => transfertService.livrerTransfert(id),
-        onSuccess: (updatedTransfert) => {
-            // Mettre à jour le cache
-            queryClient.setQueryData(transfertKeys.detail(updatedTransfert.id), updatedTransfert);
-
-            // Invalider les listes et stats
+        mutationFn: ({ id, data }: { id: number; data?: LivrerTransfert }) =>
+            transfertService.livrerTransfert(id, data),
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transfertKeys.detail(variables.id) });
             queryClient.invalidateQueries({ queryKey: transfertKeys.lists() });
             queryClient.invalidateQueries({ queryKey: transfertKeys.stats() });
-
-            toast.success('Transfert marqué comme livré');
-        },
-        onError: (error: any) => {
-            console.error('Erreur lors de la livraison du transfert:', error);
-            toast.error(error.response?.data?.detail || 'Erreur lors de la livraison du transfert');
+            // Invalider aussi les réceptions car le statut change
+            queryClient.invalidateQueries({ queryKey: ['receptions'] });
+            queryClient.invalidateQueries({ queryKey: ['receptions', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['receptions', 'stats'] });
         },
     });
 };
 
-// Hook pour confirmer la réception détaillée
-export const useConfirmerReceptionDetaillee = () => {
+// Hook pour annuler un transfert
+export const useAnnulerTransfert = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, data }: { id: number; data: { received_count: number; missing_betes?: string[]; received_betes?: number[] } }) =>
-            transfertService.confirmerReceptionDetaillee(id, data),
-        onSuccess: (response) => {
-            // Mettre à jour le cache
-            queryClient.setQueryData(transfertKeys.detail(response.transfert.id), response.transfert);
-
-            // Invalider les listes et stats
+        mutationFn: ({ id, data }: { id: number; data: AnnulerTransfert }) =>
+            transfertService.annulerTransfert(id, data),
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: transfertKeys.detail(variables.id) });
             queryClient.invalidateQueries({ queryKey: transfertKeys.lists() });
             queryClient.invalidateQueries({ queryKey: transfertKeys.stats() });
+            // Invalider aussi les réceptions
+            queryClient.invalidateQueries({ queryKey: ['receptions'] });
+        },
+    });
+};
 
-            toast.success(`Réception confirmée: ${response.betes_recues} bêtes reçues, ${response.betes_manquantes} manquantes`);
-        },
-        onError: (error: any) => {
-            console.error('Erreur lors de la confirmation de réception:', error);
-            toast.error(error.response?.data?.detail || 'Erreur lors de la confirmation de réception');
-        },
+// Hook pour les transferts de l'utilisateur connecté
+export const useMesTransferts = (filters: Omit<TransfertFilters, 'mes_transferts'> = {}) => {
+    return useTransferts({ ...filters, mes_transferts: true });
+};
+
+// Hook pour les transferts en cours
+export const useTransfertsEnCours = (filters: Omit<TransfertFilters, 'en_cours'> = {}) => {
+    return useTransferts({ ...filters, en_cours: true });
+};
+
+// Hook pour les transferts livrés
+export const useTransfertsLivres = (filters: Omit<TransfertFilters, 'statut'> = {}) => {
+    return useTransferts({ ...filters, statut: 'LIVRE' });
+};
+
+// Hook pour les transferts annulés
+export const useTransfertsAnnules = (filters: Omit<TransfertFilters, 'statut'> = {}) => {
+    return useTransferts({ ...filters, statut: 'ANNULE' });
+};
+
+// Hook pour les transferts par abattoir expéditeur
+export const useTransfertsParAbattoirExpediteur = (abattoirId: number, filters: Omit<TransfertFilters, 'abattoir_expediteur'> = {}) => {
+    return useTransferts({
+        ...filters,
+        abattoir_expediteur: abattoirId,
+    });
+};
+
+// Hook pour les transferts par abattoir destinataire
+export const useTransfertsParAbattoirDestinataire = (abattoirId: number, filters: Omit<TransfertFilters, 'abattoir_destinataire'> = {}) => {
+    return useTransferts({
+        ...filters,
+        abattoir_destinataire: abattoirId,
     });
 };

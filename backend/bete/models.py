@@ -53,6 +53,8 @@ class Bete(models.Model):
     num_boucle_post_abattage = models.CharField(
         max_length=50, 
         unique=True, 
+        blank=True,
+        null=True,
         verbose_name=_('Numéro d\'identification post abattage')
     )
     espece = models.ForeignKey('bete.Espece', on_delete=models.PROTECT, verbose_name=_('Espèce'))
@@ -135,27 +137,28 @@ class Bete(models.Model):
         return self.statut == 'VIVANT'
 
 
-class HistoriqueTransfertBete(models.Model):
-    """Modèle pour l'historique des transferts de bêtes"""
-    
-    bete = models.ForeignKey(Bete, on_delete=models.CASCADE, related_name='historique_transferts', verbose_name=_('Bête'))
-    transfert = models.ForeignKey('transfert.Transfert', on_delete=models.CASCADE, related_name='historique_betes', verbose_name=_('Transfert'))
-    abattoir_source = models.ForeignKey('abattoir.Abattoir', on_delete=models.CASCADE, related_name='transferts_sortants', verbose_name=_('Abattoir source'))
-    abattoir_destination = models.ForeignKey('abattoir.Abattoir', on_delete=models.CASCADE, related_name='transferts_entrants', verbose_name=_('Abattoir destination'))
-    date_transfert = models.DateTimeField(auto_now_add=True, verbose_name=_('Date du transfert'))
-    statut_transfert = models.CharField(max_length=20, choices=[
-        ('EN_COURS', _('En cours')),
-        ('LIVRE', _('Livré')),
-        ('ANNULE', _('Annulé')),
-    ], default='EN_COURS', verbose_name=_('Statut du transfert'))
-    note = models.TextField(blank=True, null=True, verbose_name=_('Note'))
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Date de création'))
-    
-    class Meta:
-        verbose_name = _('Historique de transfert de bête')
-        verbose_name_plural = _('Historiques de transferts de bêtes')
-        ordering = ['-date_transfert']
-        unique_together = ['bete', 'transfert']  # Une bête ne peut avoir qu'un seul historique par transfert
-    
-    def __str__(self):
-        return f"{self.bete.num_boucle} - {self.abattoir_source.nom} → {self.abattoir_destination.nom} ({self.get_statut_transfert_display()})"
+# Temporairement commenté car l'app 'transfert' n'existe pas
+# class HistoriqueTransfertBete(models.Model):
+#     """Modèle pour l'historique des transferts de bêtes"""
+#     
+#     bete = models.ForeignKey(Bete, on_delete=models.CASCADE, related_name='historique_transferts', verbose_name=_('Bête'))
+#     transfert = models.ForeignKey('transfert.Transfert', on_delete=models.CASCADE, related_name='historique_betes', verbose_name=_('Transfert'))
+#     abattoir_source = models.ForeignKey('abattoir.Abattoir', on_delete=models.CASCADE, related_name='transferts_sortants', verbose_name=_('Abattoir source'))
+#     abattoir_destination = models.ForeignKey('abattoir.Abattoir', on_delete=models.CASCADE, related_name='transferts_entrants', verbose_name=_('Abattoir destination'))
+#     date_transfert = models.DateTimeField(auto_now_add=True, verbose_name=_('Date du transfert'))
+#     statut_transfert = models.CharField(max_length=20, choices=[
+#         ('EN_COURS', _('En cours')),
+#         ('LIVRE', _('Livré')),
+#         ('ANNULE', _('Annulé')),
+#     ], default='EN_COURS', verbose_name=_('Statut du transfert'))
+#     note = models.TextField(blank=True, null=True, verbose_name=_('Note'))
+#     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Date de création'))
+#     
+#     class Meta:
+#         verbose_name = _('Historique de transfert de bête')
+#         verbose_name_plural = _('Historiques de transferts de bêtes')
+#         ordering = ['-date_transfert']
+#         unique_together = ['bete', 'transfert']  # Une bête ne peut avoir qu'un seul historique par transfert
+#     
+#     def __str__(self):
+#         return f"{self.bete.num_boucle} - {self.abattoir_source.nom} → {self.abattoir_destination.nom} ({self.get_statut_transfert_display()})"

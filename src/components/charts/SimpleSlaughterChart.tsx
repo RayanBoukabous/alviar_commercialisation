@@ -1,0 +1,268 @@
+'use client';
+
+import React, { useState } from 'react';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+import { useTheme } from '@/lib/theme/ThemeProvider';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
+
+// Enregistrer les composants Chart.js
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+interface SlaughterData {
+  abattoir: string;
+  today: number;
+  week: number;
+  month: number;
+}
+
+interface SimpleSlaughterChartProps {
+  isLoading?: boolean;
+}
+
+export function SimpleSlaughterChart({ isLoading = false }: SimpleSlaughterChartProps) {
+  const { theme } = useTheme();
+  const { t, loading: translationLoading, currentLocale } = useLanguage();
+  const isRTL = currentLocale === 'ar';
+  const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month'>('today');
+
+  // Données mock statiques pour éviter les appels API
+  const mockSlaughterData: SlaughterData[] = [
+    { abattoir: 'Abattoir Central', today: 45, week: 320, month: 1280 },
+    { abattoir: 'Abattoir Nord', today: 38, week: 280, month: 1120 },
+    { abattoir: 'Abattoir Sud', today: 52, week: 380, month: 1520 },
+    { abattoir: 'Abattoir Est', today: 41, week: 290, month: 1160 },
+    { abattoir: 'Abattoir Ouest', today: 35, week: 250, month: 1000 },
+  ];
+
+  const timeFilters = [
+    { key: 'today', label: 'Aujourd\'hui' },
+    { key: 'week', label: 'Cette semaine' },
+    { key: 'month', label: 'Ce mois' },
+  ];
+
+  const currentData = React.useMemo(() => {
+    return mockSlaughterData.map(item => ({
+      abattoir: item.abattoir,
+      value: item[timeFilter]
+    }));
+  }, [timeFilter]);
+
+  const chartData = React.useMemo(() => ({
+    labels: currentData.map(item => item.abattoir),
+    datasets: [
+      {
+        label: `Animaux abattus (${timeFilters.find(f => f.key === timeFilter)?.label})`,
+        data: currentData.map(item => item.value),
+        backgroundColor: [
+          'rgba(239, 68, 68, 0.9)',   // Rouge vif
+          'rgba(220, 38, 38, 0.9)',   // Rouge moyen
+          'rgba(185, 28, 28, 0.9)',   // Rouge foncé
+          'rgba(153, 27, 27, 0.9)',   // Rouge très foncé
+          'rgba(127, 29, 29, 0.9)',   // Rouge bordeaux
+        ],
+        borderColor: [
+          'rgba(239, 68, 68, 1)',
+          'rgba(220, 38, 38, 1)',
+          'rgba(185, 28, 28, 1)',
+          'rgba(153, 27, 27, 1)',
+          'rgba(127, 29, 29, 1)',
+        ],
+        borderWidth: 3,
+        borderRadius: 8,
+        borderSkipped: false,
+        hoverBackgroundColor: [
+          'rgba(239, 68, 68, 1)',
+          'rgba(220, 38, 38, 1)',
+          'rgba(185, 28, 28, 1)',
+          'rgba(153, 27, 27, 1)',
+          'rgba(127, 29, 29, 1)',
+        ],
+        hoverBorderWidth: 4,
+      },
+    ],
+  }), [currentData, timeFilter, timeFilters]);
+
+  const chartOptions = React.useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: {
+      duration: 1500,
+      easing: 'easeInOutQuart',
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index' as const,
+    },
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: theme === 'dark' ? '#f5f5f5' : '#0f172a',
+          font: {
+            size: 13,
+            weight: '600',
+          },
+          usePointStyle: true,
+          pointStyle: 'circle',
+          padding: 20,
+        },
+      },
+      title: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+        titleColor: theme === 'dark' ? '#f5f5f5' : '#0f172a',
+        bodyColor: theme === 'dark' ? '#d4d4d4' : '#475569',
+        borderColor: '#ef4444',
+        borderWidth: 2,
+        cornerRadius: 12,
+        displayColors: true,
+        titleFont: {
+          size: 14,
+          weight: 'bold',
+        },
+        bodyFont: {
+          size: 13,
+        },
+        padding: 12,
+        callbacks: {
+          label: function(context: any) {
+            const label = context.label || '';
+            const value = context.parsed.y;
+            return `${label}: ${value} animaux`;
+          }
+        }
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+          drawBorder: false,
+        },
+        ticks: {
+          color: theme === 'dark' ? '#d4d4d4' : '#475569',
+          font: {
+            size: 12,
+            weight: '500',
+          },
+          padding: 8,
+          callback: function(value: any) {
+            return value + ' animaux';
+          }
+        },
+        border: {
+          display: false,
+        },
+      },
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: theme === 'dark' ? '#d4d4d4' : '#475569',
+          mirror: isRTL,
+          font: {
+            size: 11,
+            weight: '500',
+          },
+          padding: 8,
+          maxRotation: 45,
+          minRotation: 0,
+        },
+        border: {
+          display: false,
+        },
+      },
+    },
+  }), [theme, isRTL, timeFilter, timeFilters]);
+
+  if (isLoading || translationLoading) {
+    return (
+      <div className="theme-bg-elevated rounded-lg p-6 shadow-sm theme-border-primary border">
+        <div className="h-64 theme-bg-tertiary rounded-lg animate-pulse flex items-center justify-center">
+          <div className="theme-text-tertiary">Chargement du graphique...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="theme-bg-elevated rounded-lg p-6 shadow-sm theme-border-primary border">
+      {/* Header avec filtres */}
+      <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-4`}>
+        <h3 className={`text-lg font-semibold theme-text-primary ${isRTL ? 'text-right' : 'text-left'}`}>
+          Répartition des animaux abattus par abattoir
+        </h3>
+        
+        {/* Filtres de temps */}
+        <div className={`flex ${isRTL ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
+          {timeFilters.map((filter) => (
+            <button
+              key={filter.key}
+              onClick={() => setTimeFilter(filter.key as 'today' | 'week' | 'month')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                timeFilter === filter.key
+                  ? 'bg-red-600 text-white shadow-md'
+                  : 'theme-bg-secondary theme-text-secondary hover:theme-bg-tertiary hover:theme-text-primary'
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Graphique */}
+      <div className="h-64">
+        <Bar data={chartData} options={chartOptions} />
+      </div>
+
+      {/* Statistiques rapides */}
+      <div className="mt-4 grid grid-cols-3 gap-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold theme-text-primary">
+            {currentData.reduce((sum, item) => sum + item.value, 0)}
+          </div>
+          <div className="text-sm theme-text-secondary">
+            Total abattu
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold theme-text-primary">
+            {Math.round(currentData.reduce((sum, item) => sum + item.value, 0) / currentData.length)}
+          </div>
+          <div className="text-sm theme-text-secondary">
+            Moyenne/abattoir
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold theme-text-primary">
+            {currentData.find(item => item.value === Math.max(...currentData.map(d => d.value)))?.abattoir.split(' ')[1] || 'N/A'}
+          </div>
+          <div className="text-sm theme-text-secondary">
+            Plus actif
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

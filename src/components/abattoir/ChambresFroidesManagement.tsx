@@ -27,6 +27,8 @@ import TemperatureHistory from './TemperatureHistory';
 interface ChambresFroidesManagementProps {
   abattoirId: number;
   isRTL: boolean;
+  abattoirName?: string;
+  abattoirLocation?: string;
 }
 
 // Interface pour les statistiques des chambres froides
@@ -367,7 +369,12 @@ const AddTemperatureModal: React.FC<{
 };
 
 // Composant principal
-const ChambresFroidesManagement: React.FC<ChambresFroidesManagementProps> = ({ abattoirId, isRTL }) => {
+const ChambresFroidesManagement: React.FC<ChambresFroidesManagementProps> = ({ 
+  abattoirId, 
+  isRTL, 
+  abattoirName = 'Abattoir',
+  abattoirLocation = 'Algérie'
+}) => {
   const router = useRouter();
   const [showAddChambre, setShowAddChambre] = useState(false);
   const [showAddTemperature, setShowAddTemperature] = useState(false);
@@ -612,6 +619,8 @@ const ChambresFroidesManagement: React.FC<ChambresFroidesManagementProps> = ({ a
             refetchChambres();
           }}
           isLoading={loadingHistorique}
+          abattoirName={abattoirName}
+          abattoirLocation={abattoirLocation}
         />
       )}
 

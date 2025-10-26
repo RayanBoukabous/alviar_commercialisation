@@ -6,7 +6,7 @@ export const livestockKeys = {
     all: ['livestock'] as const,
     lists: () => [...livestockKeys.all, 'list'] as const,
     list: (filters: LivestockFilters) => [...livestockKeys.lists(), filters] as const,
-    live: (filters: Omit<LivestockFilters, 'statut'>) => [...livestockKeys.all, 'live', filters] as const,
+    live: (filters: LivestockFilters) => [...livestockKeys.all, 'live', filters] as const,
     carcasses: (filters: Omit<LivestockFilters, 'statut'>) => [...livestockKeys.all, 'carcasses', filters] as const,
     carcassStats: (filters: Omit<LivestockFilters, 'statut'>) => [...livestockKeys.all, 'carcass-stats', filters] as const,
     stats: () => [...livestockKeys.all, 'stats'] as const,
@@ -34,29 +34,28 @@ export const useLivestock = (filters: LivestockFilters = {}) => {
     });
 };
 
-// Hook pour récupérer les bêtes vivantes
-export const useLiveLivestock = (filters: Omit<LivestockFilters, 'statut'> = {}) => {
-    // Créer une clé de requête unique qui inclut tous les filtres
-    const queryKey = ['livestock', 'live', JSON.stringify(filters)];
+// Hook pour récupérer les bêtes vivantes - optimisé
+export const useLiveLivestock = (filters: LivestockFilters = {}) => {
+    // Optimisation: utiliser une clé de requête stable
+    const queryKey = livestockKeys.live(filters);
 
     return useQuery<LivestockResponse, Error>({
         queryKey,
-        queryFn: () => {
-            console.log('useLiveLivestock queryFn called with filters:', filters);
-            return livestockService.getLiveLivestock(filters);
-        },
-        staleTime: 0, // Toujours considérer les données comme périmées pour permettre le refetch
-        gcTime: 5 * 60 * 1000,
+        queryFn: () => livestockService.getLiveLivestock(filters),
+        staleTime: 30 * 1000, // 30 secondes - données fraîches pour les bêtes vivantes
+        gcTime: 5 * 60 * 1000, // 5 minutes en cache
         retry: (failureCount, error: any) => {
             if (error?.response?.status === 401 || error?.response?.status === 403) {
                 return false;
             }
-            return failureCount < 3;
+            return failureCount < 2; // Réduire les tentatives
         },
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Délai max réduit
         refetchOnWindowFocus: false,
-        refetchOnMount: true,
+        refetchOnMount: false, // Éviter les refetch inutiles
         refetchOnReconnect: true,
+        // Optimisation: utiliser les données en cache si disponibles
+        placeholderData: (previousData) => previousData,
     });
 };
 
@@ -80,23 +79,25 @@ export const useCarcasses = (filters: Omit<LivestockFilters, 'statut'> = {}) => 
     });
 };
 
-// Hook pour récupérer les statistiques
+// Hook pour récupérer les statistiques - optimisé
 export const useLivestockStats = () => {
     return useQuery<LivestockResponse, Error>({
         queryKey: livestockKeys.stats(),
         queryFn: () => livestockService.getLivestockStats(),
-        staleTime: 5 * 60 * 1000, // 5 minutes (les stats changent moins souvent)
-        gcTime: 10 * 60 * 1000,
+        staleTime: 2 * 60 * 1000, // 2 minutes - stats plus fréquemment mises à jour
+        gcTime: 10 * 60 * 1000, // 10 minutes en cache
         retry: (failureCount, error: any) => {
             if (error?.response?.status === 401 || error?.response?.status === 403) {
                 return false;
             }
-            return failureCount < 3;
+            return failureCount < 2; // Réduire les tentatives
         },
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
         refetchOnWindowFocus: false,
-        refetchOnMount: true,
+        refetchOnMount: false, // Éviter les refetch inutiles
         refetchOnReconnect: true,
+        // Optimisation: utiliser les données en cache si disponibles
+        placeholderData: (previousData) => previousData,
     });
 };
 

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test SSE Connection</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .connecting { background-color: #fff3cd; color: #856404; }
+        .log { background-color: #f8f9fa; padding: 10px; border-radius: 5px; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test de connexion SSE</h1>
+    
+    <div id="status" class="status disconnected">
+        Statut: Déconnecté
+    </div>
+    
+    <div>
+        <button onclick="testSSE()">Tester la connexion SSE</button>
+        <button onclick="clearLog()">Effacer les logs</button>
+    </div>
+    
+    <div id="log" class="log"></div>
+    
+    <script>
+        let eventSource = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(status, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = `Statut: ${message}`;
+        }
+        
+        function testSSE() {
+            log('🔌 Début du test SSE...');
+            
+            // Fermer la connexion existante
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            // URL de test SSE
+            const apiUrl = 'http://localhost:8000';
+            const sseUrl = `${apiUrl}/api/abattoirs/events/stabulations/?abattoir_id=global`;
+            
+            log(`🔌 Connexion à: ${sseUrl}`);
+            updateStatus('connecting', 'Connexion en cours...');
+            
+            try {
+                eventSource = new EventSource(sseUrl, {
+                    withCredentials: true
+                });
+                
+                eventSource.onopen = function(event) {
+                    log('✅ Connexion SSE ouverte');
+                    updateStatus('connected', 'Connecté');
+                };
+                
+                eventSource.onmessage = function(event) {
+                    log(`📨 Message reçu: ${event.data}`);
+                };
+                
+                eventSource.addEventListener('connected', function(event) {
+                    log(`📨 Événement 'connected': ${event.data}`);
+                });
+                
+                eventSource.addEventListener('ping', function(event) {
+                    log(`📨 Événement 'ping': ${event.data}`);
+                });
+                
+                eventSource.addEventListener('STABULATION_CREATED', function(event) {
+                    log(`📨 Événement 'STABULATION_CREATED': ${event.data}`);
+                });
+                
+                eventSource.addEventListener('STABULATION_UPDATED', function(event) {
+                    log(`📨 Événement 'STABULATION_UPDATED': ${event.data}`);
+                });
+                
+                eventSource.addEventListener('STABULATION_TERMINATED', function(event) {
+                    log(`📨 Événement 'STABULATION_TERMINATED': ${event.data}`);
+                });
+                
+                eventSource.onerror = function(event) {
+                    log(`❌ Erreur SSE: ${JSON.stringify(event)}`);
+                    updateStatus('disconnected', 'Erreur de connexion');
+                };
+                
+            } catch (error) {
+                log(`❌ Erreur lors de la création de la connexion: ${error.message}`);
+                updateStatus('disconnected', 'Erreur de création');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Test automatique au chargement
+        window.onload = function() {
+            log('🚀 Page chargée, prêt pour le test SSE');
+        };
+    </script>
+</body>
+</html>
+

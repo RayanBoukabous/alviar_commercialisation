@@ -5,7 +5,9 @@ import {
     CreateStabulationRequest,
     UpdateStabulationRequest,
     StabulationStats,
-    StabulationsResponse
+    StabulationsResponse,
+    HistoriqueResponse,
+    HistoriqueStabulation
 } from '@/lib/api/stabulationService';
 import { useLiveLivestock } from './useLivestock';
 import { useEspeces } from './useEspeces';
@@ -102,6 +104,9 @@ export const useCreateStabulation = () => {
     return useMutation({
         mutationFn: (data: CreateStabulationRequest) => stabulationService.createStabulation(data),
         onSuccess: (newStabulation) => {
+            // Invalider toutes les requêtes de stabulations
+            queryClient.invalidateQueries({ queryKey: stabulationKeys.all });
+
             // Invalider les listes de stabulations
             queryClient.invalidateQueries({ queryKey: stabulationKeys.lists() });
 
@@ -114,6 +119,11 @@ export const useCreateStabulation = () => {
                     queryKey: stabulationKeys.abattoir(newStabulation.abattoir)
                 });
             }
+
+            // Invalider les requêtes "all" pour les superusers
+            queryClient.invalidateQueries({
+                queryKey: [...stabulationKeys.all, 'all']
+            });
         },
     });
 };
@@ -175,15 +185,17 @@ export const useTerminerStabulation = () => {
         mutationFn: ({ id, poidsData }: { id: number; poidsData: Array<{ bete_id: number, poids_a_chaud: number, num_boucle_post_abattage: string }> }) =>
             stabulationService.terminerStabulation(id, poidsData),
         onSuccess: (result) => {
-            // Invalider les listes
+            // Invalider les requêtes SEULEMENT en cas de succès
+            queryClient.invalidateQueries({ queryKey: stabulationKeys.all });
             queryClient.invalidateQueries({ queryKey: stabulationKeys.lists() });
-
-            // Invalider les statistiques
             queryClient.invalidateQueries({ queryKey: stabulationKeys.stats() });
-
-            // Invalider la stabulation spécifique
             queryClient.invalidateQueries({ queryKey: stabulationKeys.detail(result.stabulation.id) });
         },
+        onError: (error) => {
+            console.error('Erreur lors de la finalisation:', error);
+            // Ne rien faire en cas d'erreur
+        },
+        retry: false,
     });
 };
 
@@ -195,6 +207,9 @@ export const useAnnulerStabulation = () => {
         mutationFn: ({ id, raisonAnnulation }: { id: number; raisonAnnulation: string }) =>
             stabulationService.annulerStabulation(id, raisonAnnulation),
         onSuccess: (result) => {
+            // Invalider toutes les requêtes de stabulations
+            queryClient.invalidateQueries({ queryKey: stabulationKeys.all });
+
             // Invalider les listes
             queryClient.invalidateQueries({ queryKey: stabulationKeys.lists() });
 
@@ -203,6 +218,11 @@ export const useAnnulerStabulation = () => {
 
             // Invalider la stabulation spécifique
             queryClient.invalidateQueries({ queryKey: stabulationKeys.detail(result.stabulation.id) });
+
+            // Invalider les requêtes "all" pour les superusers
+            queryClient.invalidateQueries({
+                queryKey: [...stabulationKeys.all, 'all']
+            });
         },
     });
 };
@@ -257,11 +277,11 @@ export const useRetirerBetesStabulation = () => {
 export const useBetesDisponibles = (abattoirId: number, especeNom?: string, search?: string, page: number = 1) => {
     return useLiveLivestock({
         abattoir_id: abattoirId,
-        statut: 'VIVANT',
         espece_nom: especeNom,
         search: search,
         page: page,
         page_size: 100 // 100 bêtes par page par défaut
+        // Pas de filtre statut spécifique, donc par défaut VIVANT et EN_STABULATION
     });
 };
 
@@ -291,3 +311,14 @@ export const useBetesDisponiblesInfinite = (abattoirId: number, especeNom?: stri
 export const useEspecesDisponibles = () => {
     return useEspeces();
 };
+
+// Hook pour récupérer l'historique des modifications d'une stabulation
+export const useHistoriqueStabulation = (id: number) => {
+    return useQuery<HistoriqueResponse, Error>({
+        queryKey: [...stabulationKeys.detail(id), 'historique'],
+        queryFn: () => stabulationService.getHistoriqueStabulation(id),
+        enabled: !!id,
+        staleTime: 30 * 1000, // 30 secondes
+    });
+};
+

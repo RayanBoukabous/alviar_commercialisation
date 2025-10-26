@@ -18,7 +18,11 @@ import {
   GraduationCap,
   Briefcase,
   Heart,
-  Star
+  Star,
+  Camera,
+  Download,
+  Eye,
+  Image
 } from 'lucide-react';
 import { Personnel } from '@/lib/api/personnelService';
 
@@ -28,6 +32,16 @@ interface PersonnelDetailProps {
 }
 
 export default function PersonnelDetail({ personnel, isRTL }: PersonnelDetailProps) {
+  // Fonction utilitaire pour s'assurer que les champs sont des tableaux
+  const getCompetences = () => {
+    if (!personnel.competences) return [];
+    return Array.isArray(personnel.competences) ? personnel.competences : [];
+  };
+
+  const getFormations = () => {
+    if (!personnel.formations) return [];
+    return Array.isArray(personnel.formations) ? personnel.formations : [];
+  };
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       ACTIF: { 
@@ -378,8 +392,8 @@ export default function PersonnelDetail({ personnel, isRTL }: PersonnelDetailPro
           </h3>
           
           <div className="space-y-2">
-            {personnel.competences && personnel.competences.length > 0 ? (
-              personnel.competences.map((competence, index) => (
+            {getCompetences().length > 0 ? (
+              getCompetences().map((competence, index) => (
                 <div key={index} className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Star className={`h-4 w-4 text-yellow-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                   <span className="text-sm theme-text-primary theme-transition">{competence}</span>
@@ -400,8 +414,8 @@ export default function PersonnelDetail({ personnel, isRTL }: PersonnelDetailPro
           </h3>
           
           <div className="space-y-2">
-            {personnel.formations && personnel.formations.length > 0 ? (
-              personnel.formations.map((formation, index) => (
+            {getFormations().length > 0 ? (
+              getFormations().map((formation, index) => (
                 <div key={index} className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <GraduationCap className={`h-4 w-4 text-blue-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                   <span className="text-sm theme-text-primary theme-transition">{formation}</span>
@@ -411,6 +425,171 @@ export default function PersonnelDetail({ personnel, isRTL }: PersonnelDetailPro
               <p className="text-sm theme-text-tertiary theme-transition">
                 {isRTL ? 'لا توجد تدريبات مسجلة' : 'Aucune formation enregistrée'}
               </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Documents */}
+      <div className="theme-bg-elevated rounded-lg shadow-sm border theme-border-primary theme-transition p-6">
+        <h2 className="text-lg font-semibold theme-text-primary theme-transition mb-6">
+          {isRTL ? 'الوثائق' : 'Documents'}
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Photo d'identité */}
+          <div className="space-y-3">
+            <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''} mb-3`}>
+              <Camera className={`h-5 w-5 text-primary-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              <h3 className="text-sm font-medium theme-text-primary theme-transition">
+                {isRTL ? 'صورة شخصية' : 'Photo d\'identité'}
+              </h3>
+            </div>
+            
+            {personnel.photo ? (
+              <div className="relative group">
+                <img 
+                  src={personnel.photo} 
+                  alt="Photo d'identité" 
+                  className="w-full h-32 object-cover rounded-lg border theme-border-primary"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => window.open(personnel.photo, '_blank')}
+                      className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
+                      title={isRTL ? 'عرض' : 'Voir'}
+                    >
+                      <Eye className="h-4 w-4 text-gray-700" />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = personnel.photo!;
+                        link.download = `photo_${personnel.nom}_${personnel.prenom}.jpg`;
+                        link.click();
+                      }}
+                      className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
+                      title={isRTL ? 'تحميل' : 'Télécharger'}
+                    >
+                      <Download className="h-4 w-4 text-gray-700" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-lg border theme-border-primary flex items-center justify-center">
+                <div className="text-center">
+                  <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm theme-text-tertiary theme-transition">
+                    {isRTL ? 'لا توجد صورة' : 'Aucune photo'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Carte d'identité recto */}
+          <div className="space-y-3">
+            <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''} mb-3`}>
+              <IdCard className={`h-5 w-5 text-primary-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              <h3 className="text-sm font-medium theme-text-primary theme-transition">
+                {isRTL ? 'بطاقة الهوية - الوجه الأمامي' : 'Carte d\'identité - Recto'}
+              </h3>
+            </div>
+            
+            {personnel.carte_identite_recto ? (
+              <div className="relative group">
+                <img 
+                  src={personnel.carte_identite_recto} 
+                  alt="Carte d'identité recto" 
+                  className="w-full h-32 object-cover rounded-lg border theme-border-primary"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => window.open(personnel.carte_identite_recto, '_blank')}
+                      className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
+                      title={isRTL ? 'عرض' : 'Voir'}
+                    >
+                      <Eye className="h-4 w-4 text-gray-700" />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = personnel.carte_identite_recto!;
+                        link.download = `carte_identite_recto_${personnel.nom}_${personnel.prenom}.jpg`;
+                        link.click();
+                      }}
+                      className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
+                      title={isRTL ? 'تحميل' : 'Télécharger'}
+                    >
+                      <Download className="h-4 w-4 text-gray-700" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-lg border theme-border-primary flex items-center justify-center">
+                <div className="text-center">
+                  <IdCard className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm theme-text-tertiary theme-transition">
+                    {isRTL ? 'لا توجد صورة' : 'Aucune image'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Carte d'identité verso */}
+          <div className="space-y-3">
+            <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''} mb-3`}>
+              <IdCard className={`h-5 w-5 text-primary-600 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              <h3 className="text-sm font-medium theme-text-primary theme-transition">
+                {isRTL ? 'بطاقة الهوية - الوجه الخلفي' : 'Carte d\'identité - Verso'}
+              </h3>
+            </div>
+            
+            {personnel.carte_identite_verso ? (
+              <div className="relative group">
+                <img 
+                  src={personnel.carte_identite_verso} 
+                  alt="Carte d'identité verso" 
+                  className="w-full h-32 object-cover rounded-lg border theme-border-primary"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => window.open(personnel.carte_identite_verso, '_blank')}
+                      className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
+                      title={isRTL ? 'عرض' : 'Voir'}
+                    >
+                      <Eye className="h-4 w-4 text-gray-700" />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = personnel.carte_identite_verso!;
+                        link.download = `carte_identite_verso_${personnel.nom}_${personnel.prenom}.jpg`;
+                        link.click();
+                      }}
+                      className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
+                      title={isRTL ? 'تحميل' : 'Télécharger'}
+                    >
+                      <Download className="h-4 w-4 text-gray-700" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-lg border theme-border-primary flex items-center justify-center">
+                <div className="text-center">
+                  <IdCard className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm theme-text-tertiary theme-transition">
+                    {isRTL ? 'لا توجد صورة' : 'Aucune image'}
+                  </p>
+                </div>
+              </div>
             )}
           </div>
         </div>

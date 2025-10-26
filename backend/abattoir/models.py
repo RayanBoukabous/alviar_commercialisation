@@ -170,6 +170,53 @@ class HistoriqueChambreFroide(models.Model):
         return "Système"
 
 
+class HistoriqueStabulation(models.Model):
+    """Modèle pour l'historique des modifications de stabulation"""
+    
+    stabulation = models.ForeignKey(
+        'Stabulation',
+        on_delete=models.CASCADE,
+        related_name='historique',
+        verbose_name=_('Stabulation')
+    )
+    
+    utilisateur = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name=_('Utilisateur')
+    )
+    
+    champ_modifie = models.CharField(
+        max_length=100,
+        verbose_name=_('Champ modifié')
+    )
+    
+    ancienne_valeur = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('Ancienne valeur')
+    )
+    
+    nouvelle_valeur = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('Nouvelle valeur')
+    )
+    
+    date_modification = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Date de modification')
+    )
+    
+    class Meta:
+        verbose_name = _('Historique de stabulation')
+        verbose_name_plural = _('Historiques de stabulation')
+        ordering = ['-date_modification']
+    
+    def __str__(self):
+        return f"{self.stabulation.numero_stabulation} - {self.champ_modifie} - {self.utilisateur.username}"
+
+
 class Stabulation(models.Model):
     """Modèle pour gérer les bêtes en stabulation dans les abattoirs"""
     
@@ -261,6 +308,48 @@ class Stabulation(models.Model):
         related_name='stabulations_created',
         verbose_name=_('Créé par'),
         help_text=_('Utilisateur qui a créé cette stabulation')
+    )
+    
+    # Suivi des actions
+    annule_par = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stabulations_annulees',
+        verbose_name=_('Annulé par'),
+        help_text=_('Utilisateur qui a annulé cette stabulation')
+    )
+    
+    date_annulation = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Date d\'annulation'),
+        help_text=_('Date et heure de l\'annulation de la stabulation')
+    )
+    
+    raison_annulation = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('Raison d\'annulation'),
+        help_text=_('Raison de l\'annulation de la stabulation')
+    )
+    
+    finalise_par = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stabulations_finalisees',
+        verbose_name=_('Finalisé par'),
+        help_text=_('Utilisateur qui a finalisé cette stabulation')
+    )
+    
+    date_finalisation = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Date de finalisation'),
+        help_text=_('Date et heure de la finalisation de la stabulation')
     )
     
     class Meta:
@@ -389,7 +478,7 @@ class Stabulation(models.Model):
     
     def peut_ajouter_betes_type(self, nombre, type_bete):
         """Vérifie si on peut ajouter un nombre donné de bêtes d'un type spécifique"""
-        if type_bete != self.type_bete:
+        if type_bete.upper() != self.type_bete.upper():
             return False
         
         # Vérifier la capacité selon le type
@@ -410,41 +499,86 @@ class Stabulation(models.Model):
         return places_disponibles_type >= nombre and self.statut == 'EN_COURS'
     
     def ajouter_betes(self, betes_list):
-        """Ajoute des bêtes à la stabulation avec vérification par type"""
+        """Ajoute des bêtes à la stabulation et met à jour leur statut"""
         if not betes_list:
             return True
         
-        # Vérifier que toutes les bêtes sont du même type que la stabulation
-        for bete in betes_list:
-            if bete.espece.nom.upper() != self.type_bete:
-                return False
+        # Ajouter la relation
+        self.betes.add(*betes_list)
         
-        # Vérifier la capacité selon le type
-        if self.peut_ajouter_betes_type(len(betes_list), self.type_bete):
-            self.betes.add(*betes_list)
-            return True
-        return False
+        # IMPORTANT: Mettre les bêtes au statut EN_STABULATION
+        from bete.models import Bete
+        Bete.objects.filter(id__in=[b.id for b in betes_list]).update(statut='EN_STABULATION')
+        
+        return True
     
     def retirer_betes(self, betes_list):
-        """Retire des bêtes de la stabulation"""
+        """Retire des bêtes de la stabulation et les remet au statut VIVANT"""
+        # Retirer la relation
         self.betes.remove(*betes_list)
+        
+        # IMPORTANT: Remettre les bêtes au statut VIVANT
+        from bete.models import Bete
+        Bete.objects.filter(id__in=[b.id for b in betes_list]).update(statut='VIVANT')
     
     def vider_stabulation(self):
         """Vide complètement la stabulation"""
         self.betes.clear()
     
     def terminer_stabulation(self):
-        """Termine la stabulation"""
+        """Termine la stabulation et met toutes les bêtes au statut ABATTU"""
         if self.statut == 'EN_COURS':
             from django.utils import timezone
+            from bete.status_manager import BeteStatusManager
+            
+            # CRITIQUE: Utiliser le gestionnaire unifié pour éviter les conflits
+            result = BeteStatusManager.finalize_stabulation_betes(
+                stabulation_id=self.id,
+                user=None  # Pas d'utilisateur dans le modèle
+            )
+            
+            if not result['success']:
+                raise ValueError(f"Erreur lors de la finalisation des bêtes: {result['error']}")
+            
+            # Maintenant changer le statut de la stabulation
             self.statut = 'TERMINE'
             self.date_fin = timezone.now()
             self.save()
     
-    def annuler_stabulation(self):
-        """Annule la stabulation"""
+    def annuler_stabulation(self, utilisateur=None, raison=None):
+        """Annule la stabulation et remet les bêtes au statut VIVANT"""
         if self.statut == 'EN_COURS':
             from django.utils import timezone
+            from bete.status_manager import BeteStatusManager
+            
+            # CRITIQUE: Utiliser le gestionnaire unifié pour éviter les conflits
+            result = BeteStatusManager.cancel_stabulation_betes(
+                stabulation_id=self.id,
+                user=utilisateur
+            )
+            
+            if not result['success']:
+                raise ValueError(f"Erreur lors de l'annulation des bêtes: {result['error']}")
+            
+            # Maintenant changer le statut de la stabulation
             self.statut = 'ANNULE'
             self.date_fin = timezone.now()
+            
+            # Enregistrer qui a annulé et pourquoi
+            if utilisateur:
+                self.annule_par = utilisateur
+            if raison:
+                self.raison_annulation = raison
+            self.date_annulation = timezone.now()
+            
             self.save()
+    
+    def enregistrer_modification(self, utilisateur, champ, ancienne_valeur, nouvelle_valeur):
+        """Enregistre une modification dans l'historique"""
+        HistoriqueStabulation.objects.create(
+            stabulation=self,
+            utilisateur=utilisateur,
+            champ_modifie=champ,
+            ancienne_valeur=str(ancienne_valeur) if ancienne_valeur is not None else '',
+            nouvelle_valeur=str(nouvelle_valeur) if nouvelle_valeur is not None else ''
+        )
